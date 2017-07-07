@@ -248,67 +248,67 @@ typeOfUnpack ix t
 instance Pretty Prim where
  pretty (PrimMinimal m) = pretty m
 
- pretty (PrimProject (PrimProjectArrayLength a))
-  = annotate (AnnType a) "Array_length#"
+ pretty (PrimProject (PrimProjectArrayLength _a))
+  = "Array_length#"
  pretty (PrimProject (PrimProjectOptionIsSome a))
   = text "Option_isSome#" <+> brackets (pretty a)
- pretty (PrimProject (PrimProjectSumIsRight a b))
-  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Sum_isRight#"
+ pretty (PrimProject (PrimProjectSumIsRight _a _b))
+  = "Sum_isRight#"
 
 
- pretty (PrimUnsafe (PrimUnsafeArrayIndex a))
-  = annotate (AnnType a) "unsafe_Array_index#"
+ pretty (PrimUnsafe (PrimUnsafeArrayIndex _a))
+  = "unsafe_Array_index#"
 
- pretty (PrimUnsafe (PrimUnsafeArrayCreate a))
-  = annotate (AnnType a) "unsafe_Array_create#"
+ pretty (PrimUnsafe (PrimUnsafeArrayCreate _a))
+  = "unsafe_Array_create#"
 
- pretty (PrimUnsafe (PrimUnsafeOptionGet a))
-  = annotate (AnnType a) "unsafe_Option_get#"
+ pretty (PrimUnsafe (PrimUnsafeOptionGet _a))
+  = "unsafe_Option_get#"
 
- pretty (PrimUnsafe (PrimUnsafeSumGetLeft a b))
-  = annotate (AnnType $ (pretty a) <.> (pretty b)) "unsafe_Sum_left#"
+ pretty (PrimUnsafe (PrimUnsafeSumGetLeft _a _b))
+  = "unsafe_Sum_left#"
 
- pretty (PrimUnsafe (PrimUnsafeSumGetRight a b))
-  = annotate (AnnType $ (pretty a) <.> (pretty b)) "unsafe_Sum_right#"
-
-
- pretty (PrimArray (PrimArrayZip a b))
-  = annotate (AnnType $ (pretty a) <.> (pretty b)) "Array_zip#"
-
- pretty (PrimArray (PrimArrayPutMutable a))
-  = annotate (AnnType a) "Array_put_mutable#"
-
- pretty (PrimArray (PrimArrayPutImmutable a))
-  = annotate (AnnType a) "Array_put_immutable#"
-
- pretty (PrimArray (PrimArraySwap a))
-  = annotate (AnnType a) "Array_elem_swap#"
-
- pretty (PrimArray (PrimArrayDel a))
-  = annotate (AnnType a) "Array_elem_delete#"
+ pretty (PrimUnsafe (PrimUnsafeSumGetRight _a _b))
+  = "unsafe_Sum_right#"
 
 
- pretty (PrimMelt (PrimMeltPack t))
-  = annotate (AnnType t) "Melt_pack#"
+ pretty (PrimArray (PrimArrayZip _a _b))
+  = "Array_zip#"
 
- pretty (PrimMelt (PrimMeltUnpack i t))
-  = annotate (AnnType (typeOfUnpack i t)) ("Melt_unpack" <> int i <> "#")
+ pretty (PrimArray (PrimArrayPutMutable _a))
+  = "Array_put_mutable#"
+
+ pretty (PrimArray (PrimArrayPutImmutable _a))
+  = "Array_put_immutable#"
+
+ pretty (PrimArray (PrimArraySwap _a))
+  = "Array_elem_swap#"
+
+ pretty (PrimArray (PrimArrayDel _a))
+  = "Array_elem_delete#"
 
 
- pretty (PrimMap (PrimMapPack a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_pack#"
+ pretty (PrimMelt (PrimMeltPack _t))
+  = "Melt_pack#"
 
- pretty (PrimMap (PrimMapUnpackKeys a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_unpack_keys#"
- pretty (PrimMap (PrimMapUnpackValues a b))
-  = annotate (AnnType $ (pretty a) <+> (pretty b)) "Map_unpack_values#"
+ pretty (PrimMelt (PrimMeltUnpack i _t))
+  = "Melt_unpack" <> int i <> "#"
 
 
- pretty (PrimBuf    (PrimBufMake i t))
-  = annotate (AnnType (BufT i t)) "Buf_make#"
+ pretty (PrimMap (PrimMapPack _a _b))
+  = "Map_pack#"
 
- pretty (PrimBuf    (PrimBufPush i t))
-  = annotate (AnnType (BufT i t)) "Buf_push#"
+ pretty (PrimMap (PrimMapUnpackKeys _a _b))
+  = "Map_unpack_keys#"
+ pretty (PrimMap (PrimMapUnpackValues _a _b))
+  = "Map_unpack_values#"
 
- pretty (PrimBuf    (PrimBufRead _ t))
-  = annotate (AnnType (ArrayT t)) "Buf_read#"
+
+ pretty (PrimBuf    (PrimBufMake _i _t))
+  = "Buf_make#"
+
+ pretty (PrimBuf    (PrimBufPush _i _t))
+  = "Buf_push#"
+
+ pretty (PrimBuf    (PrimBufRead _ _t))
+  = "Buf_read#"

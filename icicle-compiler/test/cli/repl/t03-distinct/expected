@@ -1,25 +1,39 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> -- Distinct by value. Expect 5 and 3
-> - Core evaluation:
-[homer, 5,marge, 3]
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ -- Distinct by value. Expect 5 and 3
+λ Core evaluation
+---------------
 
-> > -- Distinct by time. Expect 5 and 1
-> - Core evaluation:
-[homer, 5,marge, 1]
+homer|5
+marge|3
 
-> > -- Average of distincts. That is, find the *first* for each time, and average all lasts
-> - Core evaluation:
-[homer, 300.0,marge, 0.0]
+λ λ -- Distinct by time. Expect 5 and 1
+λ Core evaluation
+---------------
 
-> > -- Distinct location and count. Expect 3
-> - Core evaluation:
-[homer, 3]
+homer|5
+marge|1
 
-> > -- Expect CannotCompute - exceeds map size
-> ok, max-map-size set to 2
-> - Core evaluation:
-[homer, tombstone]
+λ λ -- Average of distincts. That is, find the *first* for each time, and average all lasts
+λ Core evaluation
+---------------
 
-> 
+homer|300.0
+marge|0.0
+
+λ λ -- Distinct location and count. Expect 3
+λ Core evaluation
+---------------
+
+homer|3
+
+λ λ -- Expect CannotCompute - exceeds map size
+λ OK, the maximum map size has been set to 2 elements.
+λ Core evaluation
+---------------
+
+homer|tombstone
+
+λ 

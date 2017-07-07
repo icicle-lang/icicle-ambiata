@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -39,6 +40,8 @@ import           Foreign.ForeignPtr (newForeignPtr_)
 import           Foreign.Ptr (Ptr, plusPtr)
 import           Foreign.Storable (Storable(..))
 
+import           GHC.Generics (Generic)
+
 import qualified Icicle.Avalanche.Prim.Flat as Avalanche
 import qualified Icicle.Avalanche.Program as Avalanche
 import           Icicle.Common.Annot (Annot)
@@ -65,6 +68,7 @@ import           System.IO (IO)
 
 import           X.Control.Monad.Trans.Either (EitherT, hoistEither, left)
 import qualified X.Data.Vector.Cons as Cons
+import           X.Text.Show (gshowsPrec)
 
 
 data RuntimeError =
@@ -74,6 +78,7 @@ data RuntimeError =
   | RuntimeSchemaError !SchemaError
   | RuntimeStripedError !StripedError
   | RuntimeInputCountMismatch !Int !Int
+  | RuntimeInputSchemaMismatch !Schema !Schema
   | RuntimeClusterHadNoOutputs !ClusterId
   | RuntimeExpectedStructOutput !Schema
   | RuntimeInvalidOutputId !Text
@@ -84,12 +89,12 @@ data AvalancheContext a n =
   AvalancheContext {
       avalancheFingerprint :: !Fingerprint
     , avalanchePrograms :: !(Map InputId (NonEmpty (Avalanche.Program (Annot a) n Avalanche.Prim)))
-    }
+    } deriving (Eq, Show)
 
 data SeaContext =
   SeaContext {
       seaCode :: !Text
-    }
+    } deriving (Eq, Show)
 
 data Runtime =
   Runtime {
@@ -97,11 +102,18 @@ data Runtime =
     , runtimeClusters :: !(Map InputId (Cluster ClusterInfo KernelIO))
     }
 
+instance Show Runtime where
+ showsPrec p (Runtime _ clusters) =
+   showParen (p > 10) $
+     showString "Runtime " .
+     showsPrec 11 clusters
+
 data ClusterInfo =
   ClusterInfo {
       clusterStateSize :: !Int64
+    , clusterInputSchema :: !Schema
     , clusterOutputSchema :: !Schema
-    }
+    } deriving (Eq, Show)
 
 data KernelIO =
   KernelIO {
@@ -110,15 +122,31 @@ data KernelIO =
     , kernelCount :: !OutputCount
     }
 
+instance Show KernelIO where
+ showsPrec p (KernelIO _ off len) =
+   showParen (p > 10) $
+     showString "KernelIO " .
+     showsPrec 11 off .
+     showChar ' ' .
+     showsPrec 11 len
+
 newtype OutputOffset =
   OutputOffset {
       _unOutputOffset :: Int
-    } deriving (Num)
+    } deriving (Eq, Generic, Num)
+
+instance Show OutputOffset where
+  showsPrec =
+    gshowsPrec
 
 newtype OutputCount =
   OutputCount {
       _unOutputCount :: Int
-    } deriving (Num)
+    } deriving (Eq, Generic, Num)
+
+instance Show OutputCount where
+  showsPrec =
+    gshowsPrec
 
 -- typedef struct {
 --     /* runtime */
@@ -163,7 +191,7 @@ newtype OutputCount =
 --     ..
 -- }
 
-resolveKernelIO :: Jetski.Library -> Kernel a -> StateT OutputOffset (EitherT RuntimeError IO) (Kernel KernelIO)
+resolveKernelIO :: MonadIO m => Jetski.Library -> Kernel a -> StateT OutputOffset (EitherT RuntimeError m) (Kernel KernelIO)
 resolveKernelIO library kernel = do
   compute <- lift . firstT RuntimeJetskiError $
     Jetski.function library (Sea.nameOfKernel kernel) Jetski.retVoid
@@ -223,7 +251,7 @@ resolveClusterSchema c = do
         fmap (uncurry fromOutputField) $
         Cons.fromNonEmpty (x :| xs)
 
-resolveClusterKernelIO :: Jetski.Library -> Cluster c k -> EitherT RuntimeError IO (Cluster ClusterInfo KernelIO)
+resolveClusterKernelIO :: MonadIO m => Jetski.Library -> Cluster c k -> EitherT RuntimeError m (Cluster ClusterInfo KernelIO)
 resolveClusterKernelIO library cluster = do
   let
     outputStart =
@@ -237,11 +265,12 @@ resolveClusterKernelIO library cluster = do
 
   size <- liftIO $ sizeOfState []
 
-  schema <- hoistEither $ resolveClusterSchema cluster
+  ischema <- hoistEither . first RuntimeSchemaError . Schema.fromValType $ clusterInputType cluster
+  oschema <- hoistEither $ resolveClusterSchema cluster
 
   let
     info =
-      ClusterInfo size schema
+      ClusterInfo size ischema oschema
 
   pure $
     cluster {
@@ -252,7 +281,7 @@ resolveClusterKernelIO library cluster = do
           info
       }
 
-compileAvalanche :: (Show a, Show n, Pretty n, Eq n) => AvalancheContext a n -> EitherT RuntimeError IO SeaContext
+compileAvalanche :: (Show a, Show n, Pretty n, Eq n) => AvalancheContext a n -> Either RuntimeError SeaContext
 compileAvalanche context =
   let
     fingerprint =
@@ -261,17 +290,24 @@ compileAvalanche context =
     programs =
       Map.toList $ avalanchePrograms context
   in
-    fmap SeaContext . hoistEither . first RuntimeSeaError $
+    fmap SeaContext . first RuntimeSeaError $
       Sea.codeOfPrograms fingerprint Sea.NoInput [] programs
 
-compileSea :: SeaContext -> EitherT RuntimeError IO Runtime
-compileSea context = do
+fromUseJetskiCache :: UseJetskiCache -> Jetski.CacheLibrary
+fromUseJetskiCache = \case
+  SkipJetskiCache ->
+    Jetski.NoCacheLibrary
+  UseJetskiCache ->
+    Jetski.CacheLibrary
+
+compileSea :: MonadIO m => UseJetskiCache -> SeaContext -> EitherT RuntimeError m Runtime
+compileSea cache context = do
   options <- Sea.getCompilerOptions
   (header, code) <- hoistEither . first RuntimeHeaderError . parseHeader $ seaCode context
 
   library <-
     firstT RuntimeJetskiError $
-      Jetski.compileLibrary Jetski.CacheLibrary options code
+      Jetski.compileLibrary (fromUseJetskiCache cache) options code
 
   clusters0 <- traverse (resolveClusterKernelIO library) (headerClusters header)
 
@@ -317,69 +353,77 @@ clusterSnapshot cluster maxMapSize stime input =
     size =
       clusterStateSize $ clusterAnnotation cluster
 
+    expectedInputSchema =
+      clusterInputSchema $ clusterAnnotation cluster
+
     outputSchema =
       clusterOutputSchema $ clusterAnnotation cluster
 
-    inputPair =
+    inputData =
       Striped.Pair
         (inputColumn input)
         (Striped.Time (inputTime input))
 
+    inputSchema =
+      Striped.schema inputData
+
     !clusterInputCount =
       length (clusterInputVars cluster)
   in
-    bracket (liftIO Mempool.create) (liftIO . Mempool.free) $ \pool -> do
-      arrays <- bimapT RuntimeStripedError Boxed.fromList $
-        Striped.toArrays pool inputPair
+    if inputSchema /= expectedInputSchema then
+      left $ RuntimeInputSchemaMismatch expectedInputSchema inputSchema
+    else
+      bracket (liftIO Mempool.create) (liftIO . Mempool.free) $ \pool -> do
+        arrays <- bimapT RuntimeStripedError Boxed.fromList $
+          Striped.toArrays pool inputData
 
-      let
-        !n_arrays =
-          Boxed.length arrays
+        let
+          !n_arrays =
+            Boxed.length arrays
 
-      when (clusterInputCount /= n_arrays) $
-        left $ RuntimeInputCountMismatch clusterInputCount n_arrays
+        when (clusterInputCount /= n_arrays) $
+          left $ RuntimeInputCountMismatch clusterInputCount n_arrays
 
-      pState <- liftIO $ Mempool.callocBytes pool (fromIntegral size) 1
+        let
+          loop (!offset0, dl) !ncount = do
+            pState <- liftIO $ Mempool.callocBytes pool (fromIntegral size) 1
+            pokeWordOff pState Offset.programMempool pool
+            pokeWordOff pState Offset.programMaxMapSize maxMapSize
+            pokeWordOff pState Offset.programInputQueryTime stime
+            pokeWordOff pState Offset.programInputNewCount (ncount :: Int64)
 
-      let
-        loop (!offset0, dl) !ncount = do
-          pokeWordOff pState Offset.programMempool pool
-          pokeWordOff pState Offset.programMaxMapSize maxMapSize
-          pokeWordOff pState Offset.programInputQueryTime stime
-          pokeWordOff pState Offset.programInputNewCount (ncount :: Int64)
-
-          flip Boxed.imapM_ arrays $ \ix array ->
-            let
-              !ptr =
-                Array.unsafeElementPtr array `plusPtr` offset0
-            in
-              pokeWordOff pState (Offset.programInputError + ix) ptr
-
-          let
-            !offset =
-              offset0 + fromIntegral ncount * 8
-
-          outputs <-
-            liftIO . fmap concat . for (clusterKernels cluster) $ \kernel -> do
+            flip Boxed.imapM_ arrays $ \ix array ->
               let
-                kio =
-                  kernelAnnotation kernel
+                !ptr =
+                  Array.unsafeElementPtr array `plusPtr` offset0
+              in
+                pokeWordOff pState (Offset.programInputError + ix) ptr
 
-              kernelIO kio pState
-              peekOutputs pState (kernelOffset kio) (kernelCount kio)
+            let
+              !offset =
+                offset0 + fromIntegral ncount * 8
 
-          column <- firstT RuntimeStripedError $ Striped.fromAnys pool outputSchema outputs
+            outputs <-
+              liftIO . fmap concat . for (clusterKernels cluster) $ \kernel -> do
+                let
+                  kio =
+                    kernelAnnotation kernel
 
-          pure (offset, dl . (column :))
+                kernelIO kio pState
+                peekOutputs pState (kernelOffset kio) (kernelCount kio)
 
-      (_, dl) <- Storable.foldM loop (0, id) (inputLength input)
+            column <- firstT RuntimeStripedError $ Striped.fromAnys pool outputSchema outputs
 
-      case Cons.fromList $ dl [] of
-        Nothing ->
-          left $ RuntimeClusterHadNoOutputs (clusterId cluster)
-        Just xss0 -> do
-          xss <- hoistEither . first RuntimeStripedError $ Striped.unsafeConcat xss0
-          hoistEither $ mkOutputColumns xss
+            pure (offset, dl . (column :))
+
+        (_, dl) <- Storable.foldM loop (0, id) (inputLength input)
+
+        case Cons.fromList $ dl [] of
+          Nothing ->
+            left $ RuntimeClusterHadNoOutputs (clusterId cluster)
+          Just xss0 -> do
+            xss <- hoistEither . first RuntimeStripedError $ Striped.unsafeConcat xss0
+            hoistEither $ mkOutputColumns xss
 
 snapshot :: Runtime -> MaximumMapSize -> SnapshotTime -> Input -> EitherT RuntimeError IO (Output SnapshotKey)
 snapshot runtime maxsize stime input =

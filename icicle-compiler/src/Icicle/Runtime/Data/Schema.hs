@@ -8,6 +8,9 @@ module Icicle.Runtime.Data.Schema (
   , fromValType
   , toValType
 
+  , toEncoding
+  , toFieldEncoding
+
   , SchemaError(..)
   , renderSchemaError
   ) where
@@ -18,6 +21,7 @@ import qualified Data.Vector as Boxed
 import           GHC.Generics (Generic)
 
 import           Icicle.Common.Type
+import qualified Icicle.Data.Fact as Fact
 import           Icicle.Runtime.Data.Primitive
 
 import           P hiding (Sum)
@@ -50,7 +54,13 @@ data SchemaError =
   | SchemaFoundStandloneError
   | SchemaFoundFactIdentifier
   | SchemaFoundBuf !Int !ValType
-    deriving (Eq, Show)
+  | SchemaEncodingUnit
+  | SchemaEncodingSum !Schema !Schema
+  | SchemaEncodingOption !Schema
+  | SchemaEncodingResult !Schema
+  | SchemaEncodingPair !Schema !Schema
+  | SchemaEncodingMap !Schema !Schema
+    deriving (Eq, Ord, Show)
 
 renderSchemaError :: SchemaError -> Text
 renderSchemaError = \case
@@ -62,6 +72,18 @@ renderSchemaError = \case
     "Found illegal fact identifier error when converting ValType to Schema"
   SchemaFoundBuf _n _t ->
     "Found illegal buffer error when converting ValType to Schema"
+  SchemaEncodingUnit ->
+    "Found Unit when converting Schema to Encoding"
+  SchemaEncodingSum _ _ ->
+    "Found Sum when converting Schema to Encoding"
+  SchemaEncodingOption _ ->
+    "Found Option when converting Schema to Encoding"
+  SchemaEncodingResult _ ->
+    "Found Result when converting Schema to Encoding"
+  SchemaEncodingPair _ _ ->
+    "Found Pair when converting Schema to Encoding"
+  SchemaEncodingMap _ _ ->
+    "Found Map when converting Schema to Encoding"
 
 fromValType :: ValType -> Either SchemaError Schema
 fromValType = \case
@@ -139,3 +161,42 @@ toValType = \case
     ArrayT (toValType x)
   Map k v ->
     MapT (toValType k) (toValType v)
+
+toFieldEncoding :: Text -> Schema -> Either SchemaError Fact.StructField
+toFieldEncoding name = \case
+  Option x ->
+    Fact.StructField Fact.Optional name <$> toEncoding x
+  x ->
+    Fact.StructField Fact.Mandatory name <$> toEncoding x
+
+toEncoding :: Schema -> Either SchemaError Fact.Encoding
+toEncoding = \case
+  Unit ->
+    Left SchemaEncodingUnit
+  Bool ->
+    pure Fact.BooleanEncoding
+  Int ->
+    pure Fact.IntEncoding
+  Double ->
+    pure Fact.DoubleEncoding
+  Time ->
+    pure Fact.TimeEncoding
+
+  Sum x y ->
+    Left $ SchemaEncodingSum x y
+  Option x ->
+    Left $ SchemaEncodingOption x
+  Result x ->
+    Left $ SchemaEncodingResult x
+
+  Pair x y ->
+    Left $ SchemaEncodingPair x y
+  Struct fields ->
+    Fact.StructEncoding <$> traverse (\(Field k v) -> toFieldEncoding k v) (Cons.toList fields)
+
+  String ->
+    pure Fact.StringEncoding
+  Array x ->
+    Fact.ListEncoding <$> toEncoding x
+  Map k v ->
+    Left $ SchemaEncodingMap k v

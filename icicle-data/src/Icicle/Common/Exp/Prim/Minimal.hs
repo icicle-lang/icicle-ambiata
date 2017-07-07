@@ -256,10 +256,10 @@ instance Pretty PrimLogical where
  pretty PrimLogicalOr    = "or#"
 
 instance Pretty PrimConst where
- pretty (PrimConstPair a b)  = annotateTypeArgs [a,b] "pair#"
- pretty (PrimConstSome t)    = annotate (AnnType t)   "some#"
- pretty (PrimConstLeft  a b) = annotateTypeArgs [a,b] "left#"
- pretty (PrimConstRight a b) = annotateTypeArgs [a,b] "right#"
+ pretty (PrimConstPair _a _b)  = "pair#"
+ pretty (PrimConstSome _t)     = "some#"
+ pretty (PrimConstLeft  _a _b) = "left#"
+ pretty (PrimConstRight _a _b) = "right#"
 
 instance Pretty PrimTime where
  pretty PrimTimeDaysDifference     = "Time_daysDifference#"
@@ -274,16 +274,16 @@ instance Pretty PrimTime where
  pretty PrimTimeProjectYear        = "Time_projectYear"
 
 instance Pretty PrimPair where
- pretty (PrimPairFst a b) = annotateTypeArgs [a,b] "fst#"
- pretty (PrimPairSnd a b) = annotateTypeArgs [a,b] "snd#"
+ pretty (PrimPairFst _a _b) = "fst#"
+ pretty (PrimPairSnd _a _b) = "snd#"
 
 instance Pretty PrimStruct where
- pretty (PrimStructGet f t fs) = annotateTypeArgs [pretty f, pretty t, pretty fs] "get#"
+ pretty (PrimStructGet f _t _fs) = "get_" <> pretty f <> "#"
 
 instance Pretty Prim where
- pretty (PrimArithUnary  p t) = annotateArithType t  $ pretty p
- pretty (PrimArithBinary p t) = annotateArithType t  $ pretty p
- pretty (PrimRelation    p t) = annotateTypeArgs [t] $ pretty p
+ pretty (PrimArithUnary  p _t) = pretty p
+ pretty (PrimArithBinary p _t) = pretty p
+ pretty (PrimRelation    p _t) = pretty p
  pretty (PrimToString    p)   = pretty p
  pretty (PrimLogical     p)   = pretty p
  pretty (PrimConst       p)   = pretty p
@@ -291,6 +291,3 @@ instance Pretty Prim where
  pretty (PrimPair        p)   = pretty p
  pretty (PrimStruct      p)   = pretty p
  pretty (PrimBuiltinFun  p)   = pretty p
-
-annotateArithType :: ArithType -> Doc -> Doc
-annotateArithType t = annotate (AnnType (valTypeOfArithType t))

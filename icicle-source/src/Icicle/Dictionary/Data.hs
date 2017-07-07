@@ -10,6 +10,7 @@ module Icicle.Dictionary.Data (
   , DictionaryFunction(..)
   , InputKey(..)
   , AnnotSource
+  , emptyDictionary
   , mapOfInputs
   , mapOfOutputs
   , unkeyed
@@ -32,15 +33,16 @@ import           Icicle.Source.Query (Function (..), QueryTop (..))
 import qualified Icicle.Source.Query                as SQ
 import           Icicle.Source.Lexer.Token
 import qualified Icicle.Source.Type                 as ST
-import           Icicle.Source.ToCore.Context (FeatureVariable (..)) 
+import           Icicle.Source.ToCore.Context (FeatureVariable (..))
 import qualified Icicle.Source.ToCore.Context       as STC
 
 import           Icicle.Encoding
 
 import           Icicle.Internal.Pretty
 
+import qualified Data.List as List
 import           Data.Map (Map)
-import qualified Data.Map                           as Map
+import qualified Data.Map as Map
 import           Data.Set (Set)
 import           Data.String
 
@@ -91,6 +93,10 @@ unkeyed = InputKey Nothing
 tombstonesOfDictionary :: Dictionary -> Map InputId (Set Text)
 tombstonesOfDictionary =
   fmap inputTombstones . dictionaryInputs
+
+emptyDictionary :: Dictionary
+emptyDictionary =
+  Dictionary Map.empty Map.empty []
 
 mapOfInputs :: [DictionaryInput] -> Map InputId DictionaryInput
 mapOfInputs =
@@ -229,28 +235,41 @@ featureMapOfDictionary (Dictionary { dictionaryInputs = ds, dictionaryFunctions 
   var = nameOf . NameBase . Variable
 
 prettyDictionarySummary :: Dictionary -> Doc
-prettyDictionarySummary dict
- = "Dictionary" <> line
- <> indent 2
- (  "Functions" <> line
- <> indent 2 (vcat $ (pprInbuilt <$> SQ.listOfBuiltinFuns) <> (pprFun <$> dictionaryFunctions dict))
- <> line
- <> "Inputs" <> line
- <> indent 2 (vcat $ fmap pprInput $ Map.elems $ dictionaryInputs dict)
- <> "Outputs" <> line
- <> indent 2 (vcat $ fmap pprOutput $ Map.elems $ dictionaryOutputs dict))
+prettyDictionarySummary dict =
+  vsep [
+      prettyH2 "Functions"
+    , indent 2 . vsep . List.intersperse mempty $
+        (pprInbuilt <$> SQ.listOfBuiltinFuns) <>
+        (pprFun <$> dictionaryFunctions dict)
+    , mempty
+    , prettyH2 "Inputs"
+    , indent 2 . vsep . List.intersperse mempty $
+        fmap pprInput .
+        Map.elems $ dictionaryInputs dict
+    , mempty
+    , prettyH2 "Outputs"
+    , indent 2 . vsep . List.intersperse mempty $
+        fmap pprOutput .
+        Map.elems $ dictionaryOutputs dict
+    ]
  where
-  pprInput (DictionaryInput attr enc _ key)
-   = padDoc 20 (pretty attr) <> " by " <> pretty key <> " : " <> pretty enc
+  pprInput (DictionaryInput attr enc _ (InputKey mkey)) =
+    case mkey of
+      Nothing ->
+        prettyTyped (annotate AnnBinding $ pretty attr) $
+          align (pretty enc)
+      Just key ->
+        prettyTyped (annotate AnnBinding (pretty attr) <+> prettyKeyword "by" <+> annotate AnnVariable (pretty key)) $
+          align (pretty enc)
 
   pprOutput (DictionaryOutput attr q)
-   = padDoc 20 (pretty attr) <> " = " <> indent 0 (pretty q)
+   = prettyBinding (pretty attr) $ pretty q
 
   pprFun (DictionaryFunction f t _)
-   = padDoc 20 (pretty f) <> " : " <> ST.prettyFunWithLetters t
+   = prettyTyped (pretty f) $ align (ST.prettyFunWithLetters t)
 
   pprInbuilt f
-   = padDoc 20 (annotate AnnVariable $ pretty f) <> " : " <> (prettyInbuiltType f)
+   = prettyTyped (pretty f) $ align (prettyInbuiltType f)
 
   prettyInbuiltType
    = ST.prettyFunWithLetters

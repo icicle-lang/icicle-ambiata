@@ -2,6 +2,7 @@
 -- In Source, we need to infer which stage of the computation,
 -- so each type is tagged with a universe describing the stage.
 --
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
@@ -13,6 +14,7 @@ module Icicle.Source.Type.Base (
   , FunctionType(..)
   , Annot (..)
   , annotDiscardConstraints
+  , prettyFun
   ) where
 
 import                  Icicle.Common.Base
@@ -22,7 +24,6 @@ import                  Icicle.Internal.Pretty
 
 import                  P
 
-import                  Data.List (intersperse)
 import qualified        Data.Map as Map
 
 data Type n
@@ -148,76 +149,104 @@ annotDiscardConstraints ann
 
 
 instance Pretty n => Pretty (Type n) where
- pretty IntT            = text "Int"
- pretty DoubleT         = text "Double"
- pretty UnitT           = text "Unit"
- pretty ErrorT          = text "ErrorT"
- pretty BoolT           = text "Bool"
- pretty TimeT           = text "Time"
- pretty StringT         = text "String"
- pretty (ArrayT t)      = parens (text "Array"  <+> pretty t)
- pretty (GroupT k v)    = parens (text "Group"  <+> pretty k <+> pretty v)
- pretty (OptionT a)     = parens (text "Option" <+> pretty a)
- pretty (PairT a b)     = text "(" <> pretty a <> text ", " <> pretty b <> text ")"
- pretty (SumT  a b)     = parens (text "Sum" <+> pretty a <+> pretty b)
- pretty (StructT fs)    = parens (text "Struct" <+> pretty (Map.toList fs))
- pretty (TypeVar v) = pretty v
+  prettyPrec p = \case
+    IntT ->
+      prettyConstructor "Int"
+    DoubleT ->
+      prettyConstructor "Double"
+    UnitT ->
+      prettyConstructor "Unit"
+    ErrorT ->
+      prettyConstructor "ErrorT"
+    BoolT ->
+      prettyConstructor "Bool"
+    TimeT ->
+      prettyConstructor "Time"
+    StringT ->
+      prettyConstructor "String"
+    ArrayT t ->
+      prettyApp hsep p (prettyConstructor "Array") [t]
+    GroupT k v ->
+      prettyApp hsep p (prettyConstructor "Group") [k, v]
+    OptionT a ->
+      prettyApp hsep p (prettyConstructor "Option") [a]
+    PairT a b ->
+      parens $
+        pretty a <> annotate AnnPunctuation (text ",") <+> pretty b
+    SumT a b ->
+      prettyApp hsep p (prettyConstructor "Sum") [a, b]
+    StructT fs ->
+      prettyStructType $ Map.toList fs
+    TypeVar v ->
+      annotate AnnVariable (pretty v)
 
- pretty (Temporality a b) = pretty a <+> pretty b
- pretty TemporalityPure   = "Pure"
- pretty TemporalityElement = "Element"
- pretty TemporalityAggregate = "Aggregate"
+    Temporality a b ->
+      prettyApp hsep p a [b]
+    TemporalityPure ->
+      prettyConstructor "Pure"
+    TemporalityElement ->
+      prettyConstructor "Element"
+    TemporalityAggregate ->
+      prettyConstructor "Aggregate"
 
- pretty (Possibility a b) = pretty a <+> pretty b
- pretty PossibilityPossibly = "Possibly"
- pretty PossibilityDefinitely = "Definitely"
+    Possibility a b ->
+      prettyApp hsep p a [b]
+    PossibilityPossibly ->
+      prettyConstructor "Possibly"
+    PossibilityDefinitely ->
+      prettyConstructor "Definitely"
 
 
 instance Pretty n => Pretty (Constraint n) where
- pretty (CEquals p q)
-  = pretty p <+> "=:" <+> pretty q
- pretty (CIsNum t)
-  = "Num" <+> pretty t
- pretty (CPossibilityOfNum ret t)
-  = pretty ret <+> "=: PossibilityOfNum" <+> pretty t
- pretty (CTemporalityJoin ret a b)
-  = pretty ret <+> "=: TemporalityJoin" <+> pretty a <+> pretty b
- pretty (CReturnOfLetTemporalities t def body)
-  = pretty t <+> "=: ReturnOfLet" <+> pretty def <+> pretty body
- pretty (CDataOfLatest t tmp pos dat)
-  = pretty t <+> "=: DataOfLatest" <+> pretty tmp <+> pretty pos <+> pretty dat
- pretty (CPossibilityOfLatest t tmp dat)
-  = pretty t <+> "=: PossibilityOfLatest" <+> pretty tmp <+> pretty dat
- pretty (CPossibilityJoin a b c)
-  = pretty a <+> "=: PossibilityJoin" <+> pretty b <+> pretty c
+  pretty = \case
+    CEquals p q ->
+      pretty p <+> prettyPunctuation "=:" <+> pretty q
 
+    CIsNum t ->
+      prettyConstructor "Num" <+> pretty t
+
+    CPossibilityOfNum ret t ->
+      pretty ret <+> prettyPunctuation "=:" <+>
+      prettyApp hsep 0 (prettyConstructor "PossibilityOfNum") [t]
+
+    CTemporalityJoin ret a b ->
+      pretty ret <+> prettyPunctuation "=:" <+>
+      prettyApp hsep 0 (prettyConstructor "TemporalityJoin") [a, b]
+
+    CReturnOfLetTemporalities t def body ->
+      pretty t <+> prettyPunctuation "=:" <+>
+      prettyApp hsep 0 (prettyConstructor "ReturnOfLet") [def, body]
+
+    CDataOfLatest t tmp pos dat ->
+      pretty t <+> prettyPunctuation "=:" <+>
+      prettyApp hsep 0 (prettyConstructor "DataOfLatest") [tmp, pos, dat]
+
+    CPossibilityOfLatest t tmp dat ->
+      pretty t <+> prettyPunctuation "=:" <+>
+      prettyApp hsep 0 (prettyConstructor "PossibilityOfLatest") [tmp, dat]
+
+    CPossibilityJoin a b c ->
+      pretty a <+> prettyPunctuation "=:" <+>
+      prettyApp hsep 0 (prettyConstructor "PossibilityJoin") [b, c]
+
+prettyFun :: Pretty n => FunctionType n -> Doc
+prettyFun fun =
+  let
+    constrs =
+      fmap (PrettyItem (prettyPunctuation "=>") . pretty)
+
+    args =
+      fmap (PrettyItem (prettyPunctuation "->") . pretty)
+  in
+    prettyItems sep (pretty $ functionReturn fun) $
+      constrs (functionConstraints fun) <>
+      args (functionArguments fun)
 
 instance Pretty n => Pretty (FunctionType n) where
- pretty fun
-  =  foralls (functionForalls       fun)
-  <> constrs (functionConstraints   fun)
-  <> args    (functionArguments     fun)
-  <> pretty  (functionReturn        fun)
-  where
-   foralls []
-    = ""
-   foralls xs
-    = "forall" <+> hsep (fmap pretty xs) <> ". "
-
-   constrs []
-    = ""
-   constrs xs
-    = tupled (fmap pretty xs) <> " => "
-
-   args xs
-    = hsep (fmap (\x -> pretty x <+> "-> ") xs)
-
+  pretty =
+    prettyFun
 
 instance (Pretty n) => Pretty (Annot a n) where
- pretty ann
-  | [] <- annConstraints ann
-  = pretty (annResult ann)
-  | otherwise
-  = "(" <> hsep (intersperse ", " $ fmap (pretty.snd) $ annConstraints ann)
-  <> ") => " <> pretty (annResult ann)
-
+  pretty ann =
+    prettyItems sep (pretty $ annResult ann) $
+      fmap (PrettyItem (prettyPunctuation "=>") . pretty . snd) (annConstraints ann)

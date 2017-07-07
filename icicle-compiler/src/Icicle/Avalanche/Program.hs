@@ -84,9 +84,15 @@ renameProgram f p
 -- Pretty printing -------------
 
 instance (Pretty n, Pretty p) => Pretty (Program a n p) where
- pretty p
-  =   pretty (bindtime   p) <> text " = TIME" <> line
-  <>  pretty (maxMapSize p) <> text " = MAX_MAP_SIZE" <> line
-  <>  pretty (statements p)
-
+  pretty p =
+    vsep [
+        prettyBinding
+          (prettyTyped (pretty $ bindtime p) (pretty TimeT))
+          (annotate AnnConstant $ text "TIME")
+      , prettyBinding
+          (prettyTyped (pretty $ maxMapSize p) (pretty IntT))
+          (annotate AnnConstant $ text "MAX_MAP_SIZE")
+      , mempty
+      , pretty (statements p)
+      ]
 

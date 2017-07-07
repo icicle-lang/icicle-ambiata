@@ -1,11 +1,11 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> ok, loaded dictionary with 2 inputs, 0 outputs, 38 functions
-> ok, loaded test/cli/repl/t61-bad-names/data.psv, 8 rows
-> ok, core evaluation is now on
-> ok, c evaluation now on
-                   _________-----_____
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ OK, loaded dictionary with 2 inputs, 0 outputs, 38 functions.
+λ OK, selected psv file as input data: test/cli/repl/t61-bad-names/data.psv
+λ OK, core-eval is now on.
+λ                    _________-----_____
         _____------           __      ----_
  ___----             ___------              \
     ----________        ----                 \
@@ -21,16 +21,41 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                    |  \_((_(_)|/(_)
                                    \             (
                                     \_____________)
-> > - C evaluation:
-[homer, ["NY","CA","OR","NY"]]
+OK, c-eval is now on.
+λ λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, ["NY","CA","OR","NY"]]
+homer|[ "NY"
+      , "CA"
+      , "OR"
+      , "NY"
+      ]
 
-> - C evaluation:
-[homer, ["NY","CA","OR","NY"]]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, ["NY","CA","OR","NY"]]
+homer|[ "NY"
+      , "CA"
+      , "OR"
+      , "NY"
+      ]
 
-> 
+λ Core evaluation
+---------------
+
+homer|[ "NY"
+      , "CA"
+      , "OR"
+      , "NY"
+      ]
+
+C evaluation
+------------
+
+homer|[ "NY"
+      , "CA"
+      , "OR"
+      , "NY"
+      ]
+
+λ 

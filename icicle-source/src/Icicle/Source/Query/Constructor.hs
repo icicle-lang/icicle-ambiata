@@ -1,7 +1,8 @@
 -- | Constructors, like Some, None, tuples etc
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Query.Constructor (
     Constructor (..)
   , Pattern (..)
@@ -138,29 +139,36 @@ arityOfConstructor cc
 
 
 instance Pretty Constructor where
- pretty ConSome  = "Some"
- pretty ConNone  = "None"
+  pretty = \case
+    ConSome ->
+      prettyConstructor "Some"
+    ConNone ->
+      prettyConstructor "None"
 
- pretty ConTuple = "Tuple"
+    ConTuple ->
+      prettyConstructor "Tuple"
 
- pretty ConTrue  = "True"
- pretty ConFalse = "False"
+    ConTrue ->
+      prettyConstructor "True"
+    ConFalse ->
+      prettyConstructor "False"
 
- pretty ConLeft  = "Left"
- pretty ConRight = "Right"
-
- pretty (ConError e) = text $ show e
-
+    ConLeft ->
+      prettyConstructor "Left"
+    ConRight ->
+      prettyConstructor "Right"
+    ConError e ->
+      prettyConstructor $ show e
 
 instance Pretty n => Pretty (Pattern n) where
- pretty (PatCon ConTuple [a,b])
-  = "(" <> pretty a <> ", " <> pretty b <> ")"
- pretty (PatCon c [])
-  = pretty c
- pretty (PatCon c vs)
-  = "(" <> pretty c <> " " <> hsep (fmap pretty vs) <> ")"
- pretty PatDefault
-  = "_"
- pretty (PatVariable n)
-  = pretty n
-
+  prettyPrec p = \case
+    PatCon ConTuple [a,b] ->
+      prettyPrec p (a, b)
+    PatCon c [] ->
+      prettyPrec p c
+    PatCon c vs ->
+      prettyApp hsep p c vs
+    PatDefault ->
+      prettyPunctuation "_"
+    PatVariable n ->
+      annotate AnnBinding (pretty n)

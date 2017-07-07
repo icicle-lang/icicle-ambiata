@@ -916,6 +916,9 @@ unsafeAppend c0 c1 =
     (Result tags0 xs0, Result tags1 xs1) ->
       Result (tags0 <> tags1) <$> unsafeAppend xs0 xs1
 
+    (Pair xs0 ys0, Pair xs1 ys1) ->
+      Pair <$> unsafeAppend xs0 xs1 <*> unsafeAppend ys0 ys1
+
     (Struct fs0, Struct fs1)
       | Cons.length fs0 == Cons.length fs1
       ->

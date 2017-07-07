@@ -23,7 +23,17 @@ reannotF f fun
        , body = reannotQ f (body fun) }
 
 instance Pretty n => Pretty (Function a n) where
- pretty q =
-  let p = (pretty . snd) <$> (arguments q)
-  in (sep p) <> line <> indent 2 ("=" <+> pretty (body q))
-
+  pretty q =
+    let
+      args =
+        case reverse $ arguments q of
+          [] ->
+            [ prettyPunctuation "=" ]
+          (_, n0) : xs0 ->
+            fmap (\(_, n) -> pretty n) (reverse xs0) <>
+            [ pretty n0 <+> prettyPunctuation "=" ]
+    in
+      vsep $
+        args <> [
+            indent 2 . pretty $ body q
+          ]

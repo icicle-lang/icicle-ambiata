@@ -7,6 +7,7 @@
 -- so not putting any polymorphism in the primitives should make typechecking
 -- and everything simpler.
 --
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Common.Type (
       ValType (..)
@@ -210,7 +211,7 @@ insertOrDie err e n t
 
 
 -- | Require two types to be equal, or return given error if not.
-requireSame 
+requireSame
     :: Eq a
     => (a -> a -> err)
     ->  a -> a -> Either err ()
@@ -309,44 +310,60 @@ valueMatchesType v t
 -- Pretty printing ---------------
 
 instance Pretty ValType where
- pretty = ppTop
+  prettyPrec p = \case
+    IntT ->
+      prettyConstructor "Int"
+
+    DoubleT ->
+      prettyConstructor "Double"
+
+    UnitT ->
+      prettyConstructor "Unit"
+
+    ErrorT ->
+      prettyConstructor "Error"
+
+    FactIdentifierT ->
+      prettyConstructor "FactIdentifier"
+
+    BoolT ->
+      prettyConstructor "Bool"
+
+    TimeT ->
+      prettyConstructor "Time"
+
+    StringT ->
+      prettyConstructor "String"
+
+    ArrayT t ->
+      prettyApp hsep p (prettyConstructor "Array") [t]
+
+    MapT k v ->
+      prettyApp hsep p (prettyConstructor "Map") [k, v]
+
+    OptionT a ->
+      prettyApp hsep p (prettyConstructor "Option") [a]
+
+    PairT a b ->
+      parens $
+        pretty a <> prettyPunctuation "," <+> pretty b
+
+    SumT a b ->
+      prettyApp hsep p (prettyConstructor "Sum") [a, b]
+
+    StructT st ->
+      prettyPrec p st
+
+    BufT i t ->
+      prettyApp' hsep p (prettyConstructor "Buf") [annotate AnnConstant (prettyArg i), prettyArg t]
 
 instance Pretty StructType where
- pretty (StructType fs) = text "Struct" <+> pretty (Map.toList fs)
+  prettyPrec _ (StructType fs) =
+    prettyStructType $ Map.toList fs
 
 instance Pretty FunType where
- pretty (FunT [] t)     = pretty t
- pretty (FunT (b:bs) t) = inner b <> text " -> " <> pretty (FunT bs t)
-  where
-   inner i@(FunT [] _) = pretty i
-   inner i             = parens (pretty i)
-
-
-ppTop :: ValType -> Doc
-ppTop = ppValType False
-
-ppSub :: ValType -> Doc
-ppSub = ppValType True
-
-ppValType :: Bool -> ValType -> Doc
-ppValType needParens vt =
-  case vt of
-    IntT       -> text "Int"
-    DoubleT    -> text "Double"
-    UnitT      -> text "Unit"
-    ErrorT     -> text "Error"
-    FactIdentifierT
-               -> text "FactIdentifier"
-    BoolT      -> text "Bool"
-    TimeT      -> text "Time"
-    StringT    -> text "String"
-    ArrayT t   -> parens' (text "Array " <>  ppSub t)
-    MapT k v   -> parens' (text "Map"    <+> ppSub k <+> ppSub v)
-    OptionT a  -> parens' (text "Option" <+> ppSub a)
-    PairT a b  -> parens  (ppTop a <> text ", " <> ppTop b)
-    SumT  a b  -> parens  (text "Sum" <+> ppSub a <+> ppSub b)
-    StructT fs -> parens' (pretty fs)
-    BufT i t   -> parens' (text "Buf" <+> pretty i <+> ppSub t)
-  where
-    parens' | needParens = parens
-            | otherwise  = id
+   pretty (FunT [] t)     = pretty t
+   pretty (FunT (b:bs) t) = inner b <> text " -> " <> pretty (FunT bs t)
+    where
+     inner i@(FunT [] _) = pretty i
+     inner i             = parens (pretty i)

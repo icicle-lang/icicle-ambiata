@@ -1,5 +1,5 @@
-:dictionary test/cli/repl/t15-tombstones/test-dictionary.toml
-:load       test/cli/repl/t15-tombstones/data.psv
+:load test/cli/repl/t15-tombstones/test-dictionary.toml
+:load test/cli/repl/t15-tombstones/data.psv
 
 feature a ~> latest 5 ~> (value, tombstone)
 

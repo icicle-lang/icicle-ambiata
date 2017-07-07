@@ -161,7 +161,7 @@ compileTest wte wt (TestOpts _ inputFormat allowDupTime) = do
       Nothing
 
     cache =
-      NoCacheSea
+      SkipJetskiCache
 
   code <- hoistEither $ codeOfPrograms "Icicle.Test.Sea.Psv.compileTest" hasInput (fmap fst programs) programs
 
@@ -180,7 +180,7 @@ compileTest wte wt (TestOpts _ inputFormat allowDupTime) = do
     textCode =
       code <> savage
 
-  seaCreateFleet options (fromCacheSea cache) hasInput chords textCode
+  seaCreateFleet options (fromUseJetskiCache cache) hasInput chords textCode
 
 runTest :: WellTyped -> PsvConstants -> TestOpts -> EitherT String IO ()
 runTest wt consts testOpts@(TestOpts yourParents _ _) = do

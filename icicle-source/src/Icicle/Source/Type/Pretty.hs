@@ -1,10 +1,12 @@
 -- | Pretty for functions
 --
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Type.Pretty (
-    prettyFunWithNames
+    prettyFun
+  , prettyFunWithNames
   , prettyFunWithLetters
   , prettyFunFromStrings
   , letterNames
@@ -34,23 +36,13 @@ import                  Data.Hashable (Hashable)
 -- just before pretty printing.
 prettyFunWithNames :: (Pretty n, Eq n) => [Name n] -> FunctionType n -> Doc
 prettyFunWithNames names fun
-  =  constrs (functionConstraints   fun')
-  <> args    (functionArguments     fun')
-  <> pretty  (functionReturn        fun')
+  =  prettyFun fun'
   where
    sub
     = Map.fromList
     (functionForalls fun `zip` fmap TypeVar names)
 
    fun' = substFT sub (fun { functionForalls = [] })
-
-   constrs []
-    = ""
-   constrs xs
-    = tupled (fmap pretty xs) <> " => "
-
-   args xs
-    = hsep (fmap (\x -> pretty x <+> "-> ") xs)
 
 -- We make them actual names (with the hash code) because they will be used
 -- for substituations.
@@ -68,4 +60,3 @@ letterNames :: [String]
 letterNames
  =  fmap (\c -> [c]) ['a'..'z']
  <> concatMap (\prefix -> fmap (\c -> prefix <> [c]) ['a'..'z']) letterNames
-

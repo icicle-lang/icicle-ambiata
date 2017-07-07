@@ -1,4 +1,4 @@
-:set time 2010 01 01
+:set snapshot 2010-01-01
 
 feature salary ~> days between (newest time) (3 days after now)
 

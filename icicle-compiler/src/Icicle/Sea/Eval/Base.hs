@@ -12,7 +12,7 @@ module Icicle.Sea.Eval.Base (
   , SeaProgram(..)
   , SeaError(..)
   , Fingerprint(..)
-  , CacheSea(..)
+  , UseJetskiCache(..)
   , Input(..)
   , InputAllowDupTime(..)
   , PsvInputConfig(..)
@@ -43,7 +43,7 @@ module Icicle.Sea.Eval.Base (
   , peekOutputs
   , wordOfError
   , errorOfWord
-  , fromCacheSea
+  , fromUseJetskiCache
   ) where
 
 import qualified Anemone.Foreign.Mempool as Mempool
@@ -113,11 +113,6 @@ import           X.Control.Monad.Trans.Either (firstEitherT, hoistEither, left)
 
 ------------------------------------------------------------------------
 
-data CacheSea =
-    NoCacheSea
-  | CacheSea
-    deriving (Eq, Ord, Show)
-
 data SeaMVector
   = I64 (IOVector Int64)
   | U64 (IOVector Word64)
@@ -143,7 +138,7 @@ seaEvalAvalanche program ctx values = do
   let iid = [inputid|default:eval|]
       ps = Map.singleton iid (program :| [])
   bracketEitherT'
-    (seaCompile "Icicle.sea.Eval.Base.seaEvalAvalanche" CacheSea NoInput [iid] ps Nothing)
+    (seaCompile "Icicle.sea.Eval.Base.seaEvalAvalanche" UseJetskiCache NoInput [iid] ps Nothing)
     seaRelease
     (\fleet -> do
         programs <- mkSeaPrograms (sfLibrary fleet) ps
@@ -206,7 +201,7 @@ valueFromCore' v =
 seaCompile ::
      (Show a, Show n, Pretty n, Eq n)
   => Fingerprint
-  -> CacheSea
+  -> UseJetskiCache
   -> Input FilePath
   -> [InputId]
   -> Map InputId (NonEmpty (Program (Annot a) n Prim))
@@ -220,7 +215,7 @@ seaCompileFleet ::
      (Show a, Show n, Pretty n, Eq n)
   => [CompilerOption]
   -> Fingerprint
-  -> CacheSea
+  -> UseJetskiCache
   -> Input FilePath
   -> [InputId]
   -> Map InputId (NonEmpty (Program (Annot a) n Prim))
@@ -228,23 +223,23 @@ seaCompileFleet ::
   -> EitherT SeaError IO (SeaFleet st)
 seaCompileFleet options fingerprint cache input inputs programs chords = do
   code <- hoistEither (codeOfPrograms fingerprint input inputs (Map.toList programs))
-  seaCreateFleet options (fromCacheSea cache) input chords code
+  seaCreateFleet options (fromUseJetskiCache cache) input chords code
 
 seaCreate ::
-     CacheSea
+     UseJetskiCache
   -> Input FilePath
   -> Maybe FilePath
   -> Text
   -> EitherT SeaError IO (SeaFleet st)
 seaCreate cache input chords code = do
   options <- getCompilerOptions
-  seaCreateFleet options (fromCacheSea cache) input chords code
+  seaCreateFleet options (fromUseJetskiCache cache) input chords code
 
-fromCacheSea :: CacheSea -> CacheLibrary
-fromCacheSea = \case
-  NoCacheSea ->
+fromUseJetskiCache :: UseJetskiCache -> CacheLibrary
+fromUseJetskiCache = \case
+  SkipJetskiCache ->
     NoCacheLibrary
-  CacheSea ->
+  UseJetskiCache ->
     CacheLibrary
 
 seaRelease :: MonadIO m => SeaFleet st -> m ()

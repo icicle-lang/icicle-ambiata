@@ -36,7 +36,7 @@ invariantQ ctx (Query (c:cs) xfinal)
      | allowWindows inv
      -> goBanWindow
      | otherwise
-     -> errBanWindow "Consider moving the window to the start of the query"
+     -> errBanWindow "Consider moving the window to the start of the query."
 
     Latest{}
      | allowLatest inv
@@ -97,13 +97,13 @@ invariantQ ctx (Query (c:cs) xfinal)
   errBanWindow sug
    = errorSuggestions
       (ErrorContextNotAllowedHere (annotOfContext c) c)
-      [ Suggest "Windows cannot be inside groups/latest"
+      [ Suggest "Windows cannot be inside groups/latest."
       , Suggest sug]
 
   errBanGroupFold
    = errorSuggestions
       (ErrorContextNotAllowedHere (annotOfContext c) c)
-      [ Suggest "Group folds are unsupported inside groups/latests" ]
+      [ Suggest "Group folds are unsupported inside groups/latests." ]
 
 
 invariantX

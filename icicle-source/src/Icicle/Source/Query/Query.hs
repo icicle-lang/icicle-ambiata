@@ -53,17 +53,16 @@ type Exp     a n = Exp'     (Query a n) a n
 type Context a n = Context' (Query a n) a n
 
 instance Pretty n => Pretty (QueryTop a n) where
- pretty q
-  =   "feature"   <+> pretty (show (renderUnresolvedInputId (queryInput q)))
-  <> line <> "~>" <+> pretty (query   q)
+  pretty q =
+    vsep [
+        prettyKeyword "feature" <+> annotate AnnConstant (pretty (show (renderUnresolvedInputId (queryInput q))))
+      , prettyPunctuation "~>" <+> align (pretty (query q))
+      ]
 
 instance Pretty n => Pretty (Query a n) where
- pretty q
-  =  cat (fmap (\c -> inp c <> line <> "~> ") (contexts q))
-  <> inp                                     (final    q)
-  where
-  inp p = indent 0 $ pretty p
-
+  pretty q =
+    align . prettyItems vsep (align . pretty $ final q) $
+      fmap (PrettyItem (prettyPunctuation "~>") . align . pretty) (contexts q)
 
 simplifyNestedQT :: QueryTop a n -> QueryTop a n
 simplifyNestedQT q

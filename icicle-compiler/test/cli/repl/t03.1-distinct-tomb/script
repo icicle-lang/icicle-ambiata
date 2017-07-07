@@ -1,4 +1,4 @@
-:dictionary data/example/DictionaryTrial.toml
+:load data/example/DictionaryTrial.toml
 :load test/cli/repl/data-tomb.psv
 
 -- Try all combinations of Possibly: 'time' is definitely, while 'location' is possibly.

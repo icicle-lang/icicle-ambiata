@@ -1,0 +1,6 @@
+version = 1
+
+namespace = "default"
+
+[fact.stuff]
+  encoding = "(open:int,high:int,low:int,close:int,volume:int,adjclose:int)"

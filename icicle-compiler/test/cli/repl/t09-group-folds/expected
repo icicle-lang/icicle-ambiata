@@ -1,20 +1,33 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> -- Count unique times, this is equivalent to `distinct time ~> count`
-> - Core evaluation:
-[homer, 5,marge, 1]
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ -- Count unique times, this is equivalent to `distinct time ~> count`
+λ Core evaluation
+---------------
 
-> > -- Sum of count of values, this is equivalent to counting the number of salary facts
-> - Core evaluation:
-[homer, 5,marge, 3]
+homer|5
+marge|1
 
-> > -- Max of count of values
-> - Core evaluation:
-[homer, 1,marge, 3]
+λ λ -- Sum of count of values, this is equivalent to counting the number of salary facts
+λ Core evaluation
+---------------
 
-> > -- Fold over oldests. Not really that meaningful but a useful test
-> - Core evaluation:
-[homer, 500,marge, 0]
+homer|5
+marge|3
 
-> 
+λ λ -- Max of count of values
+λ Core evaluation
+---------------
+
+homer|1
+marge|3
+
+λ λ -- Fold over oldests. Not really that meaningful but a useful test
+λ Core evaluation
+---------------
+
+homer|500
+marge|0
+
+λ 

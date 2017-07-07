@@ -1,9 +1,9 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> ok, core evaluation is now on
-> ok, c evaluation now on
-                   _________-----_____
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ OK, core-eval is now on.
+λ                    _________-----_____
         _____------           __      ----_
  ___----             ___------              \
     ----________        ----                 \
@@ -19,24 +19,39 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                    |  \_((_(_)|/(_)
                                    \             (
                                     \_____________)
-> > ok, loaded dictionary with 1 inputs, 0 outputs, 38 functions
-> ok, loaded test/cli/repl/t18-nested-structs/data.psv, 4 rows
-> > - C evaluation:
-[homer, [(1,1.5),(2,6.5)]
-,marge, [(2,2.5)]]
+OK, c-eval is now on.
+λ λ OK, loaded dictionary with 1 inputs, 0 outputs, 38 functions.
+λ OK, selected psv file as input data: test/cli/repl/t18-nested-structs/data.psv
+λ λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, [(1,1.5),(2,6.5)]
-,marge, [(2,2.5)]]
+homer|[ (1, 1.5)
+      , (2, 6.5)
+      ]
+marge|[ (2, 2.5) ]
 
-> > - C evaluation:
-[homer, [("head",1.5)
-        ,("leg",6.5)]
-,marge, [("leg",2.5)]]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, [("head",1.5)
-        ,("leg",6.5)]
-,marge, [("leg",2.5)]]
+homer|[ (1, 1.5)
+      , (2, 6.5)
+      ]
+marge|[ (2, 2.5) ]
 
-> 
+λ λ Core evaluation
+---------------
+
+homer|[ ("head", 1.5)
+      , ("leg", 6.5)
+      ]
+marge|[ ("leg", 2.5) ]
+
+C evaluation
+------------
+
+homer|[ ("head", 1.5)
+      , ("leg", 6.5)
+      ]
+marge|[ ("leg", 2.5) ]
+
+λ 

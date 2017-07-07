@@ -1,61 +1,93 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> -- Elem/Scalar lets
-> - Core evaluation:
-[homer, 3000,marge, 60]
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ -- Elem/Scalar lets
+λ Core evaluation
+---------------
 
-> > -- Pure let, can use it everywhere
-> - Core evaluation:
-[homer, 1500,marge, 30]
+homer|3000
+marge|60
 
-> > -- Aggregate let
-> - Core evaluation:
-[homer, 3000,marge, 60]
+λ λ -- Pure let, can use it everywhere
+λ Core evaluation
+---------------
 
-> > -- Aggregate let outside filter
-> - Core evaluation:
-[homer, (1500,1400)
-,marge, (30,0)]
+homer|1500
+marge|30
 
-> > -- Scalar let before group
-> - Core evaluation:
-[homer, [(100,100)
-        ,(200,200)
-        ,(300,300)
-        ,(400,400)
-        ,(500,500)]
-,marge, [(0,0),(10,10),(20,20)]]
+λ λ -- Aggregate let
+λ Core evaluation
+---------------
 
-> > -- Agg let before group
-> - Core evaluation:
-[homer, [(100,1500)
-        ,(200,1500)
-        ,(300,1500)
-        ,(400,1500)
-        ,(500,1500)]
-,marge, [(0,30)
-        ,(10,30)
-        ,(20,30)]]
+homer|3000
+marge|60
 
-> > -- Agg let before and after group
-> - Core evaluation:
-[homer, [(100,(1500,100))
-        ,(200,(1500,200))
-        ,(300,(1500,300))
-        ,(400,(1500,400))
-        ,(500,(1500,500))]
-,marge, [(0,(30,0))
-        ,(10,(30,10))
-        ,(20,(30,20))]]
+λ λ -- Aggregate let outside filter
+λ Core evaluation
+---------------
 
-> > -- Scalar let after group
-> - Core evaluation:
-[homer, [(100,100)
-        ,(200,200)
-        ,(300,300)
-        ,(400,400)
-        ,(500,500)]
-,marge, [(0,0),(10,10),(20,20)]]
+homer|(1500,1400)
+marge|(30,0)
 
-> > 
+λ λ -- Scalar let before group
+λ Core evaluation
+---------------
+
+homer|[ (100, 100)
+      , (200, 200)
+      , (300, 300)
+      , (400, 400)
+      , (500, 500)
+      ]
+marge|[ (0, 0)
+      , (10, 10)
+      , (20, 20)
+      ]
+
+λ λ -- Agg let before group
+λ Core evaluation
+---------------
+
+homer|[ (100, 1500)
+      , (200, 1500)
+      , (300, 1500)
+      , (400, 1500)
+      , (500, 1500)
+      ]
+marge|[ (0, 30)
+      , (10, 30)
+      , (20, 30)
+      ]
+
+λ λ -- Agg let before and after group
+λ Core evaluation
+---------------
+
+homer|[ (100, (1500,100))
+      , (200, (1500,200))
+      , (300, (1500,300))
+      , (400, (1500,400))
+      , (500, (1500,500))
+      ]
+marge|[ (0, (30,0))
+      , (10, (30,10))
+      , (20, (30,20))
+      ]
+
+λ λ -- Scalar let after group
+λ Core evaluation
+---------------
+
+homer|[ (100, 100)
+      , (200, 200)
+      , (300, 300)
+      , (400, 400)
+      , (500, 500)
+      ]
+marge|[ (0, 0)
+      , (10, 10)
+      , (20, 20)
+      ]
+
+λ λ 

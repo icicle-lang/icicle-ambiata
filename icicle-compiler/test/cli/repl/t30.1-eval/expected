@@ -1,9 +1,9 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> -- Enable C evaluation
-> ok, c evaluation now on
-                   _________-----_____
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ -- Enable C evaluation
+λ                    _________-----_____
         _____------           __      ----_
  ___----             ___------              \
     ----________        ----                 \
@@ -19,88 +19,139 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                    |  \_((_(_)|/(_)
                                    \             (
                                     \_____________)
-> > -- Oldest
-> - C evaluation:
-[homer, 100,marge, 0]
+OK, c-eval is now on.
+λ λ -- Oldest
+λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, 100,marge, 0]
+homer|100
+marge|0
 
-> > -- Filtering works
-> - C evaluation:
-[homer, 2,marge, 0]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, 2,marge, 0]
+homer|100
+marge|0
 
-> > -- An interesting expression
-> - C evaluation:
-[homer, 11180.33988749895
-,marge, 100.0]
+λ λ -- Filtering works
+λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, 11180.33988749895
-,marge, 100.0]
+homer|2
+marge|0
 
-> > -- Structs
-> - C evaluation:
-[homer, 2.2]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, 2.2]
+homer|2
+marge|0
 
-> > -- Strings
-> - C evaluation:
-[homer, 2]
+λ λ -- An interesting expression
+λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, 2]
+homer|11180.33988749895
+marge|100.0
 
-> > -- String outputs
-> - C evaluation:
-[homer, "torso"]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, "torso"]
+homer|11180.33988749895
+marge|100.0
 
-> > -- Times
-> - C evaluation:
-[homer, 10953,marge, 3633]
+λ λ -- Structs
+λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, 10953,marge, 3633]
+homer|2.2
 
-> > -- Months
-> - C evaluation:
-[homer, 1990-03-17
-,marge, 1990-03-17]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, 1990-03-17
-,marge, 1990-03-17]
+homer|2.2
 
-> > -- Maps
-> - C evaluation:
-[homer, [("arm",4)
-        ,("head",2)
-        ,("torso",3)]]
+λ λ -- Strings
+λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, [("arm",4)
-        ,("head",2)
-        ,("torso",3)]]
+homer|2
 
-> > -- Maps
-> - C evaluation:
-[homer, [(1,2)
-        ,(2,1)
-        ,(3,1)
-        ,(4,1)]]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, [(1,2)
-        ,(2,1)
-        ,(3,1)
-        ,(4,1)]]
+homer|2
 
-> 
+λ λ -- String outputs
+λ Core evaluation
+---------------
+
+homer|"torso"
+
+C evaluation
+------------
+
+homer|"torso"
+
+λ λ -- Times
+λ Core evaluation
+---------------
+
+homer|10953
+marge|3633
+
+C evaluation
+------------
+
+homer|10953
+marge|3633
+
+λ λ -- Months
+λ Core evaluation
+---------------
+
+homer|1990-03-17
+marge|1990-03-17
+
+C evaluation
+------------
+
+homer|1990-03-17
+marge|1990-03-17
+
+λ λ -- Maps
+λ Core evaluation
+---------------
+
+homer|[ ("arm", 4)
+      , ("head", 2)
+      , ("torso", 3)
+      ]
+
+C evaluation
+------------
+
+homer|[ ("arm", 4)
+      , ("head", 2)
+      , ("torso", 3)
+      ]
+
+λ λ -- Maps
+λ Core evaluation
+---------------
+
+homer|[ (1, 2)
+      , (2, 1)
+      , (3, 1)
+      , (4, 1)
+      ]
+
+C evaluation
+------------
+
+homer|[ (1, 2)
+      , (2, 1)
+      , (3, 1)
+      , (4, 1)
+      ]
+
+λ 

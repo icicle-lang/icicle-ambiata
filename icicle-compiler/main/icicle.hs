@@ -19,9 +19,7 @@ import           Data.Time (getCurrentTime, diffUTCTime)
 
 import           Icicle.Command
 import           Icicle.Data.Time (timeOfText)
-import qualified Icicle.Repl as Repl
-import           Icicle.Repl.Base (ReplOptions(..))
-import qualified Icicle.Repl.Base as Repl
+import           Icicle.Repl
 import           Icicle.Sea.Eval
 
 import           P
@@ -74,6 +72,13 @@ pRepl =
   fmap IcicleRepl $
   ReplOptions
     <$> many pReplCommand
+    <*> pUseDotfiles
+
+pUseDotfiles :: Parser UseDotfiles
+pUseDotfiles =
+  flag UseDotfiles SkipDotfiles $
+    long "skip-dotfiles" <>
+    help "Don't load the .icicle file from $HOME or the current directory"
 
 pCompile :: Parser IcicleCommand
 pCompile =
@@ -252,8 +257,8 @@ icicleFingerprint =
 
 runCommand :: IcicleCommand -> EitherT IcicleError IO ()
 runCommand = \case
-  IcicleRepl evals ->
-    liftIO $ Repl.runRepl Repl.defaultState Repl.handleLine evals
+  IcicleRepl options ->
+    liftIO $ repl options
 
   IcicleCompile tomlPath opath iformat oformat scope cflags -> do
     start <- liftIO getCurrentTime

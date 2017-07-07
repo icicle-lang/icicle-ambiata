@@ -132,7 +132,15 @@ library
                        Icicle.Internal.Rename
 
                        Icicle.Repl
-                       Icicle.Repl.Base
+                       Icicle.Repl.Data
+                       Icicle.Repl.Flag
+                       Icicle.Repl.Help
+                       Icicle.Repl.Load
+                       Icicle.Repl.Monad
+                       Icicle.Repl.Option
+                       Icicle.Repl.Parser
+                       Icicle.Repl.Pretty
+                       Icicle.Repl.Query
                        Icicle.Repl.Source
 
                        Icicle.Runtime.Data
@@ -144,6 +152,7 @@ library
                        Icicle.Runtime.Data.Schema
                        Icicle.Runtime.Data.Striped
                        Icicle.Runtime.Evaluator
+                       Icicle.Runtime.Serial.Zebra
 
                        Icicle.Simulator
 

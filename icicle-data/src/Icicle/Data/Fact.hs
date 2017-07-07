@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Data.Fact (
@@ -116,15 +117,26 @@ data Encoding =
   deriving (Eq, Show, Generic)
 
 instance Pretty Encoding where
-  pretty e
-   = case e of
-      StringEncoding    -> "String"
-      IntEncoding       -> "Int"
-      DoubleEncoding    -> "Double"
-      BooleanEncoding   -> "Bool"
-      TimeEncoding      -> "Time"
-      StructEncoding ss -> "Struct" <+> pretty ss
-      ListEncoding l    -> "[" <> pretty l <> "]"
+  pretty = \case
+    StringEncoding ->
+      prettyConstructor "String"
+    IntEncoding ->
+      prettyConstructor "Int"
+    DoubleEncoding ->
+      prettyConstructor "Double"
+    BooleanEncoding ->
+      prettyConstructor "Bool"
+    TimeEncoding ->
+      prettyConstructor "Time"
+    StructEncoding ss ->
+      prettyStructType . with ss $ \(StructField t nm enc) ->
+        case t of
+          Mandatory ->
+            (annotate AnnBinding (pretty nm), enc)
+          Optional ->
+            (prettyKeyword "optional" <+> annotate AnnBinding (pretty nm), enc)
+    ListEncoding l ->
+      "[" <> pretty l <> "]"
 
 data StructField =
   StructField StructFieldType Text Encoding
@@ -132,9 +144,9 @@ data StructField =
 
 instance Pretty StructField where
  pretty (StructField Mandatory attr enc)
-  = pretty attr <+> ":" <+> pretty enc
+  = prettyTyped (pretty attr) (pretty enc)
  pretty (StructField Optional attr enc)
-  = "optional" <+> pretty attr <+> ":" <+> pretty enc
+  = prettyKeyword "optional" <+> prettyTyped (pretty attr) (pretty enc)
 
 structFieldName :: StructField -> Text
 structFieldName (StructField _ attr _) =

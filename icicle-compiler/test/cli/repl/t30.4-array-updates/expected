@@ -1,8 +1,8 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> ok, c evaluation now on
-                   _________-----_____
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ                    _________-----_____
         _____------           __      ----_
  ___----             ___------              \
     ----________        ----                 \
@@ -18,19 +18,36 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                    |  \_((_(_)|/(_)
                                    \             (
                                     \_____________)
-> ok, core evaluation is now on
-> > ok, loaded dictionary with 5 inputs, 0 outputs, 38 functions
-> ok, loaded test/cli/repl/t30.4-array-updates/data.psv, 17 rows
-> > - C evaluation:
-[zubat, [(2015,1),(2016,1)]]
+OK, c-eval is now on.
+λ OK, core-eval is now on.
+λ λ OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+λ OK, selected psv file as input data: test/cli/repl/t30.4-array-updates/data.psv
+λ λ Core evaluation
+---------------
 
-- Core evaluation:
-[zubat, [(2015,1),(2016,1)]]
+zubat|[ (2015, 1)
+      , (2016, 1)
+      ]
 
-> > - C evaluation:
-[zubat, [(2015,2),(2016,1)]]
+C evaluation
+------------
 
-- Core evaluation:
-[zubat, [(2015,2),(2016,1)]]
+zubat|[ (2015, 1)
+      , (2016, 1)
+      ]
 
-> 
+λ λ Core evaluation
+---------------
+
+zubat|[ (2015, 2)
+      , (2016, 1)
+      ]
+
+C evaluation
+------------
+
+zubat|[ (2015, 2)
+      , (2016, 1)
+      ]
+
+λ 

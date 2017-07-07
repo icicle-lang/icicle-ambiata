@@ -1,9 +1,9 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> ok, core evaluation is now on
-> ok, c evaluation now on
-                   _________-----_____
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ OK, core-eval is now on.
+λ                    _________-----_____
         _____------           __      ----_
  ___----             ___------              \
     ----________        ----                 \
@@ -19,118 +19,195 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                    |  \_((_(_)|/(_)
                                    \             (
                                     \_____________)
-> > -- Sum example
-> - C evaluation:
-[homer, 1500,marge, 30]
+OK, c-eval is now on.
+λ λ -- Sum example
+λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, 1500,marge, 30]
+homer|1500
+marge|30
 
-> > -- Count example
-> - C evaluation:
-[homer, 5,marge, 3]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, 5,marge, 3]
+homer|1500
+marge|30
 
-> > -- Mean example
-> - C evaluation:
-[homer, 300.0,marge, 10.0]
+λ λ -- Count example
+λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, 300.0,marge, 10.0]
+homer|5
+marge|3
 
-> > -- minby / min example
-> - C evaluation:
-[homer, ("head",1)]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, ("head",1)]
+homer|5
+marge|3
 
-> > -- maxby / max example
-> - C evaluation:
-[homer, ("arm",4)]
+λ λ -- Mean example
+λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, ("arm",4)]
+homer|300.0
+marge|10.0
 
-> > -- Standard deviation example
-> - C evaluation:
-[homer, 158.11388300841898
-,marge, 10.0]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, 158.11388300841898
-,marge, 10.0]
+homer|300.0
+marge|10.0
 
-> > -- Gradient example
-> - C evaluation:
-[homer, 17.53336340594424
-,marge, tombstone]
+λ λ -- minby / min example
+λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, 17.53336340594424
-,marge, tombstone]
+homer|("head",1)
 
-> > -- Pearsons correlation example
-> - C evaluation:
-[homer, 0.9279829441311143
-,marge, tombstone]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, 0.9279829441311143
-,marge, tombstone]
+homer|("head",1)
 
-> > -- Newest example
-> - C evaluation:
-[homer, [(location,"torso")
-        ,(severity,1)]]
+λ λ -- maxby / max example
+λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, [(location,"torso")
-        ,(severity,1)]]
+homer|("arm",4)
 
-> > -- Oldest example
-> - C evaluation:
-[homer, [(location,"head")
-        ,(severity,2)]]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, [(location,"head")
-        ,(severity,2)]]
+homer|("arm",4)
 
-> > -- Numflips example
-> - C evaluation:
-[homer, 2]
+λ λ -- Standard deviation example
+λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, 2]
+homer|158.11388300841898
+marge|10.0
 
-> - C evaluation:
-[homer, 2]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, 2]
+homer|158.11388300841898
+marge|10.0
 
-> > -- IsSome
-> - C evaluation:
-[homer, [True],marge, [True]]
+λ λ -- Gradient example
+λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, [True],marge, [True]]
+homer|17.53336340594424
+marge|tombstone
 
-> -- IsNone
-> - C evaluation:
-[homer, [False],marge, [False]]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, [False],marge, [False]]
+homer|17.53336340594424
+marge|tombstone
 
-> > --GetOrElse example
-> - C evaluation:
-[homer, 500,marge, 20]
+λ λ -- Pearsons correlation example
+λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, 500,marge, 20]
+homer|0.9279829441311143
+marge|tombstone
 
-> 
+C evaluation
+------------
+
+homer|0.9279829441311143
+marge|tombstone
+
+λ λ -- Newest example
+λ Core evaluation
+---------------
+
+homer|[ (location, "torso")
+      , (severity, 1)
+      ]
+
+C evaluation
+------------
+
+homer|[ (location, "torso")
+      , (severity, 1)
+      ]
+
+λ λ -- Oldest example
+λ Core evaluation
+---------------
+
+homer|[ (location, "head")
+      , (severity, 2)
+      ]
+
+C evaluation
+------------
+
+homer|[ (location, "head")
+      , (severity, 2)
+      ]
+
+λ λ -- Numflips example
+λ Core evaluation
+---------------
+
+homer|2
+
+C evaluation
+------------
+
+homer|2
+
+λ Core evaluation
+---------------
+
+homer|2
+
+C evaluation
+------------
+
+homer|2
+
+λ λ -- IsSome
+λ Core evaluation
+---------------
+
+homer|[ True ]
+marge|[ True ]
+
+C evaluation
+------------
+
+homer|[ True ]
+marge|[ True ]
+
+λ -- IsNone
+λ Core evaluation
+---------------
+
+homer|[ False ]
+marge|[ False ]
+
+C evaluation
+------------
+
+homer|[ False ]
+marge|[ False ]
+
+λ λ --GetOrElse example
+λ Core evaluation
+---------------
+
+homer|500
+marge|20
+
+C evaluation
+------------
+
+homer|500
+marge|20
+
+λ 

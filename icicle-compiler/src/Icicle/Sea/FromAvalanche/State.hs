@@ -189,7 +189,8 @@ seaOfClusterState cluster =
 seaOfKernelState :: Kernel a -> Doc
 seaOfKernelState kernel =
   vsep [
-      "  /* kernel " <> prettyKernelId (kernelId kernel) <> " */"
+      "    /*** kernel " <> prettyKernelId (kernelId kernel) <> " ***/"
+    , ""
     , "    /* outputs */"
     , indent 4 .
         vsep . concat . fmap defsOfOutput $ kernelOutputs kernel

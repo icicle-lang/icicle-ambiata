@@ -17,12 +17,15 @@ module Icicle.Compiler (
   , AvalProgramUntyped
   , AvalProgramTyped
 
+  , Result(..)
+
     -- * From dictionaires and libraries
   , avalancheOfDictionary
   , coreOfDictionary
 
     -- * Works on Source programs
   , sourceConvert
+  , sourceInputId
 
     -- * Works on Core programs
   , coreSimp
@@ -260,8 +263,8 @@ fuseCore opts programs = do
    = let (as,bs) = splitAt (Source.fusionMaximumPerKernel opts) ps
      in  as : chunk bs
 
-queryInputId :: Source.QueryTyped Source.Var -> Dictionary -> Either Error InputId
-queryInputId query d =
+sourceInputId :: Source.QueryTyped Source.Var -> Dictionary -> Either Error InputId
+sourceInputId query d =
   let
     iid =
       Query.queryInput query
@@ -275,7 +278,7 @@ coreOfSource :: Source.IcicleCompileOptions
              -> Either Error (Map InputId [Source.CoreProgramUntyped Source.Var])
 coreOfSource opt dict query = do
   core <- coreOfSource1 opt dict query
-  iid <- queryInputId query dict
+  iid <- sourceInputId query dict
   pure (M.singleton iid [core])
 
 coreOfSource1 :: Source.IcicleCompileOptions
