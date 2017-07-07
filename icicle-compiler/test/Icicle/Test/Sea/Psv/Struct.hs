@@ -27,4 +27,4 @@ prop_success_array_of_struct_input
 
 return []
 tests :: IO Bool
-tests = $checkAllWith TestRunNormal (checkArgsSized 100)
+tests = $checkAllWith TestRunFewer (checkArgsSized 100)
