@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Source.MaxMapSize where
 
@@ -12,6 +13,8 @@ import qualified Icicle.Core.Eval.Program   as PV
 import           Icicle.Common.Eval
 import           Icicle.Common.Base
 import           Icicle.Data.Fact (AsAt(..))
+
+import           Icicle.Sea.Eval
 
 import           P
 
@@ -39,15 +42,19 @@ prop_maxsize ts =
        in  conjoin props
 
 prop_maxsize_corpus :: Property
-prop_maxsize_corpus = testAllCorpus $ \wt ->
-  let maxsize = wtMaxMapSize wt
-      facts'  = fmap (\(AsAt v t) -> AsAt (clip maxsize v) t)
-              $ wtFacts wt
-      ev      = evalWellTyped wt { wtFacts = facts' }
-      vals    = fmap snd ev
-      props   = fmap (checkMaxMapSize maxsize) vals
-  in counterexample (show ev)
-   $ conjoin props
+prop_maxsize_corpus
+ | dup <- AllowDupTime
+ = testAllCorpus dup genPsvConstants $ \wt psv ->
+     let
+       evalContext =
+         wellTypedEvalContext (psvFactsLimit psv) (psvMaxMapSize psv)
+       props =
+         fmap (checkMaxMapSize (psvMaxMapSize psv)) .
+         concatMap (fmap snd) .
+         Map.elems $
+         evalWellTyped evalContext wt
+     in
+       conjoin props
 
 -- Clip any map inputs to strictly below the maximum size before running evaluator.
 clip :: Int -> BaseValue -> BaseValue

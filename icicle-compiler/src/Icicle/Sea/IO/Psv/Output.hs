@@ -344,7 +344,7 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
                             , outputChar ':'
                             , body
                             ]
-                    pure (ix', ts', (cond, doc) : docs)
+                    pure (ix', ts', docs <> [(cond, doc)])
 
               (ix, ts, docs) <- foldM go (structIndex, argTypes, mempty) fields
               let doc         = vsep $ [ outputChar '{' , seaOfOutputStructSep docs , outputChar '}' ]
@@ -369,24 +369,28 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
         -> do (mcond, mfalse, body, ix, ts)
                  <- seaOfOutput isJSON struct (structIndex + 1) outId missing env' otype1 ts1 transform
 
-              let body' = seaOfOutputCond mcond mfalse body
               let ne'   = transform ErrorT ne
-              pure ( condAnd (Just (ne' <> " == ierror_not_an_error")) mcond
-                   , outputMissing, body', ix, ts )
+              let body' = seaOfOutputCond mcond mfalse body
+              let condSum = condAnd (Just (seaOfNotAnError ne')) mcond
+              pure ( condSum, outputMissing, body', ix, ts )
+
+       BufT _ a ->
+         seaOfOutput isJSON struct structIndex outId missing env (ArrayT a) argTypes transform
 
        -- Base
-       _
-        | (t  : ts) <- argTypes
+       typ
+        | typ `elem` [BoolT, TimeT, DoubleT, IntT, StringT, FactIdentifierT]
+        , (t  : ts) <- argTypes
         , (mx : _)  <- members
         , mx'       <- transform t mx
         -> do d <- seaOfOutputBase' isJSON t mx'
               pure (Nothing, Nothing, d, structIndex + 1, ts)
 
-       _ -> Left unsupported
+       _ ->
+         Left mismatch
 
   where
    mismatch    = SeaOutputTypeMismatch    outId outType argTypes
-   unsupported = SeaUnsupportedOutputType outType
 
    members    = List.take (length argTypes)
               $ fmap (\ix -> struct <> "->" <> prettySeaName (mangleIx outId ix)) [structIndex..]
@@ -410,6 +414,10 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
 
    seaOfOutputBase' b
      = seaOfOutputBase b mismatch
+
+seaOfNotAnError :: Doc -> Doc
+seaOfNotAnError v =
+  "(" <> v <> " == ierror_not_an_error)"
 
 --------------------------------------------------------------------------------
 
@@ -435,13 +443,16 @@ seaOfOutputArray mcond body numElems counter countLimit
           , body
           , assign ]
 
-    in pure (vsep [ outputChar '['
+    in pure (vsep [
+                outputChar '['
+              , "{"
               , "ibool_t " <> needSep <> " = ifalse;"
               , forStmt counter countLimit numElems
               , "{"
               , indent 4 (go mcond)
               , "}"
               , outputChar ']'
+              , "}"
               ])
 
 seaOfOutputStructSep :: [(Maybe Doc, Doc)] -> Doc
@@ -458,7 +469,7 @@ seaOfOutputStructSep fs
           , body
           , assign ]
 
-    in  vsep ("ibool_t need_struct_sep = ifalse;" : fmap go fs)
+    in  vsep [ "{", "ibool_t need_struct_sep = ifalse;", vsep $ fmap go fs, "}" ]
 
 -- | Output an if statement
 seaOfOutputCond :: Maybe Doc -> Maybe Doc -> Doc -> Doc
@@ -533,14 +544,6 @@ conditional n body1 body2
         , indent 4 body2
         , "}"]
 
-conditionalNotError' :: Doc -> Doc -> Doc
-conditionalNotError' n body
- = conditional' (n <> " == ierror_not_an_error") body
-
-conditionalNotError :: Doc -> Doc -> Doc -> Doc
-conditionalNotError n body1 body2
- = conditional (n <> " == ierror_not_an_error") body1 body2
-
 pair :: Doc -> Doc -> Doc
 pair x y
  = vsep [ outputChar '['
@@ -611,6 +614,10 @@ schemaOfValType = \case
   TimeT ->
     pure $ PsvPrimitive PsvString
 
+  -- NOTE in generated C code, fact identifiers are treated as ints.
+  FactIdentifierT ->
+    pure $ PsvPrimitive PsvInt
+
   UnitT ->
     Left $ SeaUnsupportedOutputType UnitT
   ErrorT ->
@@ -642,9 +649,6 @@ schemaOfValType = \case
 
   BufT _ a ->
     PsvList <$> schemaOfValType a
-
-  FactIdentifierT ->
-    Left $ SeaUnsupportedOutputType FactIdentifierT
 
 schemaOfOutput :: OutputId -> ValType -> Either SeaError PsvColumn
 schemaOfOutput outputId typ =

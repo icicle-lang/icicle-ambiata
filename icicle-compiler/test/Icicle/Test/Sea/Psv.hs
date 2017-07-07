@@ -14,7 +14,9 @@ import           Control.Monad.Morph (hoist)
 
 import qualified Data.ByteString.Lazy as L
 import qualified Data.List as List
-import           Data.List.NonEmpty ( NonEmpty(..) )
+import           Data.List.NonEmpty (NonEmpty(..))
+import           Data.Maybe
+import           Data.String
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as T
@@ -25,17 +27,12 @@ import qualified Data.Text.Lazy.IO as LT
 import           Disorder.Core.IO
 
 import           Icicle.Data
-import           Icicle.Data.Time (renderTime)
-import           Icicle.Encoding (renderValue, renderOutputValue)
 import           Icicle.Internal.Pretty
 
-import           Icicle.Common.Data
-import           Icicle.Common.Base
-import           Icicle.Common.Type
+import           Icicle.Common.Eval
 
-import           Icicle.Sea.Eval (SeaError(..))
-import qualified Icicle.Sea.Eval as S
-import           Icicle.Sea.Fleet
+import           Icicle.Sea.Eval
+import           Icicle.Sea.Data
 
 import           Icicle.Test.Arbitrary
 import           Icicle.Test.Arbitrary.Corpus
@@ -47,141 +44,119 @@ import           P
 import qualified Prelude as Savage
 
 import           System.IO
-import           System.IO.Temp (createTempDirectory)
-import           System.Directory (getTemporaryDirectory, removeDirectoryRecursive)
 
-import           Test.QuickCheck (Gen, Arbitrary(..), elements, suchThat, forAll)
-import           Test.QuickCheck (getPositive)
+import           Test.QuickCheck (forAll)
 import           Test.QuickCheck (Property, (==>), property, counterexample)
 import           Test.QuickCheck.Property (succeeded, failed)
 import           Test.QuickCheck.Monadic
 
-import           X.Control.Monad.Trans.Either (EitherT, runEitherT)
-import           X.Control.Monad.Trans.Either (bracketEitherT', left, hoistEither)
-
-prop_time =
- forAll arbitrary $ \input ->
- forAll (validated 100 $ tryGenWellTypedWithOutput S.DoNotAllowDupTime input TimeT) $ \wt ->
- forAll (genPsvConstants wt) $ \psv ->
- testIO $ do
-  x <- runEitherT
-     $ runTest wt psv
-     $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.DoNotAllowDupTime
-  case x of
-    Left err -> failWithError wt err
-    Right () -> pure (property succeeded)
-
-prop_array_of_struct_input =
- forAll (((ArrayT . StructT) <$> arbitrary) `suchThat` isSupportedInput) $ \input ->
- forAll (validated 100 $ tryGenWellTypedWith S.DoNotAllowDupTime (inputTypeOf input)) $ \wt ->
- forAll (genPsvConstants wt) $ \psv ->
- testIO $ do
-  x <- runEitherT
-     $ runTest wt psv
-     $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.DoNotAllowDupTime
-  case x of
-    Left err -> failWithError wt err
-    Right () -> pure (property succeeded)
-
-prop_psv_corpus
- = testAllCorpus $ \wt ->
-   forAll (genPsvConstants wt) $ \psv -> testIO $ do
-  x <- runEitherT
-     $ runTest wt psv
-     $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.AllowDupTime
-  case x of
-    Left err -> failWithError wt err
-    Right () -> pure (property succeeded)
+import           X.Control.Monad.Trans.Either (left)
+import           X.Control.Monad.Trans.Either (EitherT, hoistEither, bracketEitherT', runEitherT)
 
 
-prop_psv (WellTypedPsv wt psv) = testIO $ do
-  x <- runEitherT
-     $ runTest wt psv
-     $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.DoNotAllowDupTime
-  case x of
-    Left err -> failWithError wt err
-    Right () -> pure (property succeeded)
+optExpectSuccess =
+  TestOpts ExpectSuccess PsvInputSparse
 
-prop_entity_out_of_order (WellTypedPsv wt psv) =
-  List.length (wtEntities wt) > 1 ==>
-  List.length (wtFacts    wt) > 0 ==>
+optExpectFailure =
+  TestOpts ExpectFailure PsvInputSparse
+
+testForSuccess dup wt psv =
   testIO $ do
-    let wt' = wt { wtEntities = List.reverse (wtEntities wt) }
-    x <- runEitherT
-        $ runTest wt' psv
-        $ TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse S.DoNotAllowDupTime
-    expectPsvError wt' x
+   x <- runEitherT . runTest wt psv . optExpectSuccess $ dup
+   case x of
+     Left err ->
+       failWithError wt err
+     Right _ ->
+       pure (property succeeded)
 
-prop_time_out_of_order (WellTypedPsv wt psv) =
-  List.length (wtEntities wt) > 0 ==>
-  List.length (wtFacts    wt) > 1 ==>
-  testIO $ do
-    let wt' = wt { wtFacts = List.reverse (wtFacts wt) }
-    x <- runEitherT
-       $ runTest wt' psv
-       $ TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse S.DoNotAllowDupTime
-    expectPsvError wt' x
+genWT1 d x =
+  -- if this welltyped is discarded, we can try again
+  validated tryCountInputType $
+    tryGenWellTypedWithInput d x
+
+genWT2 d x y =
+  -- if this welltyped is discarded, the output type is no good
+  -- there is no point in trying again
+  validated tryCountOutputType $
+    tryGenWellTypedWithInputAndOutput d x y
+
+genWTA1 x =
+  validated tryCountInputType $
+    tryGenAttributeWithInput x
+
+prop_success_array_of_struct_input
+ | dup <- AllowDupTime
+ = forAll genSupportedArrayStructFactType $ \ft ->
+   forAll (genWT1 dup (SumErrorFactT ft)) $ \wt ->
+   forAll (genPsvConstants wt) $ \psvConstants ->
+     testForSuccess dup wt psvConstants
+
+prop_success_psv_corpus
+ | dup <- AllowDupTime
+ = testAllCorpus dup genPsvConstants $ \wt psv ->
+     testForSuccess dup wt psv
+
+prop_success_psv
+ | dup <- AllowDupTime
+ = forAll genSumErrorFactType $ \inputType ->
+   forAll (genWT1 dup inputType) $ \wt ->
+   forAll (genPsvConstants wt) $ \psv ->
+     testForSuccess dup wt psv
+
+prop_failure_entity_out_of_order
+ | dup <- DoNotAllowDupTime
+ = forAll genSumErrorFactType $ \inputType ->
+   forAll (genWTA1 inputType) $ \wta ->
+   forAll (genWellTypedForSingleAttribute dup wta) $ \wt ->
+   List.length (List.nub (fmap eavtEntity (wtFacts wt))) > 1 ==>
+   forAll (genPsvConstants wt) $ \psv ->
+     testIO $ do
+       let
+         wtOutOfOrderEntities =
+           wt { wtFacts = List.reverse . List.sortBy (comparing eavtEntity) . wtFacts $ wt }
+       result <-
+         runEitherT .
+         runTest wtOutOfOrderEntities psv .
+         optExpectFailure $
+           dup
+       expectPsvError wtOutOfOrderEntities result
+
+prop_failure_time_out_of_order
+ = forAll genSumErrorFactType $ \inputType ->
+   forAll (genWTA1 inputType) $ \wta ->
+   forAll (genWellTypedForSingleAttribute DoNotAllowDupTime wta) $ \wt ->
+   List.length (wtFacts wt) > 1 ==>
+   List.all (>1)
+     (fmap (List.length . List.nubBy ((==) `on` (atTime . eavtValue))) .
+      List.groupBy ((==) `on` eavtEntity) . wtFacts $ wt) ==>
+   forAll (genPsvConstants wt) $ \psv ->
+     testIO $ do
+       let
+         wtOutOfOrderTimes =
+           wt { wtFacts = List.reverse . List.sortBy (comparing (atTime . eavtValue)). wtFacts $ wt }
+       result <-
+         runEitherT .
+         runTest wtOutOfOrderTimes psv .
+         optExpectFailure $ DoNotAllowDupTime
+       expectPsvError wtOutOfOrderTimes result
 
 prop_dup_time
-  = monadicIO
-  $ do wt <- pick $ genWellTypedWithDuplicateTimes
-                      `suchThat` (\x -> List.length (wtEntities x) > 0
-                                     && List.length (wtFacts    x) > 1 )
-       let wt' = wt { wtFacts = List.head (wtFacts wt) : wtFacts wt }
+ = forAll genSumErrorFactType $ \inputType ->
+   forAll (genWTA1 inputType) $ \wta ->
+   forAll (genWellTypedForSingleAttribute AllowDupTime wta) $ \wt ->
+   List.length (wtFacts wt) > 1 ==>
+    forAll (genPsvConstants wt) $ \psv ->
+      monadicIO $ do
+        let wt' = wt { wtFacts = List.head (wtFacts wt) : wtFacts wt }
+        a  <- liftIO .  runEitherT . runTest wt' psv . optExpectSuccess $ AllowDupTime
+        b  <- liftIO .  runEitherT . runTest wt' psv . optExpectFailure $ DoNotAllowDupTime
+        case a of
+          Left err -> stop $ testIO $ failWithError wt' err
+          Right _  -> stop $ testIO $ expectPsvError wt' b
 
-       psv <- pick $ genPsvConstants wt'
-
-       a  <- liftIO
-           $ runEitherT
-           $ runTest wt' psv
-           $ TestOpts ShowInputOnError ShowOutputOnError S.PsvInputSparse S.AllowDupTime
-       b  <- liftIO
-           $ runEitherT
-           $ runTest wt' psv
-           $ TestOpts ShowInputOnSuccess ShowOutputOnSuccess S.PsvInputSparse S.DoNotAllowDupTime
-       case a of
-         Left err -> stop $ testIO $ failWithError wt' err
-         Right _  -> stop $ testIO $ expectPsvError wt' b
-
-prop_sparse_dense_both_compile
-  = monadicIO
-  $ do wt <- pick $ genWellTypedWithStruct S.DoNotAllowDupTime
-       psv <- pick $ genPsvConstants wt
-       dict <- pick (denseDictionary (inputName $ wtInputId wt) (wtFactType wt))
-       case dict of
-         Nothing -> pure
-                  $ counterexample ("Cannot create dense dictionary for:")
-                  $ counterexample (show (wtFactType wt))
-                  $ failed
-         Just d  -> do
-           e <- liftIO
-              $ runEitherT
-              $ runTest wt psv
-              $ TestOpts ShowInputOnError
-                         ShowOutputOnError
-                         (S.PsvInputDense d (renderInputName (inputName (wtInputId wt))))
-                         S.DoNotAllowDupTime
-           s <- liftIO
-              $ runEitherT
-              $ runTest wt psv
-              $ TestOpts ShowInputOnError
-                         ShowOutputOnError
-                         S.PsvInputSparse
-                         S.DoNotAllowDupTime
-           case (s, e) of
-             (Right _, Right _) -> pure (property succeeded)
-             (Left err, _)      -> stop
-                                 $ testIO
-                                 $ failWithError'
-                                   (counterexample ("==* sparse failed!")) wt err
-             (_, Left err)      -> stop
-                                 $ testIO
-                                 $ failWithError'
-                                   (counterexample ("==* dense failed!")) wt err
-
-expectPsvError :: WellTyped -> Either S.SeaError () -> IO Property
+expectPsvError :: WellTyped -> Either SeaError () -> IO Property
 expectPsvError wt = \case
-  Left (S.SeaPsvError msg)
+  Left (SeaPsvError msg)
    | "out of order" `T.isInfixOf` msg
    -> pure (property succeeded)
 
@@ -199,84 +174,100 @@ expectPsvError wt = \case
     $ counterexample "data was out of order, but icicle did not give an error"
     $ failed
 
-failWithError :: WellTyped -> S.SeaError -> IO Property
+failWithError :: WellTyped -> SeaError -> IO Property
 failWithError = failWithError' id
 
-failWithError' :: (Property -> Property) -> WellTyped -> S.SeaError -> IO Property
-failWithError' prints wt = \case
-  S.SeaJetskiError (J.CompilerError _ src err)
+failWithError' :: (Property -> Property) -> WellTyped -> SeaError -> IO Property
+failWithError' prints _ = \case
+  SeaJetskiError (J.CompilerError _ src err)
    -> pure
     $ prints
     $ counterexample (show (pretty src))
     $ counterexample (show (pretty err))
-    $ counterexample (show (pretty (wtCore wt)))
     $ failed
 
   err
    -> pure
     $ prints
     $ counterexample (show (pretty err))
-    $ counterexample (show (pretty (wtCore wt)))
     $ failed
 
 ------------------------------------------------------------------------
 
-data ShowInput = ShowInputOnError | ShowInputOnSuccess
+data Expect = ExpectSuccess | ExpectFailure
   deriving (Eq, Show)
 
-data ShowOutput = ShowOutputOnError | ShowOutputOnSuccess
+data TestOpts = TestOpts Expect PsvInputFormat InputAllowDupTime
   deriving (Eq, Show)
 
-data TestOpts = TestOpts ShowInput ShowOutput S.PsvInputFormat S.InputAllowDupTime
-  deriving (Show)
+--
+-- FIXME
+-- We wouldn't need WellTypedEval to compile the test if the snapshot time
+-- wasn't rolled into the C code.
+--
+compileTest :: WellTypedEval -> WellTyped -> TestOpts -> EitherT SeaError  IO (SeaFleet PsvState)
+compileTest wte wt (TestOpts _ inputFormat allowDupTime) = do
+  defaultOptions <- getCompilerOptions
 
-data WellTypedPsv = WellTypedPsv WellTyped S.PsvConstants
-  deriving (Show)
+  let
+    maxArrayCount =
+      100 * length (wtFacts wt)
 
-instance Arbitrary WellTypedPsv where
-  arbitrary = do
-    wt <- arbitrary
-    psv <- genPsvConstants wt
-    return $ WellTypedPsv wt psv
+    options =
+      [ "-DICICLE_ASSERT=1"
+      , "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=" <> T.pack (show maxArrayCount)
+      , "-O0"
+      , "-DICICLE_NOINLINE=1"
+      ] <> defaultOptions
 
-genPsvConstants :: WellTyped -> Gen S.PsvConstants
-genPsvConstants wt = do
-  -- maximum number of rows to read before compute
-  let inc x = x + 1
-  maxRowCount <- inc . getPositive <$> arbitrary
-  -- the buffer needs to be at least as large as a single line
-  let str x = x + longestLine wt + 4
-  inputBuf <- str . getPositive <$> arbitrary
-  let outputBuf = inputBuf
-  factsLimit <- inc . getPositive <$> arbitrary
-  return $ S.PsvConstants maxRowCount inputBuf outputBuf factsLimit (wtMaxMapSize wt)
+    time =
+      evalSnapshotTime . wtEvalContext $ wte
 
-compileTest :: WellTyped -> TestOpts -> EitherT SeaError IO (SeaFleet S.PsvState)
-compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
-  options0 <- S.getCompilerOptions
+    missingValuesFor wta =
+      (clusterInputId . wtCluster $ wta, Set.singleton tombstone)
 
-  let optionsAssert = ["-DICICLE_ASSERT=1", "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=" <> T.pack (show (100 * (length $ wtFacts wt))) ]
-      options  = options0 <> ["-O0", "-DICICLE_NOINLINE=1"] <> optionsAssert
-      programs = Map.singleton (wtInputId wt) (wtAvalancheFlat wt :| [])
-      iconfig  = S.PsvInputConfig
-                (S.Snapshot (wtTime wt))
+    hasInput =
+      HasInput
+        (FormatPsv
+           (PsvConfig
+              (PsvInputConfig
+                 (Snapshot time)
                  inputFormat
-      oconfig  = S.PsvOutputConfig
-                (S.Snapshot (wtTime wt))
-                (S.PsvOutputSparse)
-                (S.defaultOutputMissing)
-      conf     = S.PsvConfig iconfig oconfig
-      iformat  = S.FormatPsv conf
-      iopts    = S.InputOpts allowDupTime (Map.singleton (wtInputId wt) (Set.singleton tombstone))
-      attrs    = [wtInputId wt]
+              )
+              (PsvOutputConfig
+                 (Snapshot time)
+                 PsvOutputSparse
+                 defaultOutputMissing
+              )
+           )
+        )
+        (InputOpts
+           allowDupTime .
+           Map.fromList .
+           fmap missingValuesFor .
+           wtClusters $
+             wt
+        )
+        ("" :: String)
 
-  let cache = S.NoCacheSea
-      input = HasInput iformat iopts "dummy_path"
-      chords = Nothing
-  code <- hoistEither (S.codeOfPrograms "Icicle.Test.Sea.Psv.compileTest" input attrs (Map.toList programs))
+    programFrom w =
+      (clusterInputId . wtCluster $ w, wtAvalancheFlat w :| [])
+
+    programs =
+      fmap programFrom . wtClusters $ wt
+
+    chords =
+      Nothing
+
+    cache =
+      NoCacheSea
+
+  code <- hoistEither $ codeOfPrograms "Icicle.Test.Sea.Psv.compileTest" hasInput (fmap fst programs) programs
 
   -- This test only uses snapshot so we can do this.
-  let savage = textOfDoc . vsep $
+  let
+    savage =
+      textOfDoc . vsep $
         [ "int64_t piano_max_count (piano_t *piano) {"
         , "    return 1;"
         , "}"
@@ -285,189 +276,100 @@ compileTest wt (TestOpts _ _ inputFormat allowDupTime) = do
         , "    return 0;"
         , "}"
         ]
-      code' = code <> savage
+    textCode =
+      code <> savage
 
-  S.seaCreateFleet options (S.fromCacheSea cache) input chords code'
+  seaCreateFleet options (fromCacheSea cache) hasInput chords textCode
 
+wtEntities =
+  List.nub . fmap eavtEntity . wtFacts
 
-runTest :: WellTyped -> S.PsvConstants -> TestOpts -> EitherT S.SeaError IO ()
-runTest wt consts
-           testOpts@(TestOpts showInput showOutput _ _) = do
-  let compile  = compileTest wt testOpts
-      release  = S.seaRelease
-      expect_values = evalWellTyped wt
-      expect
-       | length (wtFacts wt) <= S.psvFactsLimit consts
-       = textOfOutputs (wtEntities wt) expect_values
-       | otherwise
-       = ""
+runTest :: WellTyped -> PsvConstants -> TestOpts -> EitherT SeaError IO ()
+runTest wt consts testOpts@(TestOpts yourParents _ _) = do
+  let
+    evalCtx =
+      wellTypedEvalContext (psvFactsLimit consts) (psvMaxMapSize consts)
+    compile =
+        compileTest evalCtx wt testOpts
+    release =
+      seaRelease
+    expectValues =
+      evalWellTyped (wellTypedEvalContext (psvFactsLimit consts) (psvMaxMapSize consts)) wt
+    expectText =
+     textOfOutputs expectValues
 
   bracketEitherT' compile (hoist liftIO . release) $ \fleet -> hoist liftIO $ do
 
-  let install  = liftIO (S.sfSegvInstall fleet (show consts <> "\n" <> show wt))
-      remove _ = liftIO (S.sfSegvRemove  fleet)
+  let install  = liftIO (sfSegvInstall fleet (show consts <> "\n" <> show wt))
+      remove _ = liftIO (sfSegvRemove  fleet)
   bracketEitherT' install remove  $ \() -> do
 
   withSystemTempDirectory "psv-test-" $ \dir -> do
-    let source  = J.libSource (S.sfLibrary fleet)
+    let source  = J.libSource (sfLibrary fleet)
         program = dir <> "/program.c"
         input   = dir <> "/input.psv"
         output  = dir <> "/output.psv"
         dropped = dir <> "/dropped.txt"
         chords  = Nothing
-        discard = S.FlagUseDropFile
+        discard = FlagUseDropFile
 
     liftIO (LT.writeFile program (LT.fromStrict source))
 
-    let inputPsv = textOfFacts (wtEntities wt) (inputName $ wtInputId wt) (wtFacts wt)
+    let inputPsv = textOfFacts (wtFacts wt)
     liftIO (L.writeFile input (LT.encodeUtf8 inputPsv))
 
-    result <- liftIO (runEitherT (S.seaPsvSnapshotFilePath fleet input output dropped chords discard consts))
+    result <- liftIO (runEitherT (seaPsvSnapshotFilePath fleet input output dropped chords discard consts))
+
+    let
+      beautiful =
+        vsep . fmap (text . LT.unpack) . LT.lines
 
     case result of
       Left err -> do
-        when (showInput == ShowInputOnError) $ do
-          liftIO (LT.putStrLn "--- input.psv ---")
-          liftIO (LT.putStrLn inputPsv)
-        when (showOutput == ShowOutputOnError) $ do
-          outputPsv <- liftIO $ LT.readFile output
-          liftIO (LT.putStrLn "--- output.psv ---")
-          liftIO (LT.putStrLn outputPsv)
-          dropPsv <- liftIO $ LT.readFile dropped
-          liftIO (LT.putStrLn "--- drop.txt ---")
-          liftIO (LT.putStrLn dropPsv)
+        when (yourParents == ExpectSuccess) $ do
+          liftIO . print . vsep $
+            [ "*** You are a disappointment! " <> pretty (show yourParents) <> " ***"
+            , "Running PSV Snapshot Failed!"
+            , "Error:"
+            , indent 2 . pretty $ err
+            ]
+          liftIO . print . vsep $
+            [ "Input: "
+            , indent 2 . beautiful $ inputPsv
+            ]
         left err
-      Right stats -> do
-        when (showInput == ShowInputOnSuccess) $ do
-          liftIO (LT.putStrLn "--- input.psv ---")
-          liftIO (LT.putStrLn inputPsv)
-          liftIO (LT.putStrLn "--- stats ---")
-          liftIO (putStrLn ("facts read:    " <> show (S.psvFactsRead stats)))
-          liftIO (putStrLn ("entities read: " <> show (S.psvEntitiesRead stats) <> "\n"))
-        when (showOutput == ShowOutputOnSuccess) $ do
-          outputPsv <- liftIO $ LT.readFile output
-          liftIO (LT.putStrLn "--- output.psv ---")
-          liftIO (LT.putStrLn outputPsv)
-          dropPsv <- liftIO $ LT.readFile dropped
-          liftIO (LT.putStrLn "--- drop.txt ---")
-          liftIO (LT.putStrLn dropPsv)
-
+      Right (PsvStats nf ne) -> do
         outputPsv <- liftIO $ LT.readFile output
-        when (outputPsv /= expect) $ do
-          Savage.error ("Expected values:\n" <> show expect_values <> "\nExpected:\n" <> LT.unpack expect <> "\nGot:\n" <> LT.unpack outputPsv)
-
+        dropPsv <- liftIO $ LT.readFile dropped
+        when (  (yourParents == ExpectSuccess && outputPsv /= expectText)
+             || (yourParents == ExpectFailure)) .
+          Savage.error . show . vsep $
+            [ "*** You are a disappointment! " <> pretty (show yourParents) <> " ***"
+            , "Running PSV Snapshot OK: " <> pretty (show ne) <> " entities, " <> pretty (show nf) <> " facts"
+            , "PSV facts limit = " <> pretty (psvFactsLimit consts)
+            , "----------------------------------------"
+            , "Output types: "
+            , indent 2 . vsep . fmap (\(n,t) -> pretty n <> " :: " <> pretty t) . List.concat . fmap wtOutputs . wtClusters $ wt
+            , "----------------------------------------"
+            , "Expected values from Core:"
+            , indent 2 . pretty . Map.toList $ expectValues
+            , "----------------------------------------"
+            , "Expected PSV:"
+            , indent 2 . beautiful $ expectText
+            , "----------------------------------------"
+            , "Got PSV:"
+            , indent 2 . beautiful $ outputPsv
+            , "----------------------------------------"
+            , "Input: "
+            , indent 2 . beautiful $ inputPsv
+            , "----------------------------------------"
+            , "Dropped: "
+            , indent 2 . beautiful $ dropPsv
+            -- , "----------------------------------------"
+            -- , "Sea:"
+            -- , indent 2 . beautiful . LT.fromStrict $ source
+            ]
         pure ()
-
-
-longestLine :: WellTyped -> Int
-longestLine wt
-  | List.null (wtFacts wt)
-  = 0
-  | otherwise
-  = fromIntegral
-  $ LT.length
-  $ List.maximumBy (compare `on` LT.length)
-  $ fmap (LT.intercalate "|")
-  $ fieldsOfFacts (wtEntities wt) (inputName $ wtInputId wt) (wtFacts wt)
-
-textOfOutputs :: [Entity] -> [(OutputId, BaseValue)] -> LT.Text
-textOfOutputs entities outputs =
-  LT.unlines (fmap (LT.intercalate "|") (fieldsOfOutputs entities outputs))
-
-fieldsOfOutputs :: [Entity] -> [(OutputId, BaseValue)] -> [[LT.Text]]
-fieldsOfOutputs entities outputs =
-  [ [ LT.fromStrict entity, LT.fromStrict (renderOutputId name), output ]
-  | Entity entity         <- entities
-  , (name,value)          <- outputs
-  , Just output           <- [textOfOutputValue value]
-  , output /= LT.fromStrict tombstone ]
-
-textOfOutputValue :: BaseValue -> Maybe LT.Text
-textOfOutputValue v
- = do v' <- valueFromCore v
-      t  <- renderOutputValue v'
-      return $ LT.replace "\n" "\\n" $ LT.fromStrict t
-
-textSubstitution :: LT.Text -> LT.Text
-textSubstitution = LT.replace "\n" "\\n"
-
-
-textOfFacts :: [Entity] -> InputName -> [AsAt BaseValue] -> LT.Text
-textOfFacts entities attribute vs =
-  LT.unlines (fmap (LT.intercalate "|") (fieldsOfFacts entities attribute vs))
-
-fieldsOfFacts :: [Entity] -> InputName -> [AsAt BaseValue] -> [[LT.Text]]
-fieldsOfFacts entities attribute vs =
-  [ [ LT.fromStrict entity, LT.fromStrict (renderInputName attribute), valueText, timeText ]
-  | Entity entity         <- entities
-  , (valueText, timeText) <- textsOfValues vs ]
-
-textsOfValues :: [AsAt BaseValue] -> [(LT.Text, LT.Text)]
-textsOfValues vs =
-  List.zip (fmap (\v -> textOfValue (atFact v)) vs)
-           (fmap (\v -> textOfTime  (atTime v)) vs)
-
-textOfValue :: BaseValue -> LT.Text
-textOfValue
- = LT.replace "\n" "\\n" -- this is the only really special character, not sure how we should deal with this
- . LT.fromStrict
- . renderValue tombstone
- . fromMaybe Tombstone
- . valueFromCore
-
-textOfTime :: Time -> LT.Text
-textOfTime = LT.fromStrict . renderTime
-
-withSystemTempDirectory :: FilePath -> (FilePath -> EitherT S.SeaError IO a) -> EitherT S.SeaError IO a
-withSystemTempDirectory template action = do
-  let acquire = liftIO (getTemporaryDirectory >>= \tmp -> createTempDirectory tmp template)
-      release = liftIO . removeDirectoryRecursive
-  bracketEitherT' acquire release action
-
-
-denseTextOfFacts :: [Entity] -> [AsAt BaseValue] -> LT.Text
-denseTextOfFacts entities vs =
-  LT.unlines (fmap (LT.intercalate "|") (denseFieldsOfFacts entities vs))
-
-denseFieldsOfFacts :: [Entity] -> [AsAt BaseValue] -> [[LT.Text]]
-denseFieldsOfFacts entities vs
-  | Just (AsAt v t) <- sequence' vs
-  , Just fs  <- sequence $ fmap (sequence . flip AsAt t . structValues) v
-  =  [ [ LT.fromStrict entity, valueText, timeText ]
-     | Entity entity         <- entities
-     , (valueText, timeText) <- denseTextsOfValues fs ]
-  | otherwise
-  =  [ [ LT.fromStrict entity, valueText, timeText ]
-     | Entity entity         <- entities
-     , (valueText, timeText) <- textsOfValues vs ]
-  where
-    sequence' [] = Nothing
-    sequence' (AsAt x t : xs) = Just $ AsAt (x : fmap atFact xs) t
-    structValues
-      = \case VStruct m -> Just (Map.elems m)
-              _         -> Nothing
-
-denseTextsOfValues :: [AsAt [BaseValue]] -> [(LT.Text, LT.Text)]
-denseTextsOfValues vs =
-  List.zip
-    (fmap (LT.intercalate "|" . fmap textOfValue . atFact) vs)
-    (fmap (textOfTime . atTime) vs)
-
-denseDictionary :: InputName -> ValType -> Gen (Maybe S.PsvInputDenseDict)
-denseDictionary denseName (StructT (StructType m))
-  = do missingValue <- genMissingValue
-       let n         = renderInputName denseName
-       fs           <- mapM (\(t,v) -> pure . (t,) . (,v) =<< arbitrary)
-                            (Map.toList $ Map.mapKeys nameOfStructField m)
-       return $ Just
-              $ S.PsvInputDenseDict
-                  (Map.singleton (renderInputName denseName) fs)
-                  (maybe Map.empty (Map.singleton n) missingValue)
-                  n
-denseDictionary _ _ = return Nothing
-
-genMissingValue :: Gen (Maybe Text)
-genMissingValue = elements [Nothing, Just "NA", Just ""]
 
 ------------------------------------------------------------------------
 

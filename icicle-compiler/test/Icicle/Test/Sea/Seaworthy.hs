@@ -33,8 +33,8 @@ namer = A.namerText (flip Var 0)
 
 -- | Any well-typed Icicle program is convertible to C.
 --   Like prop_psv, but without psv.
-prop_seaworthy wt
- = testIO
+prop_seaworthy
+ = forAll (validated tryCountInputType genWellTypedCluster) $ \wt -> testIO
  $ do let a = [inputid|default:eval|]
       let seaProgram = Map.singleton a (wtAvalancheFlat wt :| [])
       x <- runEitherT $ go [a] seaProgram
@@ -47,8 +47,8 @@ prop_seaworthy wt
         $  counterexample (show $ pretty (wtAvalancheFlat wt))
         $  failed
  where
-  go a p
-   = bracketEitherT' (S.seaCompile "Icicle.Test.Sea.Seaworthy.prop_seaworthy" S.NoCacheSea S.NoInput a p Nothing) S.seaRelease (const $ return ())
+  go a p =
+    bracketEitherT' (S.seaCompile "Icicle.Test.Sea.Seaworthy.prop_seaworthy" S.NoCacheSea S.NoInput a p Nothing) S.seaRelease (const $ return ())
 
 
 return []
