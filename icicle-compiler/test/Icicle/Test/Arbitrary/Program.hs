@@ -862,7 +862,7 @@ textOfValue
 textOfInputTime :: Time -> LT.Text
 textOfInputTime = LT.fromStrict . renderTime
 
-withSystemTempDirectory :: FilePath -> (FilePath -> EitherT SeaError IO a) -> EitherT SeaError IO a
+withSystemTempDirectory :: FilePath -> (FilePath -> EitherT e IO a) -> EitherT e IO a
 withSystemTempDirectory template action = do
   let acquire = liftIO (getTemporaryDirectory >>= \tmp -> createTempDirectory tmp template)
       release = liftIO . removeDirectoryRecursive

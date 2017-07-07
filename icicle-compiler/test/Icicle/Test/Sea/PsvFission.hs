@@ -9,8 +9,6 @@
 
 module Icicle.Test.Sea.PsvFission where
 
-import           Icicle.Test.Sea.Psv hiding (tests)
-
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Morph (hoist)
 import           Control.Arrow ((&&&))
@@ -27,7 +25,20 @@ import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LT
 import qualified Data.Text.Lazy.IO as LT
 
+import qualified Prelude as Savage
+
+import           System.IO
+
+import           P
+
+import           Test.QuickCheck (forAll, discard)
+
+import           X.Control.Monad.Trans.Either (EitherT, runEitherT, hoistEither)
+import           X.Control.Monad.Trans.Either (bracketEitherT', firstEitherT, left)
+
 import           Disorder.Core.IO
+
+import qualified Jetski as J
 
 import           Icicle.Internal.Pretty
 import           Icicle.Common.Eval
@@ -43,19 +54,7 @@ import qualified Icicle.Avalanche.Prim.Flat as Flat
 import qualified Icicle.Avalanche.Program as Flat
 import           Icicle.Common.Annot
 
-import qualified Jetski as J
-
-import           P
-import qualified Prelude as Savage
-
-import           System.IO
-
-import           Test.QuickCheck (forAll)
-import           Test.QuickCheck (property, discard)
-import           Test.QuickCheck.Property (succeeded)
-
-import           X.Control.Monad.Trans.Either (EitherT, runEitherT, hoistEither)
-import           X.Control.Monad.Trans.Either (bracketEitherT', left)
+import           Icicle.Test.Sea.Psv.Base
 
 
 prop_psv_fission =
@@ -93,15 +92,10 @@ prop_psv_fission =
            dummyWt =
              WellTyped wtvs [wta1]
          in
-           forAll (genPsvConstants dummyWt) $ \psvOpts -> testIO $ do
-             x <- runEitherT
-                $ runTwoAsOne psvOpts wta1 wta2 wtvs
-                $ TestOpts ExpectSuccess Sea.PsvInputSparse timeOpt
-             case x of
-               Left err ->
-                 failWithError dummyWt err
-               Right () ->
-                 pure (property succeeded)
+           forAll (genPsvConstants dummyWt) $ \psvOpts ->
+             testIO . testEitherT . firstEitherT show $
+               runTwoAsOne psvOpts wta1 wta2 wtvs
+                 $ TestOpts ExpectSuccess Sea.PsvInputSparse timeOpt
 
 --------------------------------------------------------------------------------
 

@@ -30,8 +30,23 @@
   PUBLISH_S3 = "$AMBIATA_ARTEFACTS_BRANCHES"
   PUBLISH_EXECUTABLES = "icicle"
 
-[build.branches-7-10-psv]
-  TEST_SUITE = "psv"
+[build.branches-7-10-psv-struct]
+  TEST_SUITE = "psv_struct"
+  GHC_VERSION = "7.10.2"
+  CABAL_VERSION = "1.24.0.0"
+
+[build.branches-7-10-psv-corpus]
+  TEST_SUITE = "psv_corpus"
+  GHC_VERSION = "7.10.2"
+  CABAL_VERSION = "1.24.0.0"
+
+[build.branches-7-10-psv-success]
+  TEST_SUITE = "psv_success"
+  GHC_VERSION = "7.10.2"
+  CABAL_VERSION = "1.24.0.0"
+
+[build.branches-7-10-psv-failure]
+  TEST_SUITE = "psv_failure"
   GHC_VERSION = "7.10.2"
   CABAL_VERSION = "1.24.0.0"
 
@@ -50,8 +65,23 @@
   GHC_VERSION = "8.0.1"
   CABAL_VERSION = "1.24.0.0"
 
-[build.branches-8-0-psv]
-  TEST_SUITE = "psv"
+[build.branches-8-0-psv-struct]
+  TEST_SUITE = "psv_struct"
+  GHC_VERSION = "8.0.1"
+  CABAL_VERSION = "1.24.0.0"
+
+[build.branches-8-0-psv-corpus]
+  TEST_SUITE = "psv_corpus"
+  GHC_VERSION = "8.0.1"
+  CABAL_VERSION = "1.24.0.0"
+
+[build.branches-8-0-psv-success]
+  TEST_SUITE = "psv_success"
+  GHC_VERSION = "8.0.1"
+  CABAL_VERSION = "1.24.0.0"
+
+[build.branches-8-0-psv-failure]
+  TEST_SUITE = "psv_failure"
   GHC_VERSION = "8.0.1"
   CABAL_VERSION = "1.24.0.0"
 
