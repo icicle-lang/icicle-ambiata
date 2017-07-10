@@ -34,7 +34,10 @@ import qualified Icicle.Test.Source.History
 import qualified Icicle.Test.Source.MaxMapSize
 
 import qualified Icicle.Test.Sea.Name
-import qualified Icicle.Test.Sea.Psv
+import qualified Icicle.Test.Sea.Psv.Struct
+import qualified Icicle.Test.Sea.Psv.Corpus
+import qualified Icicle.Test.Sea.Psv.Success
+import qualified Icicle.Test.Sea.Psv.Failure
 import qualified Icicle.Test.Sea.Psv.Schema
 import qualified Icicle.Test.Sea.PsvFission
 import qualified Icicle.Test.Sea.Zebra
@@ -57,10 +60,28 @@ data TestSuite =
     , suiteTests :: [IO Bool]
     }
 
-psv :: TestSuite
-psv =
-  TestSuite "psv" [
-      Icicle.Test.Sea.Psv.tests
+psv_struct :: TestSuite
+psv_struct =
+  TestSuite "psv_struct" [
+      Icicle.Test.Sea.Psv.Struct.tests
+    ]
+
+psv_corpus :: TestSuite
+psv_corpus =
+  TestSuite "psv_corpus" [
+      Icicle.Test.Sea.Psv.Corpus.tests
+    ]
+
+psv_success :: TestSuite
+psv_success =
+  TestSuite "psv_success" [
+      Icicle.Test.Sea.Psv.Success.tests
+    ]
+
+psv_failure :: TestSuite
+psv_failure =
+  TestSuite "psv_failure" [
+      Icicle.Test.Sea.Psv.Failure.tests
     ]
 
 sea :: TestSuite
@@ -110,7 +131,10 @@ sundry =
 suites :: Map String TestSuite
 suites =
   Map.fromList $ fmap (\x -> (suiteName x, x)) [
-      psv
+      psv_struct
+    , psv_corpus
+    , psv_success
+    , psv_failure
     , sea
     , sundry
     ]
