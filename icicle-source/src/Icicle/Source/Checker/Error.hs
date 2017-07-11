@@ -1,5 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 module Icicle.Source.Checker.Error (
     CheckError(..)
@@ -23,7 +24,7 @@ import           Icicle.Internal.Pretty
 
 import           P
 
-import           Data.List (sortBy, take)
+import           Data.List (sortBy, take, intersperse)
 import           Data.String
 import           Data.Hashable (Hashable)
 
@@ -105,100 +106,139 @@ errorInFunctionEither a n e
 -- Pretties ----------
 
 instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (CheckError a n) where
- pretty (CheckError info [])
-  = pretty info
- pretty (CheckError info sugs)
-  = pretty info <> line
-  <> "Extra information:" <> line
-  <> indent 2 (vcat $ fmap pretty sugs)
+  pretty = \case
+    CheckError info [] ->
+      pretty info
+    CheckError info sugs ->
+      vsep [
+          pretty info
+        , mempty
+        , vsep . intersperse mempty $
+            fmap pretty sugs
+        ]
 
 instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
- pretty e
-  = case e of
-     ErrorNoSuchVariable a n
-      -> "Unknown variable" <+> pretty n <+> "at" <+> pretty a
-     ErrorNoSuchInput a n
-      -> "The dictionary has no input called" <+> pretty n <+> "at" <+> pretty a
+  pretty = \case
+    ErrorNoSuchVariable a n ->
+      "Unknown variable" <+> annotate AnnError (pretty n) <+> "at" <+> pretty a
 
-     ErrorContextNotAllowedHere  a c
-      -> "Context is not allowed at" <+> pretty a <> line
-      <> "Context: " <> inp c
+    ErrorNoSuchInput a n ->
+      "The dictionary has no input called" <+> annotate AnnError (pretty n) <+> "at" <+> pretty a
 
-     ErrorFunctionWrongArgs a x f tys
-      -> "Function applied to wrong number of arguments at" <+> pretty a <> line
-      <> "Expression:     " <> inp x <> line
-      <> "Function type:  " <> inp f <> line
-      <> "Argument types: " <> inp tys
+    ErrorContextNotAllowedHere a c ->
+      vsep [
+          "Context is not allowed at" <+> pretty a
+        , mempty
+        , "Context: " <> inp c
+        ]
 
-     ErrorApplicationNotFunction a x
-      -> "Application of non-function at" <+> pretty a <> line
-      <> "Exp: " <> inp x
+    ErrorFunctionWrongArgs a x f tys ->
+      vsep [
+          "Function applied to wrong number of arguments at" <+> pretty a
+        , mempty
+        , "Expression:     " <> inp x
+        , "Function type:  " <> inp f
+        , "Argument types: " <> inp tys
+        ]
 
-     ErrorConstraintsNotSatisfied a ds
-      -> "Cannot discharge constraints at" <+> pretty a <> line
-      <> "Constraints: " <> line
-      <> vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
+    ErrorApplicationNotFunction a x ->
+      vsep [
+          "Application of non-function at" <+> pretty a
+        , mempty
+        , "Exp: " <> inp x
+        ]
 
-     ErrorConstraintLeftover a ds
-      -> "Unsolved constraints at " <+> pretty a <> line
-      <> vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
+    ErrorConstraintsNotSatisfied a ds ->
+      vsep [
+          "Cannot discharge constraints at" <+> pretty a
+        , mempty
+        , vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
+        ]
 
-     ErrorReturnNotAggregate a t
-      -> "Return type is not an aggregate at" <+> pretty a <> line
-      <> "Type: " <> inp t
+    ErrorConstraintLeftover a ds ->
+      vsep [
+          "Unsolved constraints at " <+> pretty a
+        , mempty
+        , vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
+        ]
 
-     ErrorDuplicateFunctionNames a n
-      -> "Function" <+> pretty n <+> "at" <+> pretty a <+> "is already defined"
+    ErrorReturnNotAggregate a t ->
+      vsep [
+          "Return type is not an aggregate at" <+> pretty a
+        , mempty
+        , "Type: " <> inp t
+        ]
 
-     ErrorEmptyCase a x
-      -> "Case expression has no clauses at" <+> pretty a <> line
-      <> "Exp: " <> inp x
+    ErrorDuplicateFunctionNames a n ->
+      "Function" <+> annotate AnnError (pretty n) <+> "at" <+> pretty a <+> "is already defined"
 
-     ErrorCaseBadPattern a p
-      -> "Case expression has ill-formed pattern at" <+> pretty a <> line
-      <> "Pattern: " <> inp p
+    ErrorEmptyCase a x ->
+      vsep [
+          "Case expression has no clauses at" <+> pretty a
+        , mempty
+        , "Exp: " <> inp x
+        ]
 
-     ErrorResumableFoldNotAllowedHere a q
-      -> "For resumable queries, folds, groups and distincts must be inside windowed or latest at" <+> pretty a <> line
-      <> "Fold: " <> inp q
+    ErrorCaseBadPattern a p ->
+      vsep [
+          "Case expression has ill-formed pattern at" <+> pretty a
+        , mempty
+        , "Pattern: " <> inp p
+        ]
 
-     ErrorInFunctionCall a n e'
-      -> "In call to" <+> pretty n <+> "at" <+> pretty a <> ":" <> line
-      <> pretty e'
+    ErrorResumableFoldNotAllowedHere a q ->
+      vsep [
+          "For resumable queries, folds, groups and distincts must be inside windowed or latest at" <+> pretty a
+        , mempty
+        , "Fold: " <> inp q
+        ]
 
+    ErrorInFunctionCall a n e' ->
+      vsep [
+          "In call to" <+> annotate AnnError (pretty n) <+> "at" <+> pretty a <> ":"
+        , mempty
+        , pretty e'
+        ]
 
    where
-    inp x = indent 0 (pretty x)
-
+    inp x = align (pretty x)
 
 instance (IsString n, Pretty n, Hashable n, Eq n) => Pretty (ErrorSuggestion a n) where
- pretty e
-  = case e of
-     AvailableFeatures n' bs
-      -> let bs' = take 5
-                 $ flip sortBy bs
-                 $ on compare
-                 $ (editDistance $ pretty n') . pretty . fst
-         in "Suggested features are:"
-            <> line
-            <> indent 2 (vcat $ fmap pretty_ty bs')
+  pretty = \case
+    AvailableFeatures n' bs ->
+      let
+        bs' =
+          take 5 $ flip sortBy bs $ on compare $ (editDistance $ pretty n') . pretty . fst
+      in
+        vsep [
+            "Suggested features are:"
+          , mempty
+          , indent 2 . vsep . intersperse mempty $
+              fmap pretty_ty bs'
+          ]
 
-     AvailableBindings n' bs
-      -> let inb = grabInbuilt <$> listOfBuiltinFuns
-             bs' = take 5
-                 $ flip sortBy (fmap (first nameBase) bs <> inb)
-                 $ on compare
-                 $ (editDistance $ pretty n') . pretty . fst
-         in "Suggested bindings are:"
-            <> line
-            <> indent 2 (vcat $ fmap pretty_fun_ty bs')
+    AvailableBindings n' bs ->
+      let
+        inb =
+          grabInbuilt <$> listOfBuiltinFuns
 
-     Suggest str
-      -> text str
+        bs' =
+          take 5 $ flip sortBy (fmap (first nameBase) bs <> inb) $ on compare $ (editDistance $ pretty n') . pretty . fst
 
-  where
-    pretty_ty     (k,t) = padDoc 20 (pretty k) <+> ":" <+> pretty t
-    pretty_fun_ty (k,t) = padDoc 20 (pretty k) <+> ":" <+> prettyFunFromStrings t
+      in
+        vsep [
+            "Suggested bindings are:"
+          , mempty
+          , indent 2 . vsep . intersperse mempty $
+              fmap pretty_fun_ty bs'
+          ]
+
+    Suggest str ->
+      text str
+
+   where
+    pretty_ty     (k,t) = prettyTyped (annotate AnnBinding $ pretty k) $ align (pretty t)
+    pretty_fun_ty (k,t) = prettyTyped (annotate AnnBinding $ pretty k) $ align (prettyFunFromStrings t)
 
     grabInbuilt f       = (NameBase . fromString . (flip displayS "") . renderCompact . pretty . Fun $ f, prettyInbuiltType f)
 

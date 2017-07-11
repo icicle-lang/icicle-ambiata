@@ -1,0 +1,545 @@
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE QuasiQuotes #-}
+module Icicle.Repl.Query (
+    evaluateQuery
+  , defineFunction
+  ) where
+
+import           Control.Monad.Catch (MonadCatch)
+import           Control.Monad.IO.Class (MonadIO(..))
+import           Control.Monad.Morph (hoist)
+import           Control.Monad.State (gets, modify)
+import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Trans.Resource (MonadResource, runResourceT)
+
+import qualified Data.ByteString as ByteString
+import qualified Data.ByteString.Char8 as Char8
+import qualified Data.Char as Char
+import qualified Data.List as List
+import           Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
+import           Data.String (String)
+import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text
+
+import qualified Icicle.Avalanche.Annot as Avalanche
+import qualified Icicle.Avalanche.Prim.Flat as Flat
+import qualified Icicle.Avalanche.Simp as Avalanche
+import qualified Icicle.Compiler as Compiler
+import qualified Icicle.Compiler.Source as Source
+import qualified Icicle.Core.Program.Check as Core
+import           Icicle.Data
+import           Icicle.Data.Time (packedOfTime, exclusiveSnapshotTime)
+import           Icicle.Dictionary
+import           Icicle.Internal.Pretty ((<+>))
+import qualified Icicle.Internal.Pretty as Pretty
+import           Icicle.Repl.Data
+import           Icicle.Repl.Flag
+import           Icicle.Repl.Monad
+import           Icicle.Repl.Pretty
+import           Icicle.Repl.Source
+import qualified Icicle.Runtime.Data as Runtime
+import qualified Icicle.Runtime.Evaluator as Runtime
+import qualified Icicle.Runtime.Serial.Zebra as Runtime
+import qualified Icicle.Sea.Eval as Sea
+import qualified Icicle.Sea.FromAvalanche.Program as Sea
+import qualified Icicle.Sea.Preamble as Sea
+import qualified Icicle.Serial as Serial
+import qualified Icicle.Source.PrettyAnnot as Source
+import qualified Icicle.Source.Query.Query as Source
+import qualified Icicle.Storage.Dictionary.Toml as Toml
+
+import           P
+
+import           System.IO (FilePath)
+import qualified System.IO as IO
+import           System.IO.Error (IOError)
+
+import qualified Text.ParserCombinators.Parsec as Parsec
+import           Text.Show.Pretty (ppShow)
+
+import           X.Control.Monad.Trans.Either (EitherT, hoistEither, runEitherT, firstJoin)
+
+import           Zebra.Serial.Binary (BinaryStripedDecodeError)
+import qualified Zebra.Serial.Binary as Binary
+import           Zebra.Serial.Text (TextStripedEncodeError)
+import qualified Zebra.Serial.Text as Text
+import           Zebra.Table.Striped (StripedError)
+import qualified Zebra.Table.Striped as Striped
+import qualified Zebra.X.ByteStream as ByteStream
+import           Zebra.X.Stream (Stream, Of)
+import qualified Zebra.X.Stream as Stream
+
+
+data CompiledQuery =
+  CompiledQuery {
+      compiledSource :: Source.QueryTop (Source.TypeAnnot Parsec.SourcePos) Source.Var
+    , compiledCore :: Source.CoreProgramUntyped Source.Var
+    , compiledAvalanche :: Maybe (Compiler.AvalProgramTyped Source.Var Flat.Prim)
+    }
+
+data QueryError =
+   QueryDecodeError Serial.ParseError
+ | QuerySourceError !(Source.ErrorSource Source.Var)
+ | QueryCompilerError !(Compiler.ErrorCompile Source.Var)
+ | QueryRuntimeError !Runtime.RuntimeError
+ | QueryIOError !IOError
+ | QueryZebraError !Runtime.ZebraError
+ | QueryBinaryStripedDecodeError !BinaryStripedDecodeError
+ | QueryTextStripedEncodeError !TextStripedEncodeError
+ | QueryStripedError !StripedError
+
+posOfError :: QueryError -> Maybe Parsec.SourcePos
+posOfError = \case
+  QueryDecodeError _ ->
+    Nothing
+  QuerySourceError x ->
+    Source.annotOfError x
+  QueryCompilerError x ->
+    Compiler.annotOfError x
+  QueryRuntimeError _ ->
+    Nothing
+  QueryIOError _ ->
+    Nothing
+  QueryZebraError _ ->
+    Nothing
+  QueryBinaryStripedDecodeError _ ->
+    Nothing
+  QueryTextStripedEncodeError _ ->
+    Nothing
+  QueryStripedError _ ->
+    Nothing
+
+ppQueryError :: QueryError -> Pretty.Doc
+ppQueryError = \case
+  QueryDecodeError x ->
+    Pretty.vsep [
+        "PSV decode error:"
+      , Pretty.indent 2 $ Pretty.pretty x
+      ]
+
+  QuerySourceError x ->
+    Pretty.pretty x
+
+  QueryCompilerError x ->
+    Pretty.pretty x
+
+  QueryRuntimeError x ->
+    Pretty.text (ppShow x)
+
+  QueryIOError x ->
+    Pretty.text (ppShow x)
+
+  QueryZebraError x ->
+    Pretty.text (ppShow x)
+
+  QueryBinaryStripedDecodeError x ->
+    Pretty.text . Text.unpack $ Binary.renderBinaryStripedDecodeError x
+
+  QueryTextStripedEncodeError x ->
+    Pretty.text . Text.unpack $ Text.renderTextStripedEncodeError x
+
+  QueryStripedError x ->
+    Pretty.text . Text.unpack $ Striped.renderStripedError x
+
+runEitherRepl :: EitherT QueryError Repl () -> Repl ()
+runEitherRepl ee = do
+  e <- runEitherT ee
+  case e of
+    Left err ->
+      putError (ppQueryError err) (posOfError err)
+    Right () ->
+      pure ()
+
+readPsvFacts :: MonadIO m => Dictionary -> FilePath -> EitherT QueryError m [AsAt Fact]
+readPsvFacts dictionary path = do
+  psv <- Text.lines . Text.decodeUtf8 <$> liftIO (ByteString.readFile path)
+  hoistEither . first QueryDecodeError $ traverse (Serial.decodeEavt dictionary) psv
+
+ppResults :: [Compiler.Result] -> Pretty.Doc
+ppResults = \case
+  [] ->
+    Pretty.prettyPunctuation "<no output>"
+  kvs ->
+    Pretty.vsep . with kvs $ \(Compiler.Result (k, v)) ->
+      Pretty.align (Pretty.pretty k) <> "|" <> Pretty.align (Pretty.pretty v)
+
+defineFunction :: String -> Repl ()
+defineFunction function =
+  runEitherRepl $ do
+    parsed <-
+      hoistEither . first QuerySourceError .
+        Source.sourceParseF "<interactive>" $ Text.pack function
+
+    dictionary <- gets stateDictionary
+
+    let
+      names =
+        Set.fromList $ fmap (snd . fst) parsed
+
+      -- Remove the old bindings with these names
+      funEnv =
+        List.filter (not . flip Set.member names . fst) .
+        Toml.toFunEnv $
+        dictionaryFunctions dictionary
+
+    (funEnv', logs) <-
+      hoistEither . first QuerySourceError $
+        Source.sourceCheckFunLog funEnv parsed
+
+    let
+      fundefs =
+        List.filter (flip Set.member names . fst) funEnv'
+
+    for_ (List.zip fundefs logs) $ \((nm, (typ, annot)), log0) -> do
+      whenSet FlagType $
+        putSection "Type" $
+          Pretty.prettyTyped
+            (Pretty.annotate Pretty.AnnBinding $ Pretty.pretty nm)
+            (Pretty.align $ Pretty.pretty typ)
+
+      whenSet FlagAnnotated $
+        putSection "Annotated" $
+          Pretty.annotate Pretty.AnnBinding (Pretty.pretty nm) <+> Pretty.pretty (Source.PrettyAnnot annot)
+
+      whenSet FlagTypeCheckLog . for_ log0 $ \x -> do
+        putPretty x
+        liftIO $ IO.putStrLn ""
+
+    modify $ \s ->
+      s { stateDictionary = dictionary { dictionaryFunctions = Toml.fromFunEnv funEnv' } }
+
+compileQuery :: String -> EitherT QueryError Repl CompiledQuery
+compileQuery query = do
+  dictionary <- gets stateDictionary
+
+  --
+  -- Source.
+  --
+  let
+    sourceOid =
+      [outputid|repl:output|]
+
+  parsed <-
+    hoistEither . first QuerySourceError $
+      Source.sourceParseQT sourceOid (Text.pack query)
+
+  options <- lift getCheckOptions
+
+  (annot, sourceType) <-
+    hoistEither . first QuerySourceError $
+      Source.sourceCheckQT options dictionary parsed
+
+  whenSet FlagType $
+    putSection "Type" $
+      Pretty.prettyTyped
+        (Pretty.annotate Pretty.AnnBinding $ Pretty.pretty sourceOid)
+        (Pretty.align $ Pretty.pretty sourceType)
+
+  whenSet FlagAnnotated $
+    putSection "Annotated" (Source.PrettyAnnot annot)
+
+  let
+    inlined =
+      Source.sourceInline Source.defaultInline dictionary annot
+
+  blanded <-
+    hoistEither . first QuerySourceError $
+      Source.sourceDesugarQT inlined
+
+  whenSet FlagInlined $
+    putSection "Inlined" inlined
+
+  whenSet FlagDesugar $
+    putSection "Desugar" blanded
+
+  (annobland, _) <-
+    hoistEither . first QuerySourceError $
+      Source.sourceCheckQT options dictionary blanded
+
+  let
+    reified =
+      Source.sourceReifyQT annobland
+
+  whenSet FlagReified $ do
+    putSection "Reified" reified
+    putSection "Reified annotated" (Source.PrettyAnnot reified)
+
+  let
+    finalSource =
+      reified
+
+  --
+  -- Core, simplified and unsimplified.
+  --
+
+  coreUnsimped <-
+    hoistEither . first QueryCompilerError $
+      Compiler.sourceConvert dictionary finalSource
+
+  core <-
+    ifSet FlagCoreSimp
+      (pure $ Compiler.coreSimp coreUnsimped)
+      (pure coreUnsimped)
+
+  whenSet FlagCore $
+    ifSet FlagCoreSimp
+      (putSection "Core (simplified)" core)
+      (putSection "Core (not simplified)" core)
+
+  case Core.checkProgram core of
+    Left err ->
+      putSection "Core type error" err
+
+    Right coreType ->
+      whenSet FlagCoreType .
+        putSection "Core type" . Pretty.vsep . with coreType $ \(oid, typ) ->
+          Pretty.prettyTyped (Pretty.annotate Pretty.AnnBinding $ Pretty.pretty oid) (Pretty.pretty typ)
+
+  --
+  -- Avalanche, simplified.
+  --
+
+  let
+    avalancheSimped =
+      Compiler.coreAvalanche core
+
+  whenSet FlagAvalanche $
+    putSection "Avalanche (simplified)" avalancheSimped
+
+  --
+  -- Flatten Avalanche, not simplified.
+  --
+
+  case Compiler.flattenAvalanche avalancheSimped of
+    Left err ->
+      putSection "Flatten Avalanche (not simplified) error" err
+
+    Right avalancheFlatUnsimped ->
+      case Compiler.checkAvalanche $ Avalanche.eraseAnnotP avalancheFlatUnsimped of
+        Left err ->
+          putSection "Flattened Avalanche (not simplified) type error" err
+        Right flatUnsimpedChecked ->
+          whenSet FlagFlattenNoSimp $
+            putSection "Flattened Avalanche (not simplified), typechecked" flatUnsimpedChecked
+
+  --
+  -- Flattened Avalanche, simplified.
+  --
+
+  avalancheFlatSimped <-
+    ifSet FlagFlattenSimpCheck
+      (pure $ Compiler.coreFlatten_ (Avalanche.SimpOpts True True) core)
+      (pure $ Compiler.coreFlatten core)
+
+  case avalancheFlatSimped of
+    Left err -> do
+      putSection "Flatten Avalanche (simplified) error" err
+      pure $
+        CompiledQuery finalSource core Nothing
+
+    Right flatSimped -> do
+      whenSet FlagFlattenSimp $
+        putSection "Flattened (simplified), not typechecked" flatSimped
+
+      --
+      -- Flattened Avalanche, simplified, check.
+      --
+
+      case Compiler.checkAvalanche flatSimped of
+        Left err -> do
+          putSection "Flattened Avalanche (simplified) type error" err
+          pure $
+            CompiledQuery finalSource core Nothing
+
+        Right flatChecked -> do
+          whenSet FlagFlattenSimp $
+            putSection "Flattened Avalanche (simplified), typechecked" flatChecked
+
+          pure $
+            CompiledQuery finalSource core (Just flatChecked)
+
+evaluateCore :: CompiledQuery -> [AsAt Fact] -> Repl ()
+evaluateCore compiled facts =
+  whenSet FlagCoreEval $ do
+    context <- getEvalContext
+    case Compiler.coreEval context facts (compiledSource compiled) (compiledCore compiled) of
+      Left err ->
+        putSection "Core evaluation error" err
+      Right x ->
+        putSection "Core evaluation" $ ppResults x
+
+evaluateAvalanche :: CompiledQuery -> [AsAt Fact] -> Repl ()
+evaluateAvalanche compiled facts = do
+  case compiledAvalanche compiled of
+    Nothing ->
+      pure ()
+    Just avalanche ->
+      whenSet FlagAvalancheEval $ do
+        context <- getEvalContext
+        case Compiler.avalancheEval context facts (compiledSource compiled) (Avalanche.reannotP (const ()) avalanche) of
+          Left err ->
+            putSection "Avalanche evalutation error" err
+
+          Right x ->
+            putSection "Avalanche evaluation" $ ppResults x
+
+compileSea :: CompiledQuery -> EitherT QueryError Repl ()
+compileSea compiled =
+  case compiledAvalanche compiled of
+    Nothing ->
+      pure ()
+    Just avalanche -> do
+      let
+        flatList =
+          avalanche :| []
+
+      whenSet FlagSeaPreamble $
+        putSection "C preamble" Sea.seaPreamble
+
+      dictionary <- gets stateDictionary
+
+      iid <-
+        hoistEither . first QueryCompilerError $
+          Compiler.sourceInputId (compiledSource compiled) dictionary
+
+      whenSet FlagSea $
+        case Sea.seaOfPrograms 0 iid flatList of
+          Left err ->
+            putSection "C error" err
+          Right x ->
+            putSection "C" x
+
+      whenSet FlagSeaAssembly $ do
+        result <- liftIO . runEitherT $ Sea.assemblyOfPrograms "icicle-repl" Sea.NoInput [iid] [(iid, flatList)]
+        case result of
+          Left err ->
+            putSection "C assembly error" err
+          Right x ->
+            putSection "C assembly" x
+
+      whenSet FlagSeaLLVM $ do
+        result <- liftIO . runEitherT $ Sea.irOfPrograms "icicle-repl" Sea.NoInput [iid] [(iid, flatList)]
+        case result of
+          Left err ->
+            putSection "C LLVM IR error" err
+          Right x ->
+            putSection "C LLVM IR" x
+
+evaluateSea :: CompiledQuery -> [AsAt Fact] -> Repl ()
+evaluateSea compiled facts =
+  case compiledAvalanche compiled of
+    Nothing ->
+      pure ()
+    Just avalanche ->
+      whenSet FlagSeaEval $ do
+        context <- getEvalContext
+        result <- liftIO . runEitherT $ Compiler.seaEval context facts (compiledSource compiled) avalanche
+        case result of
+          Left err ->
+            putSection "C evaluation error" err
+          Right x ->
+            putSection "C evaluation" $ ppResults x
+
+readStriped :: (MonadResource m, MonadCatch m) => FilePath -> Stream (Of Striped.Table) (EitherT QueryError m) ()
+readStriped path =
+  hoist (firstJoin QueryBinaryStripedDecodeError) .
+    Binary.decodeStriped .
+  hoist (firstT QueryIOError) $
+    ByteStream.readFile path
+
+readStripedN :: (MonadResource m, MonadCatch m) => Int -> FilePath -> Stream (Of Striped.Table) (EitherT QueryError m) ()
+readStripedN n path =
+  hoist (firstJoin QueryStripedError) .
+    Striped.rechunk n $ readStriped path
+
+readZebraRows :: MonadIO m => Int -> FilePath -> EitherT QueryError m (Maybe Striped.Table)
+readZebraRows limit path =
+  hoist (liftIO . runResourceT) $
+    Stream.head_ (readStripedN limit path)
+
+evaluateZebra :: CompiledQuery -> FilePath -> EitherT QueryError Repl ()
+evaluateZebra compiled path = do
+  case compiledAvalanche compiled of
+    Nothing ->
+      pure ()
+    Just avalanche -> do
+      dictionary <- gets stateDictionary
+
+      iid <-
+        hoistEither . first QueryCompilerError $
+          Compiler.sourceInputId (compiledSource compiled) dictionary
+      let
+        context0 =
+          Runtime.AvalancheContext "Icicle.Repl.Query.evaluateZebra" $
+          Map.fromList [(iid, avalanche :| [])]
+
+      context <-
+        hoistEither . first QueryRuntimeError $
+          Runtime.compileAvalanche context0
+
+      runtime <-
+        firstT QueryRuntimeError $
+          Runtime.compileSea Sea.SkipJetskiCache context
+
+      whenSet FlagSeaRuntime $
+        putSection "C runtime" (ppShow runtime)
+
+      whenSet FlagSeaEval $ do
+        mapSize <- Runtime.MaximumMapSize . fromIntegral <$> gets stateMaxMapSize
+        time <- Runtime.SnapshotTime . Runtime.Time64 . packedOfTime . exclusiveSnapshotTime <$> gets stateSnapshotDate
+
+        limit <- gets stateLimit
+        minput0 <- readZebraRows limit path
+
+        case minput0 of
+          Nothing ->
+            pure ()
+
+          Just input0 -> do
+            input <-
+              hoistEither . first QueryZebraError $
+                Runtime.decodeInput input0
+
+            output0 <-
+              firstT QueryRuntimeError . hoist liftIO $
+                Runtime.snapshot runtime mapSize time input
+
+            output1 <-
+              hoistEither . first QueryZebraError $
+                Runtime.encodeSnapshotOutput output0
+
+            -- FIXME more pleasant pretty printing for output, is currently verbose JSON
+            output <-
+              hoistEither . first QueryTextStripedEncodeError $
+                Text.encodeStripedBlock output1
+
+            putSection "C evaluation" $
+              List.dropWhileEnd Char.isSpace (Char8.unpack output)
+
+evaluateQuery :: String -> Repl ()
+evaluateQuery query =
+  runEitherRepl $ do
+    compiled <- compileQuery query
+    compileSea compiled
+
+    input <- gets stateInput
+    case input of
+      InputNone -> do
+        lift $ evaluateCore compiled []
+        lift $ evaluateAvalanche compiled []
+        lift $ evaluateSea compiled []
+
+      InputPsv path -> do
+        dictionary <- gets stateDictionary
+        facts <- readPsvFacts dictionary path
+        lift $ evaluateCore compiled facts
+        lift $ evaluateAvalanche compiled facts
+        lift $ evaluateSea compiled facts
+
+      InputZebra path -> do
+        evaluateZebra compiled path

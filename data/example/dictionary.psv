@@ -1,5 +1,0 @@
-gender|string
-age|int
-state_of_residence|string
-salary|int
-injury|(location:string,severity:int,action:string*)

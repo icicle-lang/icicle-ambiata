@@ -1,5 +1,5 @@
 -- Show everything
-:set +core-simp +flatten
+:set +core-simp +flatten-simp
 
 -- A rather complicated feature to convert to Avalanche
 feature salary ~> (filter value > 10 ~> count value), (latest 3 ~> value)

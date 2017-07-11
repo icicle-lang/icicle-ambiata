@@ -1,54 +1,83 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> -- Divisions return Possibles.
-> -- Try with group:
-> - Core evaluation:
-[homer, [(0,4.0)
-        ,(1,20.0)
-        ,(2,36.0)]
-,marge, [(0,1.2)]]
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ -- Divisions return Possibles.
+λ -- Try with group:
+λ Core evaluation
+---------------
 
-> > -- Distincts
-> - Core evaluation:
-[homer, 60.0,marge, 1.2]
+homer|[ (0, 4.0)
+      , (1, 20.0)
+      , (2, 36.0)
+      ]
+marge|[ (0, 1.2) ]
 
-> > -- Maybe some lets
-> - Core evaluation:
-[homer, 3000,marge, 60]
+λ λ -- Distincts
+λ Core evaluation
+---------------
 
-> > -- Add a filter
-> - Core evaluation:
-[homer, 5,marge, 2]
+homer|60.0
+marge|1.2
 
-> > -- newest or something
-> - Core evaluation:
-[homer, ((100.0,20.0),1500)
-,marge, ((4.0,0.0),30)]
+λ λ -- Maybe some lets
+λ Core evaluation
+---------------
 
-> > -- This was causing an issue with nested possibility cases before
-> - Core evaluation:
-[homer, 500,marge, 20]
+homer|3000
+marge|60
 
-> > -- Constructing a Right of a Possibility was causing an issue before
-> - Core evaluation:
-[homer, 500,marge, 20]
+λ λ -- Add a filter
+λ Core evaluation
+---------------
 
-> > -- Primitive returning possibly (map_insert), applied to a definite primitive (,)
-> - Core evaluation:
-[homer, ([(0,0)],0)
-,marge, ([(0,0)],0)]
+homer|5
+marge|2
 
-> > -- Same deal, more or less
-> - Core evaluation:
-[homer, ([(0,0)
-         ,(100,100)
-         ,(200,200)
-         ,(300,300)
-         ,(400,400)
-         ,(500,500)]
-        ,5)
-,marge, ([(0,0),(10,10),(20,20)]
-        ,3)]
+λ λ -- newest or something
+λ Core evaluation
+---------------
 
-> > 
+homer|((100.0,20.0),1500)
+marge|((4.0,0.0),30)
+
+λ λ -- This was causing an issue with nested possibility cases before
+λ Core evaluation
+---------------
+
+homer|500
+marge|20
+
+λ λ -- Constructing a Right of a Possibility was causing an issue before
+λ Core evaluation
+---------------
+
+homer|500
+marge|20
+
+λ λ -- Primitive returning possibly (map_insert), applied to a definite primitive (,)
+λ Core evaluation
+---------------
+
+homer|([ (0, 0) ],0)
+marge|([ (0, 0) ],0)
+
+λ λ -- Same deal, more or less
+λ Core evaluation
+---------------
+
+homer|([ (0, 0)
+       , (100, 100)
+       , (200, 200)
+       , (300, 300)
+       , (400, 400)
+       , (500, 500)
+       ]
+      ,5)
+marge|([ (0, 0)
+       , (10, 10)
+       , (20, 20)
+       ]
+      ,3)
+
+λ λ 

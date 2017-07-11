@@ -150,10 +150,10 @@ instance Pretty WellTypedCluster where
       , indent 2 $ vsep (fmap pretty (Map.toList . fmap Sea.typeLogical . Sea.clusterOutputs . wtCluster $ wt))
       , "Core ="
       , indent 2 $ pretty (wtCore wt)
-      --, "Avalanche ="
-      --, indent 2 $ pretty (wtAvalanche wt)
-      --, "Flat ="
-      --, indent 2 $ pretty (wtAvalancheFlat wt)
+      , "Avalanche ="
+      , indent 2 $ pretty (wtAvalanche wt)
+      , "Flat ="
+      , indent 2 $ pretty (wtAvalancheFlat wt)
       ]
 
 instance Pretty WellTypedEval where

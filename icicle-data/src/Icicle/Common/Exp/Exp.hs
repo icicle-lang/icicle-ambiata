@@ -1,21 +1,22 @@
 -- | Definition of expressions
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Common.Exp.Exp (
-      Exp     (..)
+      Exp(..)
     , Ann
     , renameExp
     , annotOfExp
-    , TransformX (..)
+    , TransformX(..)
     ) where
 
-import              Icicle.Internal.Pretty
-import              Icicle.Common.Base
-import              Icicle.Common.Type
+import           Icicle.Common.Base
+import           Icicle.Common.Type
+import           Icicle.Internal.Pretty
 
-import              P
+import           P
 
-import              Data.Set (Set)
+import           Data.Set (Set)
 
 
 -- | Incredibly simple expressions;
@@ -76,33 +77,95 @@ type Ann a n = (a, Set (Name n))
 
 -- Pretty printing ---------------
 
+--
+-- FIXME Annoyingly 'takeLets' and 'takeApps' are also in
+-- FIXME Icicle.Common.Exp.Compounds. We can't use them though because the
+-- FIXME Pretty instance must be defined here. Ideally pretty printing wouldn't
+-- FIXME be done using a type class.
+--
+
+takeLams :: Exp a n p -> ([(Name n, ValType)], Exp a n p)
+takeLams = \case
+  XLam _ n t x ->
+    let
+      (nts, tl) =
+        takeLams x
+    in
+      ((n, t) : nts, tl)
+  tl ->
+    ([], tl)
+
+takeLets :: Exp a n p -> ([(Name n, Exp a n p)], Exp a n p)
+takeLets = \case
+  XLet _ n x i ->
+    let
+      (nxs, tl) =
+        takeLets i
+    in
+      ((n, x) : nxs, tl)
+  tl ->
+    ([], tl)
+
+takeApps :: Exp a n p -> (Exp a n p, [Exp a n p])
+takeApps = \case
+  XApp _ fun0 arg ->
+    let
+      (fun, args) =
+        takeApps fun0
+    in
+      (fun, args <> [arg])
+
+  x ->
+    (x, [])
+
 instance (Pretty n, Pretty p) => Pretty (Exp a n p) where
- pretty (XVar _ n)    = pretty n
- pretty (XPrim _ p)   = pretty p
- pretty (XValue _ t v)= annotate (AnnType t) (pretty v)
+  prettyPrec p xx =
+    case xx of
+      XVar _ n ->
+        annotate AnnVariable $
+          prettyPrec p n
 
- pretty (XApp _ p q)  = inner' p <+> inner q
-  where
-   inner i
-    = case i of
-       XApp{}   -> parens $ pretty i
-       XLam{}   -> line <> indent 2 (parens $ pretty i)
-       XValue{} -> parens $ pretty i
-       XLet{}   -> parens $ pretty i
-       _        ->          pretty i
-   inner' i
-    = case i of
-       XLam{} -> parens $ pretty i
-       XLet{} -> parens $ pretty i
-       _      ->          pretty i
+      XPrim _ x ->
+        annotate AnnPrimitive $
+          prettyPrec p x
 
- pretty (XLam _ b t x) = annotate (AnnType t) ("\\" <> pretty b) <+> pretty x
+      XValue _ _ v ->
+        annotate AnnConstant $
+          prettyPrec p v
 
- pretty (XLet _ b x i) = line
-                      <> indent 2 ("let " <> pretty b <> " = "  <> pretty x)
-                      <> rest i
-  where
-   rest (XLet{}) = pretty i
-   rest _        = line <> indent 2 (" in " <> pretty i)
+      XLam{} ->
+        let
+          (nts, tl) =
+            takeLams xx
 
+          ppBind (n, _t) =
+            annotate AnnBinding (pretty n)
+        in
+          hang 2 . parensWhenArg p $
+            prettyPunctuation "\\" <>
+            sep [
+                hsep (fmap ppBind nts) <+> prettyPunctuation "->"
+              , pretty tl
+              ]
 
+      XLet{} ->
+        let
+          (nxs, tl) =
+            takeLets xx
+
+          ppBind (n, x) =
+            prettyBinding (pretty n) (pretty x)
+        in
+          parensWhenArg p . vsep $ [
+              prettyKeyword "let"
+            , indent 2 . vsep . punctuate line $ fmap ppBind nxs
+            , prettyKeyword "in"
+            , indent 2 $ pretty tl
+            ]
+
+      XApp{} ->
+        let
+          (fun, args) =
+            takeApps xx
+        in
+          prettyApp sep p fun args

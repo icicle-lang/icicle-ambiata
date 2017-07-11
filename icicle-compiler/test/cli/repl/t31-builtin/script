@@ -1,4 +1,4 @@
-:dictionary data/example/DictionaryTrial.toml
+:load data/example/DictionaryTrial.toml
 :load data/example/demographics.psv
 :set +core-eval
 :set +c-eval
@@ -17,7 +17,7 @@ feature injury ~> let x = group_keys location ~> sort x
 
 feature salary ~> year_of now
 
-:set time 2016 1 1
+:set snapshot 2016-01-01
 
 feature salary ~> year_of now
 
@@ -28,7 +28,7 @@ feature injury ~> let x = (latest 4 ~> days between time now) ~> quantile_on_sor
 -- Invaild quantile arguments
 feature injury ~> let x = (latest 4 ~> days between time now) ~> quantile_on_sorted 5.0 (sort x), x
 
-:dictionary test/cli/repl/t31-builtin/dict.toml
+:load test/cli/repl/t31-builtin/dict.toml
 :load test/cli/repl/t31-builtin/data.psv
 
 -- NY should be 1.5 years, CA should be 3 years, OR should be 0.5 years

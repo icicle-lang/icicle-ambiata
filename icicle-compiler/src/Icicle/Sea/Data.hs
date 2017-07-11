@@ -21,6 +21,7 @@ module Icicle.Sea.Data (
   , prettyKernelIndex
 
   , MeltedType(..)
+  , UseJetskiCache(..)
   ) where
 
 import           Data.List.NonEmpty (NonEmpty)
@@ -82,6 +83,11 @@ data MeltedType =
     , typeMelted :: ![ValType]
     } deriving (Eq, Ord, Show, Generic)
 
+data UseJetskiCache =
+    SkipJetskiCache
+  | UseJetskiCache
+    deriving (Eq, Ord, Show)
+
 instance Show ClusterId where
   showsPrec =
     gshowsPrec
@@ -116,7 +122,7 @@ prettyKernelIndex =
 
 renderKernelId :: KernelId -> Text
 renderKernelId (KernelId cid kix) =
-  renderClusterId cid <> "/" <> renderKernelIndex kix
+  renderClusterId cid <> ":" <> renderKernelIndex kix
 
 prettyKernelId :: KernelId -> Doc
 prettyKernelId =

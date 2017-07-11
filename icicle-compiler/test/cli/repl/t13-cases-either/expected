@@ -1,36 +1,62 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> ok, type is now on
-> - Type:
-Aggregate Possibly (Sum Int Double)
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ OK, type is now on.
+λ Type
+----
 
-- Core evaluation:
-[homer, 5.0,marge, 3.0]
+repl:output : Aggregate (Possibly (Sum Int Double))
 
-> - Type:
-Aggregate Possibly (Sum Int Double)
+Core evaluation
+---------------
 
-- Core evaluation:
-[homer, 5.0,marge, 3.0]
+homer|5.0
+marge|3.0
 
-> > > - Type:
-Aggregate Definitely (Sum Int Int)
+λ Type
+----
 
-- Core evaluation:
-[homer, 0,marge, 0]
+repl:output : Aggregate (Possibly (Sum Int Double))
 
-> - Type:
-Aggregate Definitely (Sum Int Int)
+Core evaluation
+---------------
 
-- Core evaluation:
-[homer, 0,marge, 0]
+homer|5.0
+marge|3.0
 
-> > -- Cases can be strange
-> - Type:
-Aggregate Definitely (Option Int)
+λ λ λ Type
+----
 
-- Core evaluation:
-[homer, 0,marge, 0]
+repl:output : Aggregate (Definitely (Sum Int Int))
 
-> 
+Core evaluation
+---------------
+
+homer|0
+marge|0
+
+λ Type
+----
+
+repl:output : Aggregate (Definitely (Sum Int Int))
+
+Core evaluation
+---------------
+
+homer|0
+marge|0
+
+λ λ -- Cases can be strange
+λ Type
+----
+
+repl:output : Aggregate (Definitely (Option Int))
+
+Core evaluation
+---------------
+
+homer|0
+marge|0
+
+λ 

@@ -1,4 +1,5 @@
 -- | An entire core program
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Core.Program.Program (
@@ -66,33 +67,54 @@ renameProgram f p
 -- Pretty printing -------------
 
 instance Pretty n => Pretty (Program a n) where
- pretty p
-  =  "Program ("
-  <> pretty (factValName  p) <> " : " <> pretty (inputType p) <> ", "
-  <> pretty (factIdName   p) <> " : FactIdentifier, "
-  <> pretty (factTimeName p) <> " : Time, "
-  <> pretty (snaptimeName p) <> " : SNAPSHOT_TIME, "
-  <> pretty (maxMapSize   p) <> " : MaxMapSize)" <> line
+  pretty p =
+    let
+      ppInput nm ty =
+        prettyTyped (annotate AnnBinding $ pretty nm) ty
 
-  <>    "Precomputations:"                             <> line
-  <>    ppbinds (precomps p)                           <> line
-                                                       <> line
-  <>    "Streams:"                                     <> line
-  <>    indent 2 (vcat (fmap pretty (streams p)))      <> line
-                                                       <> line
-  <>    "Postcomputations:"                            <> line
-  <>    ppbinds (postcomps p)                          <> line
-                                                       <> line
-  <>    "Returning:"                                   <> line
-  <>    ppbinds (returns   p)                          <> line
+      ppBind (nm, bind') =
+        vsep [
+            annotate AnnBinding (pretty nm) <+>
+              annotate AnnPunctuation "="
+          , indent 2 (pretty bind')
+          ]
 
-  where
-   ppbinds :: (Pretty a, Pretty b) => [(a,b)] -> Doc
-   ppbinds
-    = vcat
-    . fmap prettyNamed
-
-   prettyNamed (nm, bind')
-    = indent 2 (padDoc 20 (pretty nm) <> " = " <> indent 0 (pretty bind'))
-
-
+      ppBinds :: (Pretty a, Pretty b) => [(a, b)] -> Doc
+      ppBinds = \case
+        [] ->
+          annotate AnnPunctuation "<none>"
+        xs ->
+          vsep $ fmap ppBind xs
+    in
+      vsep [
+          prettyH2 "Inputs"
+        , mempty
+        , vsep [
+              ppInput (factValName p) $
+                align (pretty (inputType p))
+            , ppInput (factIdName p) $
+                annotate AnnConstructor "FactIdentifier"
+            , ppInput (factTimeName p) $
+                annotate AnnConstructor "Time"
+            , ppInput (snaptimeName p) $
+                annotate AnnConstructor "SNAPSHOT_TIME"
+            , ppInput (maxMapSize p) $
+                annotate AnnConstructor "MaxMapSize"
+            ]
+        , mempty
+        , prettyH2 "Precomputations"
+        , mempty
+        , ppBinds (precomps p)
+        , mempty
+        , prettyH2 "Streams"
+        , mempty
+        , vcat (fmap pretty (streams p))
+        , mempty
+        , prettyH2 "Postcomputations"
+        , mempty
+        , ppBinds (postcomps p)
+        , mempty
+        , prettyH2 "Returning"
+        , mempty
+        , ppBinds (returns p)
+        ]

@@ -258,7 +258,7 @@ mkQueryFleet input chord source = do
   let cfg = HasInput format (InputOpts AllowDupTime Map.empty) (inputPath input)
 
   code  <- liftIO $ Text.readFile source
-  fleet <- firstEitherT IcicleSeaError (seaCreate CacheSea cfg chord code)
+  fleet <- firstEitherT IcicleSeaError (seaCreate UseJetskiCache cfg chord code)
   return (code, fleet)
 
 compileFleet ::
@@ -277,7 +277,7 @@ compileFleet fingerprint dictionary format input chords = do
   let inputs = Map.keys $ dictionaryInputs dictionary
 
   code  <- firstEitherT IcicleSeaError (hoistEither (codeOfPrograms fingerprint cfg inputs avalancheL))
-  fleet <- firstEitherT IcicleSeaError (seaCompile fingerprint CacheSea cfg inputs avalanche chords)
+  fleet <- firstEitherT IcicleSeaError (seaCompile fingerprint UseJetskiCache cfg inputs avalanche chords)
 
   return (code, fleet)
 

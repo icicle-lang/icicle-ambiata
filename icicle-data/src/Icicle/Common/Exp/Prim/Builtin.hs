@@ -69,11 +69,11 @@ instance Pretty PrimBuiltinMath where
 
 instance Pretty PrimBuiltinMap where
  pretty p = case p of
-   PrimBuiltinKeys   k v -> annotateTypeArgs [MapT k v] "keys#"
-   PrimBuiltinVals   k v -> annotateTypeArgs [MapT k v] "vals#"
+   PrimBuiltinKeys   _k _v -> "keys#"
+   PrimBuiltinVals   _k _v -> "vals#"
 
 instance Pretty PrimBuiltinArray where
  pretty p = case p of
-   PrimBuiltinSort   t -> annotateTypeArgs [ArrayT t] "sort#"
-   PrimBuiltinLength t -> annotateTypeArgs [ArrayT t] "length#"
-   PrimBuiltinIndex  t -> annotateTypeArgs [ArrayT t] "index#"
+   PrimBuiltinSort   _t -> "sort#"
+   PrimBuiltinLength _t -> "length#"
+   PrimBuiltinIndex  _t -> "index#"

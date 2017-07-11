@@ -1,14 +1,24 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> ok, time set to 2010-01-01
-> > - Core evaluation:
-[homer, 3,marge, 7323]
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ OK, snapshot mode activated with a snapshot date of 2010-01-01.
+λ λ Core evaluation
+---------------
 
-> > - Core evaluation:
-[homer, -92,marge, 7228]
+homer|4
+marge|7324
 
-> > - Core evaluation:
-[homer, 1461,marge, 8781]
+λ λ Core evaluation
+---------------
 
-> 
+homer|-91
+marge|7229
+
+λ λ Core evaluation
+---------------
+
+homer|1461
+marge|8781
+
+λ 

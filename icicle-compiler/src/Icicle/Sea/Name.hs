@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Sea.Name (
     SeaName
@@ -12,11 +13,15 @@ module Icicle.Sea.Name (
 
 import qualified Data.Text as Text
 
+import           GHC.Generics (Generic)
+
 import           Icicle.Internal.Pretty
 
 import           P
 
 import           Text.Encoding.Z (zEncodeString, zDecodeString)
+
+import           X.Text.Show (gshowsPrec)
 
 
 -- | A legal C identifier.
@@ -24,7 +29,11 @@ import           Text.Encoding.Z (zEncodeString, zDecodeString)
 newtype SeaName =
   SeaName {
       unSeaName :: Text
-    } deriving (Eq, Ord, Show)
+    } deriving (Eq, Ord, Generic)
+
+instance Show SeaName where
+  showsPrec =
+    gshowsPrec
 
 renderSeaName :: SeaName -> Text
 renderSeaName =

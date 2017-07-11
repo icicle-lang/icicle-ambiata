@@ -1,9 +1,9 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> -- Enable C evaluation
-> ok, c evaluation now on
-                   _________-----_____
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ -- Enable C evaluation
+λ                    _________-----_____
         _____------           __      ----_
  ___----             ___------              \
     ----________        ----                 \
@@ -19,17 +19,20 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                    |  \_((_(_)|/(_)
                                    \             (
                                     \_____________)
-> ok, c is now on
-> > - C:
-#line 1 "cluster state #0 - repl:input"
+OK, c-eval is now on.
+λ OK, c is now on.
+λ λ C
+-
+
+#line 1 "cluster state #0 - default:salary"
 
 typedef struct {
-    itime_t          convzs3;
+    itime_t          convzm3;
     iint_t           new_count;
-    ierror_t         *new_convzs0zssimpflatzs45;
-    iint_t           *new_convzs0zssimpflatzs46;
-    itime_t          *new_convzs0zssimpflatzs47;
-} input_replZCinput_t;
+    ierror_t         *new_convzm0zmsimpflatzm45;
+    iint_t           *new_convzm0zmsimpflatzm46;
+    itime_t          *new_convzm0zmsimpflatzm47;
+} input_defaultZCsalary_t;
 
 typedef struct {
     /* runtime */
@@ -37,9 +40,10 @@ typedef struct {
     iint_t           max_map_size;
 
     /* inputs */
-    input_replZCinput_t input;
+    input_defaultZCsalary_t input;
 
-  /* kernel 0/0 */
+    /*** kernel 0:0 ***/
+
     /* outputs */
     ierror_t         replZCoutputzsixzs0;
     ibool_t          replZCoutputzsixzs1;
@@ -47,17 +51,17 @@ typedef struct {
     idouble_t        replZCoutputzsixzs3;
 
     /* resumables: values */
-    iint_t           res_0_0_acczsperhapszsconvzs5zssimpflatzs7;
-    ibool_t          res_0_0_acczsperhapszsconvzs5zssimpflatzs6;
-    ierror_t         res_0_0_acczsperhapszsconvzs5zssimpflatzs5;
-    idouble_t        res_0_0_acczsperhapszsconvzs5zssimpflatzs8;
+    iint_t           res_0_0_acczmperhapszmconvzm5zmsimpflatzm7;
+    ibool_t          res_0_0_acczmperhapszmconvzm5zmsimpflatzm6;
+    ierror_t         res_0_0_acczmperhapszmconvzm5zmsimpflatzm5;
+    idouble_t        res_0_0_acczmperhapszmconvzm5zmsimpflatzm8;
 
     /* resumables: has flags */
     ibool_t          has_flags_start_0_0;
-    ibool_t          has_0_0_acczsperhapszsconvzs5zssimpflatzs7;
-    ibool_t          has_0_0_acczsperhapszsconvzs5zssimpflatzs6;
-    ibool_t          has_0_0_acczsperhapszsconvzs5zssimpflatzs5;
-    ibool_t          has_0_0_acczsperhapszsconvzs5zssimpflatzs8;
+    ibool_t          has_0_0_acczmperhapszmconvzm5zmsimpflatzm7;
+    ibool_t          has_0_0_acczmperhapszmconvzm5zmsimpflatzm6;
+    ibool_t          has_0_0_acczmperhapszmconvzm5zmsimpflatzm5;
+    ibool_t          has_0_0_acczmperhapszmconvzm5zmsimpflatzm8;
     ibool_t          has_flags_end_0_0;
 
 
@@ -68,201 +72,207 @@ iint_t size_of_icluster_0 ()
     return sizeof (icluster_0_t);
 }
 
-#line 1 "kernel function #0 - repl:input icluster_0_kernel_0"
+#line 1 "kernel function #0 - default:salary icluster_0_kernel_0"
 void icluster_0_kernel_0(icluster_0_t *s)
 {
-    ierror_t         perhapszsconvzs5zsavalzs0zssimpflatzs9;
-    ibool_t          perhapszsconvzs5zssimpflatzs42;
-    iint_t           perhapszsconvzs5zssimpflatzs43;
-    idouble_t        perhapszsconvzs5zssimpflatzs44;
-    ierror_t         perhapszsconvzs5zssimpflatzs41;
-    ibool_t          perhapszsconvzs5zsavalzs0zssimpflatzs10;
-    iint_t           perhapszsconvzs5zsavalzs0zssimpflatzs11;
-    idouble_t        perhapszsconvzs5zsavalzs0zssimpflatzs12;
-    idouble_t        flatzs0zssimpflatzs40;
-    ibool_t          flatzs0zssimpflatzs38;
-    iint_t           flatzs0zssimpflatzs39;
-    ierror_t         flatzs0zssimpflatzs37;
-    ibool_t          flatzs7zssimpflatzs30;
-    iint_t           flatzs7zssimpflatzs31;
-    idouble_t        flatzs7zssimpflatzs32;
-    ierror_t         flatzs3zssimpflatzs33;
-    ibool_t          flatzs3zssimpflatzs34;
-    iint_t           flatzs3zssimpflatzs35;
-    idouble_t        flatzs3zssimpflatzs36;
-    iint_t           acczsperhapszsconvzs5zssimpflatzs7;
-    ibool_t          acczsperhapszsconvzs5zssimpflatzs6;
-    ierror_t         acczsperhapszsconvzs5zssimpflatzs5;
-    idouble_t        acczsperhapszsconvzs5zssimpflatzs8;
-    iint_t           flatzs0zssimpflatzs15;
-    ibool_t          flatzs0zssimpflatzs14;
-    ierror_t         flatzs0zssimpflatzs13;
-    idouble_t        flatzs0zssimpflatzs16;
-    ibool_t          flatzs3zssimpflatzs18;
-    iint_t           flatzs3zssimpflatzs19;
-    ierror_t         flatzs3zssimpflatzs17;
-    idouble_t        flatzs3zssimpflatzs20;
-    idouble_t        flatzs6zssimpflatzs22;
-    ierror_t         flatzs6zssimpflatzs23;
-    ierror_t         flatzs6zssimpflatzs21;
-    idouble_t        flatzs6zssimpflatzs24;
-    ierror_t         flatzs7zssimpflatzs29;
-    idouble_t        flatzs7zssimpflatzs28;
-    ierror_t         flatzs7zssimpflatzs25;
-    iint_t           flatzs7zssimpflatzs27;
-    ibool_t          flatzs7zssimpflatzs26;
+    ierror_t         perhapszmconvzm5zmavalzm0zmsimpflatzm9;
+    ibool_t          perhapszmconvzm5zmsimpflatzm42;
+    iint_t           perhapszmconvzm5zmsimpflatzm43;
+    idouble_t        perhapszmconvzm5zmsimpflatzm44;
+    ierror_t         perhapszmconvzm5zmsimpflatzm41;
+    ibool_t          perhapszmconvzm5zmavalzm0zmsimpflatzm10;
+    iint_t           perhapszmconvzm5zmavalzm0zmsimpflatzm11;
+    idouble_t        perhapszmconvzm5zmavalzm0zmsimpflatzm12;
+    idouble_t        flatzm0zmsimpflatzm40;
+    ibool_t          flatzm0zmsimpflatzm38;
+    iint_t           flatzm0zmsimpflatzm39;
+    ierror_t         flatzm0zmsimpflatzm37;
+    ibool_t          flatzm7zmsimpflatzm30;
+    iint_t           flatzm7zmsimpflatzm31;
+    idouble_t        flatzm7zmsimpflatzm32;
+    ierror_t         flatzm3zmsimpflatzm33;
+    ibool_t          flatzm3zmsimpflatzm34;
+    iint_t           flatzm3zmsimpflatzm35;
+    idouble_t        flatzm3zmsimpflatzm36;
+    iint_t           acczmperhapszmconvzm5zmsimpflatzm7;
+    ibool_t          acczmperhapszmconvzm5zmsimpflatzm6;
+    ierror_t         acczmperhapszmconvzm5zmsimpflatzm5;
+    idouble_t        acczmperhapszmconvzm5zmsimpflatzm8;
+    iint_t           flatzm0zmsimpflatzm15;
+    ibool_t          flatzm0zmsimpflatzm14;
+    ierror_t         flatzm0zmsimpflatzm13;
+    idouble_t        flatzm0zmsimpflatzm16;
+    ibool_t          flatzm3zmsimpflatzm18;
+    iint_t           flatzm3zmsimpflatzm19;
+    ierror_t         flatzm3zmsimpflatzm17;
+    idouble_t        flatzm3zmsimpflatzm20;
+    idouble_t        flatzm6zmsimpflatzm22;
+    ierror_t         flatzm6zmsimpflatzm23;
+    ierror_t         flatzm6zmsimpflatzm21;
+    idouble_t        flatzm6zmsimpflatzm24;
+    ierror_t         flatzm7zmsimpflatzm29;
+    idouble_t        flatzm7zmsimpflatzm28;
+    ierror_t         flatzm7zmsimpflatzm25;
+    iint_t           flatzm7zmsimpflatzm27;
+    ibool_t          flatzm7zmsimpflatzm26;
 
     anemone_mempool_t *mempool                = s->mempool;
-    itime_t          convzs3                  = s->input.convzs3;
-    iint_t           convzs4                  = s->max_map_size;
+    itime_t          convzm3                  = s->input.convzm3;
+    iint_t           convzm4                  = s->max_map_size;
 
-    acczsperhapszsconvzs5zssimpflatzs5        = ierror_not_an_error;                  /* init */
-    acczsperhapszsconvzs5zssimpflatzs6        = ifalse;                               /* init */
-    acczsperhapszsconvzs5zssimpflatzs7        = 0;                                    /* init */
-    acczsperhapszsconvzs5zssimpflatzs8        = 0.0;                                  /* init */
+    acczmperhapszmconvzm5zmsimpflatzm5        = ierror_not_an_error;                  /* init */
+    acczmperhapszmconvzm5zmsimpflatzm6        = ifalse;                               /* init */
+    acczmperhapszmconvzm5zmsimpflatzm7        = 0;                                    /* init */
+    acczmperhapszmconvzm5zmsimpflatzm8        = 0.0;                                  /* init */
     
-    if (s->has_0_0_acczsperhapszsconvzs5zssimpflatzs5) {
-        acczsperhapszsconvzs5zssimpflatzs5    = s->res_0_0_acczsperhapszsconvzs5zssimpflatzs5; /* load */
+    if (s->has_0_0_acczmperhapszmconvzm5zmsimpflatzm5) {
+        acczmperhapszmconvzm5zmsimpflatzm5    = s->res_0_0_acczmperhapszmconvzm5zmsimpflatzm5; /* load */
     }
     
-    if (s->has_0_0_acczsperhapszsconvzs5zssimpflatzs6) {
-        acczsperhapszsconvzs5zssimpflatzs6    = s->res_0_0_acczsperhapszsconvzs5zssimpflatzs6; /* load */
+    if (s->has_0_0_acczmperhapszmconvzm5zmsimpflatzm6) {
+        acczmperhapszmconvzm5zmsimpflatzm6    = s->res_0_0_acczmperhapszmconvzm5zmsimpflatzm6; /* load */
     }
     
-    if (s->has_0_0_acczsperhapszsconvzs5zssimpflatzs7) {
-        acczsperhapszsconvzs5zssimpflatzs7    = s->res_0_0_acczsperhapszsconvzs5zssimpflatzs7; /* load */
+    if (s->has_0_0_acczmperhapszmconvzm5zmsimpflatzm7) {
+        acczmperhapszmconvzm5zmsimpflatzm7    = s->res_0_0_acczmperhapszmconvzm5zmsimpflatzm7; /* load */
     }
     
-    if (s->has_0_0_acczsperhapszsconvzs5zssimpflatzs8) {
-        acczsperhapszsconvzs5zssimpflatzs8    = s->res_0_0_acczsperhapszsconvzs5zssimpflatzs8; /* load */
+    if (s->has_0_0_acczmperhapszmconvzm5zmsimpflatzm8) {
+        acczmperhapszmconvzm5zmsimpflatzm8    = s->res_0_0_acczmperhapszmconvzm5zmsimpflatzm8; /* load */
     }
     
     const iint_t     new_count                = s->input.new_count;
-    const ierror_t  *const new_convzs0zssimpflatzs45 = s->input.new_convzs0zssimpflatzs45;
-    const iint_t    *const new_convzs0zssimpflatzs46 = s->input.new_convzs0zssimpflatzs46;
-    const itime_t   *const new_convzs0zssimpflatzs47 = s->input.new_convzs0zssimpflatzs47;
+    const ierror_t  *const new_convzm0zmsimpflatzm45 = s->input.new_convzm0zmsimpflatzm45;
+    const iint_t    *const new_convzm0zmsimpflatzm46 = s->input.new_convzm0zmsimpflatzm46;
+    const itime_t   *const new_convzm0zmsimpflatzm47 = s->input.new_convzm0zmsimpflatzm47;
     
     for (iint_t i = 0; i < new_count; i++) {
-        ifactid_t        convzs1              = i;
-        itime_t          convzs2              = new_convzs0zssimpflatzs47[i];
-        ierror_t         convzs0zssimpflatzs45 = new_convzs0zssimpflatzs45[i];
-        iint_t           convzs0zssimpflatzs46 = new_convzs0zssimpflatzs46[i];
-        itime_t          convzs0zssimpflatzs47 = new_convzs0zssimpflatzs47[i];
-        perhapszsconvzs5zsavalzs0zssimpflatzs9 = acczsperhapszsconvzs5zssimpflatzs5;  /* read */
-        perhapszsconvzs5zsavalzs0zssimpflatzs10 = acczsperhapszsconvzs5zssimpflatzs6; /* read */
-        perhapszsconvzs5zsavalzs0zssimpflatzs11 = acczsperhapszsconvzs5zssimpflatzs7; /* read */
-        perhapszsconvzs5zsavalzs0zssimpflatzs12 = acczsperhapszsconvzs5zssimpflatzs8; /* read */
-        flatzs0zssimpflatzs13                 = ierror_not_an_error;                  /* init */
-        flatzs0zssimpflatzs14                 = ifalse;                               /* init */
-        flatzs0zssimpflatzs15                 = 0;                                    /* init */
-        flatzs0zssimpflatzs16                 = 0.0;                                  /* init */
+        ifactid_t        convzm1              = i;
+        itime_t          convzm2              = new_convzm0zmsimpflatzm47[i];
+        ierror_t         convzm0zmsimpflatzm45 = new_convzm0zmsimpflatzm45[i];
+        iint_t           convzm0zmsimpflatzm46 = new_convzm0zmsimpflatzm46[i];
+        itime_t          convzm0zmsimpflatzm47 = new_convzm0zmsimpflatzm47[i];
+        perhapszmconvzm5zmavalzm0zmsimpflatzm9 = acczmperhapszmconvzm5zmsimpflatzm5;  /* read */
+        perhapszmconvzm5zmavalzm0zmsimpflatzm10 = acczmperhapszmconvzm5zmsimpflatzm6; /* read */
+        perhapszmconvzm5zmavalzm0zmsimpflatzm11 = acczmperhapszmconvzm5zmsimpflatzm7; /* read */
+        perhapszmconvzm5zmavalzm0zmsimpflatzm12 = acczmperhapszmconvzm5zmsimpflatzm8; /* read */
+        flatzm0zmsimpflatzm13                 = ierror_not_an_error;                  /* init */
+        flatzm0zmsimpflatzm14                 = ifalse;                               /* init */
+        flatzm0zmsimpflatzm15                 = 0;                                    /* init */
+        flatzm0zmsimpflatzm16                 = 0.0;                                  /* init */
         
-        if (ierror_eq (perhapszsconvzs5zsavalzs0zssimpflatzs9, ierror_not_an_error)) {
-            flatzs3zssimpflatzs17             = ierror_not_an_error;                  /* init */
-            flatzs3zssimpflatzs18             = ifalse;                               /* init */
-            flatzs3zssimpflatzs19             = 0;                                    /* init */
-            flatzs3zssimpflatzs20             = 0.0;                                  /* init */
+        if (ierror_eq (perhapszmconvzm5zmavalzm0zmsimpflatzm9, ierror_not_an_error)) {
+            flatzm3zmsimpflatzm17             = ierror_not_an_error;                  /* init */
+            flatzm3zmsimpflatzm18             = ifalse;                               /* init */
+            flatzm3zmsimpflatzm19             = 0;                                    /* init */
+            flatzm3zmsimpflatzm20             = 0.0;                                  /* init */
             
-            if (perhapszsconvzs5zsavalzs0zssimpflatzs10) {
-                flatzs3zssimpflatzs17         = ierror_not_an_error;                  /* write */
-                flatzs3zssimpflatzs18         = ifalse;                               /* write */
-                iint_t           simpflatzs59 = idouble_trunc (perhapszsconvzs5zsavalzs0zssimpflatzs12); /* let */
-                flatzs3zssimpflatzs19         = iint_add (simpflatzs59, 1);           /* write */
-                flatzs3zssimpflatzs20         = 0.0;                                  /* write */
+            if (perhapszmconvzm5zmavalzm0zmsimpflatzm10) {
+                flatzm3zmsimpflatzm17         = ierror_not_an_error;                  /* write */
+                flatzm3zmsimpflatzm18         = ifalse;                               /* write */
+                iint_t           simpflatzm59 = idouble_trunc (perhapszmconvzm5zmavalzm0zmsimpflatzm12); /* let */
+                flatzm3zmsimpflatzm19         = iint_add (simpflatzm59, 1);           /* write */
+                flatzm3zmsimpflatzm20         = 0.0;                                  /* write */
             } else {
-                idouble_t        simpflatzs66 = iint_extend (perhapszsconvzs5zsavalzs0zssimpflatzs11); /* let */
-                idouble_t        convzs9      = idouble_add (simpflatzs66, 1.0);      /* let */
-                flatzs6zssimpflatzs21         = ierror_not_an_error;                  /* init */
-                flatzs6zssimpflatzs22         = 0.0;                                  /* init */
+                idouble_t        simpflatzm66 = iint_extend (perhapszmconvzm5zmavalzm0zmsimpflatzm11); /* let */
+                idouble_t        convzm9      = idouble_add (simpflatzm66, 1.0);      /* let */
+                flatzm6zmsimpflatzm21         = ierror_not_an_error;                  /* init */
+                flatzm6zmsimpflatzm22         = 0.0;                                  /* init */
                 
-                if (idouble_is_valid (convzs9)) {
-                    flatzs6zssimpflatzs21     = ierror_not_an_error;                  /* write */
-                    flatzs6zssimpflatzs22     = idouble_add (simpflatzs66, 1.0);      /* write */
+                if (idouble_is_valid (convzm9)) {
+                    flatzm6zmsimpflatzm21     = ierror_not_an_error;                  /* write */
+                    flatzm6zmsimpflatzm22     = idouble_add (simpflatzm66, 1.0);      /* write */
                 } else {
-                    flatzs6zssimpflatzs21     = ierror_cannot_compute;                /* write */
-                    flatzs6zssimpflatzs22     = 0.0;                                  /* write */
+                    flatzm6zmsimpflatzm21     = ierror_cannot_compute;                /* write */
+                    flatzm6zmsimpflatzm22     = 0.0;                                  /* write */
                 }
                 
-                flatzs6zssimpflatzs23         = flatzs6zssimpflatzs21;                /* read */
-                flatzs6zssimpflatzs24         = flatzs6zssimpflatzs22;                /* read */
-                flatzs7zssimpflatzs25         = ierror_not_an_error;                  /* init */
-                flatzs7zssimpflatzs26         = ifalse;                               /* init */
-                flatzs7zssimpflatzs27         = 0;                                    /* init */
-                flatzs7zssimpflatzs28         = 0.0;                                  /* init */
+                flatzm6zmsimpflatzm23         = flatzm6zmsimpflatzm21;                /* read */
+                flatzm6zmsimpflatzm24         = flatzm6zmsimpflatzm22;                /* read */
+                flatzm7zmsimpflatzm25         = ierror_not_an_error;                  /* init */
+                flatzm7zmsimpflatzm26         = ifalse;                               /* init */
+                flatzm7zmsimpflatzm27         = 0;                                    /* init */
+                flatzm7zmsimpflatzm28         = 0.0;                                  /* init */
                 
-                if (ierror_eq (flatzs6zssimpflatzs23, ierror_not_an_error)) {
-                    flatzs7zssimpflatzs25     = ierror_not_an_error;                  /* write */
-                    flatzs7zssimpflatzs26     = itrue;                                /* write */
-                    flatzs7zssimpflatzs27     = 0;                                    /* write */
-                    flatzs7zssimpflatzs28     = flatzs6zssimpflatzs24;                /* write */
+                if (ierror_eq (flatzm6zmsimpflatzm23, ierror_not_an_error)) {
+                    flatzm7zmsimpflatzm25     = ierror_not_an_error;                  /* write */
+                    flatzm7zmsimpflatzm26     = itrue;                                /* write */
+                    flatzm7zmsimpflatzm27     = 0;                                    /* write */
+                    flatzm7zmsimpflatzm28     = flatzm6zmsimpflatzm24;                /* write */
                 } else {
-                    flatzs7zssimpflatzs25     = flatzs6zssimpflatzs23;                /* write */
-                    flatzs7zssimpflatzs26     = ifalse;                               /* write */
-                    flatzs7zssimpflatzs27     = 0;                                    /* write */
-                    flatzs7zssimpflatzs28     = 0.0;                                  /* write */
+                    flatzm7zmsimpflatzm25     = flatzm6zmsimpflatzm23;                /* write */
+                    flatzm7zmsimpflatzm26     = ifalse;                               /* write */
+                    flatzm7zmsimpflatzm27     = 0;                                    /* write */
+                    flatzm7zmsimpflatzm28     = 0.0;                                  /* write */
                 }
                 
-                flatzs7zssimpflatzs29         = flatzs7zssimpflatzs25;                /* read */
-                flatzs7zssimpflatzs30         = flatzs7zssimpflatzs26;                /* read */
-                flatzs7zssimpflatzs31         = flatzs7zssimpflatzs27;                /* read */
-                flatzs7zssimpflatzs32         = flatzs7zssimpflatzs28;                /* read */
-                flatzs3zssimpflatzs17         = flatzs7zssimpflatzs29;                /* write */
-                flatzs3zssimpflatzs18         = flatzs7zssimpflatzs30;                /* write */
-                flatzs3zssimpflatzs19         = flatzs7zssimpflatzs31;                /* write */
-                flatzs3zssimpflatzs20         = flatzs7zssimpflatzs32;                /* write */
+                flatzm7zmsimpflatzm29         = flatzm7zmsimpflatzm25;                /* read */
+                flatzm7zmsimpflatzm30         = flatzm7zmsimpflatzm26;                /* read */
+                flatzm7zmsimpflatzm31         = flatzm7zmsimpflatzm27;                /* read */
+                flatzm7zmsimpflatzm32         = flatzm7zmsimpflatzm28;                /* read */
+                flatzm3zmsimpflatzm17         = flatzm7zmsimpflatzm29;                /* write */
+                flatzm3zmsimpflatzm18         = flatzm7zmsimpflatzm30;                /* write */
+                flatzm3zmsimpflatzm19         = flatzm7zmsimpflatzm31;                /* write */
+                flatzm3zmsimpflatzm20         = flatzm7zmsimpflatzm32;                /* write */
             }
             
-            flatzs3zssimpflatzs33             = flatzs3zssimpflatzs17;                /* read */
-            flatzs3zssimpflatzs34             = flatzs3zssimpflatzs18;                /* read */
-            flatzs3zssimpflatzs35             = flatzs3zssimpflatzs19;                /* read */
-            flatzs3zssimpflatzs36             = flatzs3zssimpflatzs20;                /* read */
-            flatzs0zssimpflatzs13             = flatzs3zssimpflatzs33;                /* write */
-            flatzs0zssimpflatzs14             = flatzs3zssimpflatzs34;                /* write */
-            flatzs0zssimpflatzs15             = flatzs3zssimpflatzs35;                /* write */
-            flatzs0zssimpflatzs16             = flatzs3zssimpflatzs36;                /* write */
+            flatzm3zmsimpflatzm33             = flatzm3zmsimpflatzm17;                /* read */
+            flatzm3zmsimpflatzm34             = flatzm3zmsimpflatzm18;                /* read */
+            flatzm3zmsimpflatzm35             = flatzm3zmsimpflatzm19;                /* read */
+            flatzm3zmsimpflatzm36             = flatzm3zmsimpflatzm20;                /* read */
+            flatzm0zmsimpflatzm13             = flatzm3zmsimpflatzm33;                /* write */
+            flatzm0zmsimpflatzm14             = flatzm3zmsimpflatzm34;                /* write */
+            flatzm0zmsimpflatzm15             = flatzm3zmsimpflatzm35;                /* write */
+            flatzm0zmsimpflatzm16             = flatzm3zmsimpflatzm36;                /* write */
         } else {
-            flatzs0zssimpflatzs13             = perhapszsconvzs5zsavalzs0zssimpflatzs9; /* write */
-            flatzs0zssimpflatzs14             = ifalse;                               /* write */
-            flatzs0zssimpflatzs15             = 0;                                    /* write */
-            flatzs0zssimpflatzs16             = 0.0;                                  /* write */
+            flatzm0zmsimpflatzm13             = perhapszmconvzm5zmavalzm0zmsimpflatzm9; /* write */
+            flatzm0zmsimpflatzm14             = ifalse;                               /* write */
+            flatzm0zmsimpflatzm15             = 0;                                    /* write */
+            flatzm0zmsimpflatzm16             = 0.0;                                  /* write */
         }
         
-        flatzs0zssimpflatzs37                 = flatzs0zssimpflatzs13;                /* read */
-        flatzs0zssimpflatzs38                 = flatzs0zssimpflatzs14;                /* read */
-        flatzs0zssimpflatzs39                 = flatzs0zssimpflatzs15;                /* read */
-        flatzs0zssimpflatzs40                 = flatzs0zssimpflatzs16;                /* read */
-        acczsperhapszsconvzs5zssimpflatzs5    = flatzs0zssimpflatzs37;                /* write */
-        acczsperhapszsconvzs5zssimpflatzs6    = flatzs0zssimpflatzs38;                /* write */
-        acczsperhapszsconvzs5zssimpflatzs7    = flatzs0zssimpflatzs39;                /* write */
-        acczsperhapszsconvzs5zssimpflatzs8    = flatzs0zssimpflatzs40;                /* write */
+        flatzm0zmsimpflatzm37                 = flatzm0zmsimpflatzm13;                /* read */
+        flatzm0zmsimpflatzm38                 = flatzm0zmsimpflatzm14;                /* read */
+        flatzm0zmsimpflatzm39                 = flatzm0zmsimpflatzm15;                /* read */
+        flatzm0zmsimpflatzm40                 = flatzm0zmsimpflatzm16;                /* read */
+        acczmperhapszmconvzm5zmsimpflatzm5    = flatzm0zmsimpflatzm37;                /* write */
+        acczmperhapszmconvzm5zmsimpflatzm6    = flatzm0zmsimpflatzm38;                /* write */
+        acczmperhapszmconvzm5zmsimpflatzm7    = flatzm0zmsimpflatzm39;                /* write */
+        acczmperhapszmconvzm5zmsimpflatzm8    = flatzm0zmsimpflatzm40;                /* write */
     }
     
-    s->has_0_0_acczsperhapszsconvzs5zssimpflatzs5 = itrue;                            /* save */
-    s->res_0_0_acczsperhapszsconvzs5zssimpflatzs5 = acczsperhapszsconvzs5zssimpflatzs5; /* save */
+    s->has_0_0_acczmperhapszmconvzm5zmsimpflatzm5 = itrue;                            /* save */
+    s->res_0_0_acczmperhapszmconvzm5zmsimpflatzm5 = acczmperhapszmconvzm5zmsimpflatzm5; /* save */
     
-    s->has_0_0_acczsperhapszsconvzs5zssimpflatzs6 = itrue;                            /* save */
-    s->res_0_0_acczsperhapszsconvzs5zssimpflatzs6 = acczsperhapszsconvzs5zssimpflatzs6; /* save */
+    s->has_0_0_acczmperhapszmconvzm5zmsimpflatzm6 = itrue;                            /* save */
+    s->res_0_0_acczmperhapszmconvzm5zmsimpflatzm6 = acczmperhapszmconvzm5zmsimpflatzm6; /* save */
     
-    s->has_0_0_acczsperhapszsconvzs5zssimpflatzs7 = itrue;                            /* save */
-    s->res_0_0_acczsperhapszsconvzs5zssimpflatzs7 = acczsperhapszsconvzs5zssimpflatzs7; /* save */
+    s->has_0_0_acczmperhapszmconvzm5zmsimpflatzm7 = itrue;                            /* save */
+    s->res_0_0_acczmperhapszmconvzm5zmsimpflatzm7 = acczmperhapszmconvzm5zmsimpflatzm7; /* save */
     
-    s->has_0_0_acczsperhapszsconvzs5zssimpflatzs8 = itrue;                            /* save */
-    s->res_0_0_acczsperhapszsconvzs5zssimpflatzs8 = acczsperhapszsconvzs5zssimpflatzs8; /* save */
+    s->has_0_0_acczmperhapszmconvzm5zmsimpflatzm8 = itrue;                            /* save */
+    s->res_0_0_acczmperhapszmconvzm5zmsimpflatzm8 = acczmperhapszmconvzm5zmsimpflatzm8; /* save */
     
-    perhapszsconvzs5zssimpflatzs41            = acczsperhapszsconvzs5zssimpflatzs5;   /* read */
-    perhapszsconvzs5zssimpflatzs42            = acczsperhapszsconvzs5zssimpflatzs6;   /* read */
-    perhapszsconvzs5zssimpflatzs43            = acczsperhapszsconvzs5zssimpflatzs7;   /* read */
-    perhapszsconvzs5zssimpflatzs44            = acczsperhapszsconvzs5zssimpflatzs8;   /* read */
-    s->replZCoutputzsixzs0                    = perhapszsconvzs5zssimpflatzs41;       /* output */
-    s->replZCoutputzsixzs1                    = perhapszsconvzs5zssimpflatzs42;       /* output */
-    s->replZCoutputzsixzs2                    = perhapszsconvzs5zssimpflatzs43;       /* output */
-    s->replZCoutputzsixzs3                    = perhapszsconvzs5zssimpflatzs44;       /* output */
+    perhapszmconvzm5zmsimpflatzm41            = acczmperhapszmconvzm5zmsimpflatzm5;   /* read */
+    perhapszmconvzm5zmsimpflatzm42            = acczmperhapszmconvzm5zmsimpflatzm6;   /* read */
+    perhapszmconvzm5zmsimpflatzm43            = acczmperhapszmconvzm5zmsimpflatzm7;   /* read */
+    perhapszmconvzm5zmsimpflatzm44            = acczmperhapszmconvzm5zmsimpflatzm8;   /* read */
+    s->replZCoutputzsixzs0                    = perhapszmconvzm5zmsimpflatzm41;       /* output */
+    s->replZCoutputzsixzs1                    = perhapszmconvzm5zmsimpflatzm42;       /* output */
+    s->replZCoutputzsixzs2                    = perhapszmconvzm5zmsimpflatzm43;       /* output */
+    s->replZCoutputzsixzs3                    = perhapszmconvzm5zmsimpflatzm44;       /* output */
 }
 
-- C evaluation:
-[homer, 5.0,marge, 3.0]
+Core evaluation
+---------------
 
-- Core evaluation:
-[homer, 5.0,marge, 3.0]
+homer|5.0
+marge|3.0
 
-> > 
+C evaluation
+------------
+
+homer|5.0
+marge|3.0
+
+λ λ 

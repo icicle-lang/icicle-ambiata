@@ -1,0 +1,18 @@
+version = 1
+
+namespace = "default"
+
+[fact.gender]
+  encoding = "string"
+
+[fact.age]
+  encoding = "int"
+
+[fact.state_of_residence]
+  encoding = "string"
+
+[fact.salary]
+  encoding = "int"
+
+[fact.injury]
+  encoding = "(location:string,severity:int)"

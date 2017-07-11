@@ -1,11 +1,11 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> ok, loaded dictionary with 4 inputs, 4 outputs, 38 functions
-> ok, loaded data/example/demographics.psv, 24 rows
-> ok, core evaluation is now on
-> ok, c evaluation now on
-                   _________-----_____
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ OK, loaded dictionary with 4 inputs, 4 outputs, 38 functions.
+λ OK, selected psv file as input data: data/example/demographics.psv
+λ OK, core-eval is now on.
+λ                    _________-----_____
         _____------           __      ----_
  ___----             ___------              \
     ----________        ----                 \
@@ -21,87 +21,172 @@ ok, loaded test/cli/repl/data.psv, 13 rows
                                    |  \_((_(_)|/(_)
                                    \             (
                                     \_____________)
-> > - C evaluation:
-[homer, ["arm","head","torso"]]
+OK, c-eval is now on.
+λ λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, ["arm","head","torso"]]
+homer|[ "arm"
+      , "head"
+      , "torso"
+      ]
 
-> > - C evaluation:
-[homer, -14611]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, -14611]
+homer|[ "arm"
+      , "head"
+      , "torso"
+      ]
 
-> > -- These were errors picked up by QuickCheck
-> - C evaluation:
-[homer, 1970-01-01]
+λ λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, 1970-01-01]
+homer|-14610
 
-> - C evaluation:
-[homer, tombstone]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, tombstone]
+homer|-14610
 
-> > - C evaluation:
-[homer, [70000,81000,90100]
-,marge, [0]]
+λ λ -- These were errors picked up by QuickCheck
+λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, [70000,81000,90100]
-,marge, [0]]
+homer|1970-01-02
 
-> > - C evaluation:
-[homer, ["arm","head","torso"]]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, ["arm","head","torso"]]
+homer|1970-01-02
 
-> > - C evaluation:
-[homer, 1970,marge, 1970]
+λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, 1970,marge, 1970]
+homer|tombstone
 
-> > ok, time set to 2016-01-01
-> > - C evaluation:
-[homer, 2016,marge, 2016]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, 2016,marge, 2016]
+homer|tombstone
 
-> > -- Baked-in maps and arrays
-> > - C evaluation:
-[homer, (7122.0
-        ,[9496,8035,6209,2191])]
+λ λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, (7122.0
-        ,[9496,8035,6209,2191])]
+homer|[ 70000
+      , 81000
+      , 90100
+      ]
+marge|[ 0 ]
 
-> > -- Invaild quantile arguments
-> - C evaluation:
-[homer, (tombstone
-        ,[9496,8035,6209,2191])]
+C evaluation
+------------
 
-- Core evaluation:
-[homer, (tombstone
-        ,[9496,8035,6209,2191])]
+homer|[ 70000
+      , 81000
+      , 90100
+      ]
+marge|[ 0 ]
 
-> > ok, loaded dictionary with 1 inputs, 0 outputs, 38 functions
-> ok, loaded test/cli/repl/t31-builtin/data.psv, 4 rows
-> > -- NY should be 1.5 years, CA should be 3 years, OR should be 0.5 years
-> - C evaluation:
-[homer, [("CA",1461)
-        ,("NY",580)
-        ,("OR",151)]]
+λ λ Core evaluation
+---------------
 
-- Core evaluation:
-[homer, [("CA",1461)
-        ,("NY",580)
-        ,("OR",151)]]
+homer|[ "arm"
+      , "head"
+      , "torso"
+      ]
 
-> 
+C evaluation
+------------
+
+homer|[ "arm"
+      , "head"
+      , "torso"
+      ]
+
+λ λ Core evaluation
+---------------
+
+homer|1970
+marge|1970
+
+C evaluation
+------------
+
+homer|1970
+marge|1970
+
+λ λ OK, snapshot mode activated with a snapshot date of 2016-01-01.
+λ λ Core evaluation
+---------------
+
+homer|2016
+marge|2016
+
+C evaluation
+------------
+
+homer|2016
+marge|2016
+
+λ λ -- Baked-in maps and arrays
+λ λ Core evaluation
+---------------
+
+homer|(7123.0
+      ,[ 9497
+       , 8036
+       , 6210
+       , 2192
+       ])
+
+C evaluation
+------------
+
+homer|(7123.0
+      ,[ 9497
+       , 8036
+       , 6210
+       , 2192
+       ])
+
+λ λ -- Invaild quantile arguments
+λ Core evaluation
+---------------
+
+homer|(tombstone
+      ,[ 9497
+       , 8036
+       , 6210
+       , 2192
+       ])
+
+C evaluation
+------------
+
+homer|(tombstone
+      ,[ 9497
+       , 8036
+       , 6210
+       , 2192
+       ])
+
+λ λ OK, loaded dictionary with 1 inputs, 0 outputs, 38 functions.
+λ OK, selected psv file as input data: test/cli/repl/t31-builtin/data.psv
+λ λ -- NY should be 1.5 years, CA should be 3 years, OR should be 0.5 years
+λ Core evaluation
+---------------
+
+homer|[ ("CA", 1461)
+      , ("NY", 581)
+      , ("OR", 151)
+      ]
+
+C evaluation
+------------
+
+homer|[ ("CA", 1461)
+      , ("NY", 581)
+      , ("OR", 151)
+      ]
+
+λ 

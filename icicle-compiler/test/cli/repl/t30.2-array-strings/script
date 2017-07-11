@@ -1,7 +1,7 @@
 -- Enable C evaluation
 :set +c-eval
 
-:dictionary test/cli/repl/t30.2-array-strings/dict.toml
+:load test/cli/repl/t30.2-array-strings/dict.toml
 :load test/cli/repl/t30.2-array-strings/data.psv
 
 feature days_catch ~> distinct value ~> fold c = 0 : c+1 ~> c

@@ -2,7 +2,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns      #-}
 module Icicle.Data.Time (
-    Time(..)
+    Date(..)
+  , Time(..)
+
+  -- * System
+  , getCurrentDate
+  , exclusiveSnapshotTime
+
   -- * Extract and conversion
   , julianDay
   , gregorianDay
@@ -13,9 +19,11 @@ module Icicle.Data.Time (
   , daysCountIvory
   , secondsCountIvory
   , timeOfText
+  , dateOfYMD
   , timeOfYMD
   , timeOfDays
   , withinWindow
+  , unsafeDateOfYMD
   , unsafeTimeOfYMD
   , dayOf
   , monthOf
@@ -31,11 +39,15 @@ module Icicle.Data.Time (
   , timeOfPacked
 
   -- * Parsing and Printing
+  , renderDate
   , renderTime
   , pTime
 
   , renderOutputTime
   ) where
+
+import           Control.Monad.IO.Class (MonadIO(..))
+
 import           Data.Attoparsec.Text
 
 import qualified Data.Time          as C
@@ -49,6 +61,12 @@ import           Data.Bits
 import           Control.Lens ((^.))
 
 import           P
+
+
+newtype Date =
+  Date {
+      getDate :: Thyme.Day
+    } deriving (Eq, Ord, Show)
 
 newtype Time =
   Time {
@@ -187,6 +205,27 @@ packedOfTime t@(gregorianDay -> d)
  .|. (fromIntegral (3600 * localHour t + 60 * localMinute t + localSecond t))
 
 --------------------------------------------------------------------------------
+
+getCurrentDate :: MonadIO m => m Date
+getCurrentDate =
+ Date . Thyme.utctDay . Thyme.unUTCTime <$> liftIO Thyme.getCurrentTime
+
+exclusiveSnapshotTime :: Date -> Time
+exclusiveSnapshotTime (Date date) =
+  Time $ Thyme.mkUTCTime (Thyme.addDays 1 date) 0
+
+dateOfYMD :: Int -> Int -> Int -> Maybe Date
+dateOfYMD y m d =
+  Date <$> Thyme.fromGregorianValid y m d
+
+unsafeDateOfYMD :: Int -> Int -> Int -> Date
+unsafeDateOfYMD y m d =
+  Date $ Thyme.fromGregorian y m d
+
+--------------------------------------------------------------------------------
+
+renderDate  :: Date -> Text
+renderDate = T.pack . C.showGregorian . Thyme.fromThyme . getDate
 
 renderTime  :: Time -> Text
 renderTime = T.pack . C.showGregorian . Thyme.fromThyme . julianDay

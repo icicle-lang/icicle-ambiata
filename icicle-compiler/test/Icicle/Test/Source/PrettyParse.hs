@@ -19,8 +19,6 @@ import           Test.QuickCheck
 
 import           Icicle.Source.Query
 
-import           Icicle.Source.PrettyAnnot
-
 prop_parse_pretty_same :: Property
 prop_parse_pretty_same
  -- Ill-typed programs will be printed/parsed incorrectly if they have operators
@@ -45,25 +43,6 @@ check_pretty qwf
   pp'  = case parsed of
           Left e -> show e
           Right q' -> show $ pretty q'
-
-
-prop_annotated_query_prints_well :: QueryWithFeature -> Property
-prop_annotated_query_prints_well qwf
- = counterexample (qwfPretty qwf)
- $ case qwfCheck qwf of
-    Left _
-     -> property Discard
-    Right qt'
-     -> show' (noAnnotate (pretty (PrettyAnnot qt'))) === show' (noAnnotate (pretty qt'))
- where
- show' = strip . show
- -- Normalise whitespace to a single space.
- strip (' ':' ':xs)  = strip (' ':xs)
- strip (' ':'\n':xs) = strip (' ':xs)
- strip ('\n':xs)     = strip (' ':xs)
- strip (x:xs)     = x:(strip xs)
- strip [] = []
-
 
 return []
 tests :: IO Bool

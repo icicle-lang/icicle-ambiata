@@ -1,6 +1,7 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE PatternGuards #-}
 module Icicle.Core.Stream.Stream (
       Stream          (..)
     , renameStream
@@ -71,18 +72,26 @@ isPredicateWindowed x
 
 
 instance (Pretty n) => Pretty (Stream a n) where
- pretty (SFold n t z k)
-  = "STREAM_FOLD (" <> pretty n <> " : " <> pretty t <> ")" <> line
-  <> indent 2 "INIT:" <> line
-  <> indent 4 (pretty z) <> line
-  <> indent 2 "KONS:" <> line
-  <> indent 4 (pretty k)
-  <> line
- pretty (SFilter x ss)
-  = line
-  <> "STREAM_FILTER" <> line
-  <> indent 2 "PREDICATE: " <> line
-  <> indent 4 (pretty x) <> line
-  <> indent 2 "STREAMS:" <> line
-  <> indent 4 (vsep $ fmap pretty ss)
+  pretty = \case
+    SFold n t z k ->
+      vsep [
+          annotate AnnHeading "STREAM_FOLD"
+            <+> prettyTyped (annotate AnnBinding $ pretty n) (pretty t)
+        , indent 2 $ vsep [
+              annotate AnnHeading "INIT:"
+            , indent 2 $ pretty z
+            , annotate AnnHeading "KONS:"
+            , indent 2 $ pretty k
+            ]
+        ]
 
+    SFilter x ss ->
+      vsep [
+          annotate AnnHeading "STREAM_FILTER"
+        , indent 2 $ vsep [
+              annotate AnnHeading "PREDICATE:"
+            , indent 2 $ pretty x
+            , annotate AnnHeading "STREAMS:"
+            , indent 2 . vsep $ fmap pretty ss
+            ]
+        ]

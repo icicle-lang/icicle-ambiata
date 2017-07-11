@@ -1,12 +1,15 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> -- There was an error where every 128th row was being dropped
-> -- This was a bug in the PSV parsing code, as the count wasn't being updated
-> -- after it had been incremented.
-> > -- All we need to do to test it is have a file with >128 rows, and check the count matches.
-> > ok, loaded test/cli/repl/t50-psv-many-rows/data.psv, 408 rows
-> - Core evaluation:
-[E, 408]
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ -- There was an error where every 128th row was being dropped
+λ -- This was a bug in the PSV parsing code, as the count wasn't being updated
+λ -- after it had been incremented.
+λ λ -- All we need to do to test it is have a file with >128 rows, and check the count matches.
+λ λ OK, selected psv file as input data: test/cli/repl/t50-psv-many-rows/data.psv
+λ Core evaluation
+---------------
 
-> 
+E|408
+
+λ 

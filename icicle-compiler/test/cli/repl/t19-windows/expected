@@ -1,25 +1,44 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> -- Set to last month of year
-> ok, time set to 1970-12-01
-> > -- Load the data with one entry per month
-> ok, loaded test/cli/repl/t19-windows/data.psv, 12 rows
-> > -- Get latest ten, but only for the last 3 months.
-> -- 1970-09-01 should be in the result
-> - Core evaluation:
-[homer, [9,10,11,12]]
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ -- Set to last month of year
+λ OK, snapshot mode activated with a snapshot date of 1970-12-01.
+λ λ -- Load the data with one entry per month
+λ OK, selected psv file as input data: test/cli/repl/t19-windows/data.psv
+λ λ -- Get latest ten, but only for the last 3 months.
+λ -- 1970-09-01 should be in the result
+λ Core evaluation
+---------------
 
-> > -- Older-than window
-> - Core evaluation:
-[homer, [9,10,11]]
+homer|[ 10
+      , 11
+      , 12
+      ]
 
-> > -- Do the same, one day later. 1970-09-01 should no longer be in result.
-> ok, time set to 1970-12-02
-> - Core evaluation:
-[homer, [10,11,12]]
+λ λ -- Older-than window
+λ Core evaluation
+---------------
 
-> - Core evaluation:
-[homer, [10,11]]
+homer|[ 10
+      , 11
+      ]
 
-> > 
+λ λ -- Do the same, one day later. 1970-09-01 should no longer be in result.
+λ OK, snapshot mode activated with a snapshot date of 1970-12-02.
+λ Core evaluation
+---------------
+
+homer|[ 10
+      , 11
+      , 12
+      ]
+
+λ Core evaluation
+---------------
+
+homer|[ 10
+      , 11
+      ]
+
+λ λ 

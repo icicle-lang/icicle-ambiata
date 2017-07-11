@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -13,18 +14,25 @@ module Icicle.Runtime.Serial.Zebra (
 
   , decodeChordOutput
   , encodeChordOutput
+
+  , resolveDictionary
   ) where
 
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
 import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 import qualified Data.Vector as Boxed
+import qualified Data.Vector.Generic as Generic
 import qualified Data.Vector.Storable as Storable
 
 import           Icicle.Data.Name
+import           Icicle.Dictionary.Data
 import           Icicle.Runtime.Data.IO
 import           Icicle.Runtime.Data.Primitive
+import           Icicle.Runtime.Data.Schema (Schema)
+import qualified Icicle.Runtime.Data.Schema as Schema
 import qualified Icicle.Runtime.Data.Striped as Icicle
 
 import           P
@@ -39,8 +47,9 @@ import qualified Zebra.Table.Schema as ZSchema
 import qualified Zebra.Table.Striped as Zebra
 import           Zebra.Time (TimeError)
 import qualified Zebra.Time as Zebra
+import qualified Zebra.X.Vector.Generic as Generic -- FIXME move to x-vector
 import           Zebra.X.Vector.Segment (SegmentError)
-import qualified Zebra.X.Vector.Segment as Segment
+import qualified Zebra.X.Vector.Segment as Segment -- FIXME move to x-vector
 
 
 data OptionBehaviour =
@@ -54,6 +63,7 @@ data ZebraError =
   | ZebraUnexpectedIntEncoding !ZEncoding.Int
   | ZebraUnexpectedReversed !ZSchema.Column
   | ZebraEntityIdSegmentDescriptorMismatch !SegmentError
+  | ZebraTimeKeySegmentDescriptorMismatch !SegmentError
   | ZebraExpectedEntityKey ![Zebra.Field ZSchema.Column]
   | ZebraExpectedChordKey ![Zebra.Field ZSchema.Column]
   | ZebraExpectedTimeKey ![Zebra.Field ZSchema.Column]
@@ -61,6 +71,7 @@ data ZebraError =
   | ZebraInvalidInputId !Text
   | ZebraNoInputs
   | ZebraNoOutputs
+  | ZebraResolveDictionaryError !Schema.SchemaError
     deriving (Eq, Show)
 
 ------------------------------------------------------------------------
@@ -239,19 +250,37 @@ decodeInputTime :: Zebra.Column -> Either ZebraError (Storable.Vector Time64)
 decodeInputTime column = do
   (_, fields) <- first ZebraSchemaError $ Zebra.takeStruct column
   case Cons.toList fields of
-    [Zebra.Field "time" time0, Zebra.Field "factset_id" (Zebra.Int _ _ _)] -> do
+    [Zebra.Field "time" time0, Zebra.Field "factset_id" (Zebra.Reversed (Zebra.Int _ _ _))] -> do
       (_, encoding, time) <- first ZebraSchemaError $ Zebra.takeInt time0
       decodeIntTime encoding time
 
     _ ->
       Left . ZebraExpectedTimeKey . Cons.toList $ fmap (fmap Zebra.schemaColumn) fields
 
+replicates :: Generic.Vector v a => Storable.Vector Int64 -> v a -> v a
+replicates ns xs =
+  -- FIXME don't use Boxed.Vector
+  Generic.convert .
+  Boxed.concatMap (\(ix, x) -> Boxed.replicate (fromIntegral ix) x) $
+  Boxed.zip (Boxed.convert ns) (Boxed.convert xs)
+
 decodeInputColumn :: Zebra.Column -> Either ZebraError InputColumn
 decodeInputColumn column = do
-  (ns, nested) <- first ZebraSchemaError $ Zebra.takeNested column
-  (_, time0, value0) <- first ZebraSchemaError $ Zebra.takeMap nested
-  time <- decodeInputTime time0
+  (ns0, nested0) <- first ZebraSchemaError $ Zebra.takeNested column
+  (_, time0, nested1) <- first ZebraSchemaError $ Zebra.takeMap nested0
+  time1 <- decodeInputTime time0
+
+  (ns1, array) <- first ZebraSchemaError $ Zebra.takeNested nested1
+  (_, value0) <- first ZebraSchemaError $ Zebra.takeArray array
   value <- decodeIcicleColumn TopLevel value0
+
+  let
+    time =
+      replicates ns1 time1
+
+  ns <-
+    first ZebraTimeKeySegmentDescriptorMismatch .
+      fmap (Storable.convert . fmap Storable.sum) $ Segment.reify ns0 ns1
 
   pure $
     InputColumn {
@@ -479,7 +508,7 @@ encodeIcicleColumn = \case
 
 encodeFactsetId :: Int -> Zebra.Column
 encodeFactsetId n =
-  Zebra.Int Zebra.DenyDefault ZEncoding.Int $
+  Zebra.Reversed . Zebra.Int Zebra.DenyDefault ZEncoding.Int $
     Storable.replicate n 0
 
 encodeInputTime :: Storable.Vector Time64 -> Either ZebraError Zebra.Column
@@ -491,10 +520,31 @@ encodeInputTime times =
 
 encodeInputColumn :: InputColumn -> Either ZebraError Zebra.Column
 encodeInputColumn input =
-  fmap (Zebra.Nested $ inputLength input) $
-    Zebra.Map Zebra.DenyDefault
-      <$> encodeInputTime (inputTime input)
-      <*> encodeIcicleColumn (inputColumn input)
+  let
+    -- FIXME don't use Boxed.Vector
+    (key_counts0, (value_counts0, time0)) =
+      second Boxed.unzip $
+        Generic.segmentedGroup
+          (fmap fromIntegral . Boxed.convert $ inputLength input)
+          (Boxed.convert $ inputTime input)
+
+    key_counts =
+      Storable.map fromIntegral $ Storable.convert key_counts0
+
+    value_counts =
+      Storable.map fromIntegral $ Storable.convert value_counts0
+
+    time =
+      Storable.convert time0
+
+    nested =
+      Zebra.Nested value_counts .
+      Zebra.Array Zebra.DenyDefault
+  in
+    fmap (Zebra.Nested key_counts) $
+      Zebra.Map Zebra.AllowDefault
+        <$> encodeInputTime time
+        <*> (nested <$> encodeIcicleColumn (inputColumn input))
 
 encodeInputColumns :: Map InputId InputColumn -> Either ZebraError Zebra.Column
 encodeInputColumns kvs0 = do
@@ -576,3 +626,106 @@ encodeChordOutput output =
   Zebra.Map Zebra.DenyDefault
     <$> pure (encodeChordKey $ outputEntity output)
     <*> encodeOutputColumns (outputColumns output)
+
+------------------------------------------------------------------------
+-- Schema: Zebra -> Icicle
+
+resolveField :: Zebra.Field ZSchema.Column -> Either ZebraError (Field Schema)
+resolveField (Zebra.Field (Zebra.FieldName name) column) =
+  Field name <$> resolveIcicleColumn column
+
+resolveIcicleNested :: ZSchema.Table -> Either ZebraError Schema
+resolveIcicleNested = \case
+  ZSchema.Binary _ encoding@ZEncoding.Binary ->
+    Left $ ZebraUnexpectedBinaryEncoding encoding
+  ZSchema.Binary _ ZEncoding.Utf8 ->
+    pure Schema.String
+
+  ZSchema.Array _ column ->
+    Schema.Array <$> resolveIcicleColumn column
+
+  ZSchema.Map _ kcolumn vcolumn ->
+    Schema.Map <$> resolveIcicleColumn kcolumn <*> resolveIcicleColumn vcolumn
+
+resolveIcicleColumn :: ZSchema.Column -> Either ZebraError Schema
+resolveIcicleColumn = \case
+  ZSchema.Unit ->
+    pure Schema.Unit
+
+  ZSchema.Int _ ZEncoding.Int ->
+    pure Schema.Int
+  ZSchema.Int _ ZEncoding.Date ->
+    pure Schema.Time
+  ZSchema.Int _ ZEncoding.TimeSeconds ->
+    pure Schema.Time
+  ZSchema.Int _ ZEncoding.TimeMilliseconds ->
+    pure Schema.Time
+  ZSchema.Int _ ZEncoding.TimeMicroseconds ->
+    pure Schema.Time
+
+  ZSchema.Double _ ->
+    pure Schema.Double
+
+  ZSchema.Enum _ variants ->
+    case Cons.toList variants of
+      [Zebra.Variant "false" ZSchema.Unit, Zebra.Variant "true" ZSchema.Unit] ->
+        pure Schema.Bool
+
+      [Zebra.Variant "none" ZSchema.Unit, Zebra.Variant "some" x] ->
+         Schema.Option <$> resolveIcicleColumn x
+
+      [Zebra.Variant "left" x, Zebra.Variant "right" y] ->
+        Schema.Sum <$> resolveIcicleColumn x <*> resolveIcicleColumn y
+
+      _ ->
+        Left . ZebraUnknownEnum $ Cons.toList variants
+
+  ZSchema.Struct _ fields ->
+    if Cons.length fields /= 2 then
+      Schema.Struct <$> traverse resolveField fields
+    else
+      case Cons.toList fields of
+        [Zebra.Field "first" x, Zebra.Field "second" y] ->
+          Schema.Pair <$> resolveIcicleColumn x <*> resolveIcicleColumn y
+        _ ->
+          Schema.Struct <$> traverse resolveField fields
+
+  ZSchema.Nested table ->
+    resolveIcicleNested table
+
+  ZSchema.Reversed x ->
+    Left $ ZebraUnexpectedReversed x
+
+resolveInputColumn :: ZSchema.Column -> Either ZebraError Schema
+resolveInputColumn column = do
+  map <- first ZebraSchemaError $ ZSchema.takeNested column
+  (_, _, nested) <- first ZebraSchemaError $ ZSchema.takeMap map
+  array <- first ZebraSchemaError $ ZSchema.takeNested nested
+  (_, option) <- first ZebraSchemaError $ ZSchema.takeArray array
+  (_, value) <- first ZebraSchemaError $ ZSchema.takeOption option
+  resolveIcicleColumn value
+
+resolveNamedInputColumn :: Zebra.Field ZSchema.Column -> Either ZebraError (InputId, Schema)
+resolveNamedInputColumn (Zebra.Field (Zebra.FieldName name) column) = do
+  iid <- maybeToRight (ZebraInvalidInputId name) $ parseInputId name
+  icolumn <- resolveInputColumn column
+  pure (iid, icolumn)
+
+resolveInputColumns :: ZSchema.Column -> Either ZebraError (Map InputId Schema)
+resolveInputColumns column = do
+  (_, inputs) <- first ZebraSchemaError $ ZSchema.takeStruct column
+  fmap Map.fromList . traverse resolveNamedInputColumn $ Cons.toList inputs
+
+mkDictionaryInput :: InputId -> Schema -> Either ZebraError DictionaryInput
+mkDictionaryInput iid schema = do
+  encoding <- first ZebraResolveDictionaryError $ Schema.toEncoding schema
+  pure $
+    DictionaryInput iid encoding Set.empty unkeyed
+
+resolveDictionary :: ZSchema.Table -> Either ZebraError Dictionary
+resolveDictionary table = do
+  (_, _, vcolumn) <- first ZebraSchemaError $ ZSchema.takeMap table
+  columns <- resolveInputColumns vcolumn
+  inputs <- sequence $ Map.mapWithKey mkDictionaryInput columns
+  pure $
+    Dictionary inputs Map.empty []

@@ -1,5 +1,6 @@
 -- | Contexts that filter, group, and do stuff on the input
 -- before they hit the expression.
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Source.Query.Context (
@@ -54,44 +55,52 @@ annotOfContext c
     Let       a _ _   -> a
 
 instance (Pretty n, Pretty q) => Pretty (Context' q a n) where
- pretty cc
-  = case cc of
-     Windowed _ newer Nothing
-      -> "windowed" <+> pretty newer
-     Windowed _ newer (Just older)
-      -> "windowed between" <+> pretty older
-                  <+> "and" <+> pretty newer
+  pretty = \case
+    Windowed _ newer Nothing ->
+      prettyKeyword "windowed" <+> pretty newer
 
-     Latest   _ i
-      -> "latest"   <+> pretty i
-     GroupBy  _ x
-      -> "group"    <+> pretty x
-     GroupFold  _ n1 n2 x
-      ->  "group fold"
-      <+> pretty (n1, n2)
-      <+> "="
-      <+> pretty x
-     Distinct _ x
-      -> "distinct" <+> pretty x
-     Filter   _ x
-      -> "filter"   <+> pretty x
-     LetFold  _ f
-      ->  pretty (foldType f)
-      <+> pretty (foldBind f)
-      <+> "="
-      <+> pretty (foldInit f)
-      <+> ":"
-      <+> pretty (foldWork f)
+    Windowed _ newer (Just older) ->
+      prettyKeyword "windowed between" <+>
+      pretty older <+>
+      prettyKeyword "and" <+>
+      pretty newer
 
-     Let _ b x
-      ->  "let"
-      <+> pretty b
-      <+> "="
-      <+> pretty x
+    Latest _ i ->
+      prettyKeyword "latest" <+> annotate AnnConstant (pretty i)
 
+    GroupBy _ x ->
+      prettyKeyword "group" <+> align (pretty x)
+
+    GroupFold _ n1 n2 x ->
+      vsep [
+          prettyKeyword "group fold" <+> pretty (n1, n2) <+> prettyPunctuation "="
+        , indent 2 . align $
+            pretty x
+        ]
+
+    Distinct _ x ->
+      prettyKeyword "distinct" <+> align (pretty x)
+
+    Filter _ x ->
+      prettyKeyword "filter" <+> align (pretty x)
+
+    LetFold _ f ->
+      vsep [
+          pretty (foldType f) <+> annotate AnnBinding (pretty (foldBind f)) <+> prettyPunctuation "="
+        , indent 2 . align $
+            pretty (foldInit f) <+> prettyPunctuation ":" <+> pretty (foldWork f)
+        ]
+
+    Let _ b x ->
+      vsep [
+          prettyKeyword "let" <+> annotate AnnBinding (pretty b) <+> prettyPunctuation "="
+        , indent 2 . align $
+            pretty x
+        ]
 
 instance Pretty FoldType where
- pretty FoldTypeFoldl1
-  = "fold1"
- pretty FoldTypeFoldl
-  = "fold"
+  pretty = \case
+    FoldTypeFoldl1 ->
+      prettyKeyword "fold1"
+    FoldTypeFoldl ->
+      prettyKeyword "fold"

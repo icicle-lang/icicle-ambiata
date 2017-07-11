@@ -1,9 +1,8 @@
 -- | Base definitions common across all languages.
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveFunctor     #-}
-{-# LANGUAGE DeriveGeneric     #-}
-
 module Icicle.Common.Base (
       Name
     , NameBase(..)
@@ -146,59 +145,62 @@ instance Pretty n => Pretty (Name n) where
 
 instance Pretty n => Pretty (NameBase n) where
  pretty (NameBase n)   = pretty n
- pretty (NameMod  p n) = pretty p <> text "/" <> pretty n
+ pretty (NameMod  p n) = pretty p <> text "-" <> pretty n
 
 instance Pretty BaseValue where
- pretty v
-  = case v of
-     VInt i
-      -> pretty i
-     VDouble i
-      -> pretty i
-     VUnit
-      -> text "()"
-     VBool b
-      -> pretty b
-     VTime t
-      -> text $ T.unpack $ renderOutputTime t
-     VString t
-      -> text $ show t
-     VArray vs
-      -> pretty vs
-     VPair a b
-      -> text "(" <> pretty a <> text ", " <> pretty b <> text ")"
-     VLeft a
-      -> text "Left"  <+> pretty a
-     VRight a
-      -> text "Right" <+> pretty a
-     VSome a
-      -> text "Some" <+> pretty a
-     VNone
-      -> text "None"
-     VMap mv
-      -> text "Map" <+> pretty (Map.toList mv)
-     VStruct mv
-      -> text "Struct" <+> pretty (Map.toList mv)
-     VError e
-      -> pretty e
-     VFactIdentifier f
-      -> pretty f
-     VBuf vs
-      -> text "Buf" <+> pretty vs
+  prettyPrec p = \case
+    VInt i ->
+      annotate AnnConstant $ pretty i
+    VDouble i ->
+      annotate AnnConstant $ pretty i
+    VUnit ->
+      prettyPunctuation "()"
+    VBool b ->
+      annotate AnnConstant $ pretty b
+    VTime t ->
+      annotate AnnConstant $ text $ T.unpack $ renderOutputTime t
+    VString t ->
+      annotate AnnConstant $ text $ show t
+    VArray vs ->
+      pretty vs
+    VPair a b ->
+      pretty (a, b)
+    VLeft a ->
+      prettyApp hsep p (prettyConstructor "Left") [a]
+    VRight a ->
+      prettyApp hsep p (prettyConstructor "Right") [a]
+    VSome a ->
+      prettyApp hsep p (prettyConstructor "Some") [a]
+    VNone ->
+      prettyConstructor "None"
+    VMap mv ->
+      prettyApp hsep p (prettyConstructor "Map") [Map.toList mv]
+    VStruct mv ->
+      prettyApp hsep p (prettyConstructor "Struct") [Map.toList mv]
+    VError e ->
+      pretty e
+    VFactIdentifier f ->
+      pretty f
+    VBuf vs ->
+      prettyApp hsep p (prettyConstructor "Buf") [vs]
 
 instance Pretty FactIdentifier where
- pretty f = text "FactIdentifier" <+> (pretty $ getFactIdentifierIndex f)
+  prettyPrec p f =
+    prettyApp hsep p (prettyConstructor "FactIdentifier") [getFactIdentifierIndex f]
 
 instance Pretty StructField where
- pretty = text . T.unpack . nameOfStructField
+  pretty =
+     text . T.unpack . nameOfStructField
 
 instance Pretty ExceptionInfo where
- pretty = text . show
+  pretty =
+    prettyConstructor . show
 
 instance Pretty WindowUnit where
- pretty wu
-  = case wu of
-     Days   i -> pretty i <+> "days"
-     Months i -> pretty i <+> "months"
-     Weeks  i -> pretty i <+> "weeks"
-
+  pretty = \case
+    Days i ->
+      annotate AnnConstant (pretty i) <+> prettyKeyword "days"
+    Months i ->
+      annotate AnnConstant (pretty i) <+> prettyKeyword "months"
+    Weeks i ->
+      annotate AnnConstant (pretty i) <+> prettyKeyword "weeks"

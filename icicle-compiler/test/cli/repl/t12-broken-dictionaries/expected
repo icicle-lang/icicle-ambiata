@@ -1,11 +1,13 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> -- Load dictionary
-> Dictionary load error:
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ -- Load dictionary
+λ Dictionary load error:
   IO Exception: test/cli/repl/t12-broken-dictionaries/non-existant.icicle: openFile: does not exist (No such file or directory)
-> Dictionary load error:
-  Parse error:
+λ Dictionary load error:
+  ## Parse error
+  
     "bad.icicle" (line 1, column 13):
 unexpected (TVariable (Variable "s"),"bad.icicle" (line 1, column 17))
-> 
+λ 

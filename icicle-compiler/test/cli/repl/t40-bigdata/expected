@@ -1,118 +1,196 @@
-welcome to iREPL
-ok, loaded 38 functions from data/libs/prelude.icicle
-ok, loaded test/cli/repl/data.psv, 13 rows
-> -- Test "big data" mode where all queries must be windowed or latest
-> ok, big-data is now on
-> > -- Some simple good ones
-> - Core evaluation:
-[homer, 1,marge, 1]
+Icicle REPL, :help for help
+OK, snapshot mode activated with a snapshot date of 1970-01-01.
+OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+OK, selected psv file as input data: test/cli/repl/data.psv
+λ -- Test "big data" mode where all queries must be windowed or latest
+λ OK, big-data is now on.
+λ λ -- Some simple good ones
+λ Core evaluation
+---------------
 
-> > - Core evaluation:
-[homer, 1500,marge, 30]
+homer|1
+marge|1
 
-> > - Core evaluation:
-[homer, 0,marge, 0]
+λ λ Core evaluation
+---------------
 
-> > - Core evaluation:
-[homer, 1500,marge, 30]
+homer|1500
+marge|30
 
-> > > -- Some obviously bad ones
->                     λλλλ
-REPL Error:
-Check error:
+λ λ Core evaluation
+---------------
+
+homer|0
+marge|0
+
+λ λ Core evaluation
+---------------
+
+homer|1500
+marge|30
+
+λ λ λ -- Some obviously bad ones
+λ                     ^
+Error
+-----
+
+## Check error
+
   For resumable queries, folds, groups and distincts must be inside windowed or latest at 1:19
-  Fold: fold x = 0 : 1 ~> x
-  Extra information:
-    You are in 'big data mode', which restricts the queries you can perform.
-    For very large data, we cannot perform folds over all the data
-    For this reason, we require all folds to be in a windowed or latest
+  
+  Fold: fold x =
+          0 : 1
+     ~> x
+  
+  You are in 'big data mode', which restricts the queries you can perform.
+  
+  For very large data, we cannot perform folds over all the data
+  
+  For this reason, we require all folds to be in a windowed or latest
 
-> >           λλλλ
-REPL Error:
-Check error:
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:data/libs/prelude.icicle
-  Fold: fold s = 0 : value + s
-        ~> s
-  Extra information:
-    You are in 'big data mode', which restricts the queries you can perform.
-    For very large data, we cannot perform folds over all the data
-    For this reason, we require all folds to be in a windowed or latest
+λ λ           ^
+Error
+-----
 
-> >           λλλλ
-REPL Error:
-Check error:
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:data/libs/prelude.icicle
-  Fold: fold s = 0 : value + s
-        ~> s
-  Extra information:
-    You are in 'big data mode', which restricts the queries you can perform.
-    For very large data, we cannot perform folds over all the data
-    For this reason, we require all folds to be in a windowed or latest
+## Check error
 
-> > -- Part good, part bad
->           λλλλ
-REPL Error:
-Check error:
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:data/libs/prelude.icicle
-  Fold: fold s = 0 : value + s
-        ~> s
-  Extra information:
-    You are in 'big data mode', which restricts the queries you can perform.
-    For very large data, we cannot perform folds over all the data
-    For this reason, we require all folds to be in a windowed or latest
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:prelude.icicle
+  
+  Fold: fold s =
+          0 : value + s
+     ~> s
+  
+  You are in 'big data mode', which restricts the queries you can perform.
+  
+  For very large data, we cannot perform folds over all the data
+  
+  For this reason, we require all folds to be in a windowed or latest
 
-> > > -- More good ones
-> - Core evaluation:
-[homer, 7500,marge, 90]
+λ λ           ^
+Error
+-----
 
-> > - Core evaluation:
-[homer, 7500,marge, 90]
+## Check error
 
-> > > -- Some good let bindings
-> - Core evaluation:
-[homer, 1500,marge, 30]
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:prelude.icicle
+  
+  Fold: fold s =
+          0 : value + s
+     ~> s
+  
+  You are in 'big data mode', which restricts the queries you can perform.
+  
+  For very large data, we cannot perform folds over all the data
+  
+  For this reason, we require all folds to be in a windowed or latest
 
-> > - Core evaluation:
-[homer, 1500,marge, 30]
+λ λ -- Part good, part bad
+λ           ^
+Error
+-----
 
-> > -- Some bad let bindings
->           λλλλ
-REPL Error:
-Check error:
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:data/libs/prelude.icicle
-  Fold: fold s = 0 : value + s
-        ~> s
-  Extra information:
-    You are in 'big data mode', which restricts the queries you can perform.
-    For very large data, we cannot perform folds over all the data
-    For this reason, we require all folds to be in a windowed or latest
+## Check error
 
-> >           λλλλ
-REPL Error:
-Check error:
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:data/libs/prelude.icicle
-  Fold: fold s = 0 : x + s ~> s
-  Extra information:
-    You are in 'big data mode', which restricts the queries you can perform.
-    For very large data, we cannot perform folds over all the data
-    For this reason, we require all folds to be in a windowed or latest
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:prelude.icicle
+  
+  Fold: fold s =
+          0 : value + s
+     ~> s
+  
+  You are in 'big data mode', which restricts the queries you can perform.
+  
+  For very large data, we cannot perform folds over all the data
+  
+  For this reason, we require all folds to be in a windowed or latest
 
-> > -- A bad group
->                           λλλλ
-REPL Error:
-Check error:
+λ λ λ -- More good ones
+λ Core evaluation
+---------------
+
+homer|7500
+marge|90
+
+λ λ Core evaluation
+---------------
+
+homer|7500
+marge|90
+
+λ λ λ -- Some good let bindings
+λ Core evaluation
+---------------
+
+homer|1500
+marge|30
+
+λ λ Core evaluation
+---------------
+
+homer|1500
+marge|30
+
+λ λ -- Some bad let bindings
+λ           ^
+Error
+-----
+
+## Check error
+
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:prelude.icicle
+  
+  Fold: fold s =
+          0 : value + s
+     ~> s
+  
+  You are in 'big data mode', which restricts the queries you can perform.
+  
+  For very large data, we cannot perform folds over all the data
+  
+  For this reason, we require all folds to be in a windowed or latest
+
+λ λ           ^
+Error
+-----
+
+## Check error
+
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:prelude.icicle
+  
+  Fold: fold s =
+          0 : x + s
+     ~> s
+  
+  You are in 'big data mode', which restricts the queries you can perform.
+  
+  For very large data, we cannot perform folds over all the data
+  
+  For this reason, we require all folds to be in a windowed or latest
+
+λ λ -- A bad group
+λ                           ^
+Error
+-----
+
+## Check error
+
   For resumable queries, folds, groups and distincts must be inside windowed or latest at 1:25
+  
   Fold: group location
-        ~> sum severity
-  Extra information:
-    You are in 'big data mode', which restricts the queries you can perform.
-    In big data mode, groups must be inside windowed or latests.
-    You should be able to wrap the entire group inside a window.
+     ~> sum severity
+  
+  You are in 'big data mode', which restricts the queries you can perform.
+  
+  In big data mode, groups must be inside windowed or latests.
+  
+  You should be able to wrap the entire group inside a window.
 
-> > -- A good group
-> - Core evaluation:
-[homer, [("arm",4)
-        ,("head",3)
-        ,("torso",4)]]
+λ λ -- A good group
+λ Core evaluation
+---------------
 
-> 
+homer|[ ("arm", 4)
+      , ("head", 3)
+      , ("torso", 4)
+      ]
+
+λ 

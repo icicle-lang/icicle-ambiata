@@ -177,7 +177,6 @@ seaOfStatement cluster kernel stmt
              assign (defOfVar 0 t $ prettySeaName bindn)
                     (pretty newPrefix <> prettySeaName inputn <> "[i]") <> semi
 
-
            factTime = case reverse inputStruct of
                        [] -> seaError "seaOfStatement: no facts" ()
                        ((n,_):_) -> pretty newPrefix <> prettySeaName n <> "[i]"

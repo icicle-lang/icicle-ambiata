@@ -122,41 +122,40 @@ typeOfPrim p
 instance Pretty Prim where
  pretty (PrimMinimal m) = pretty m
 
- pretty (PrimFold f ret)
+ pretty (PrimFold f _ret)
   = let f' = case f of
               PrimFoldBool
                -> "if#"
-              PrimFoldArray a
-               -> annotate (AnnType a) "Array_fold#"
-              PrimFoldOption a
-               -> annotate (AnnType a) "Option_fold#"
-              PrimFoldSum    a b
-               -> annotate (AnnType (a , b)) "Sum_fold#"
-              PrimFoldMap k v
-               -> annotate (AnnType (k , v)) "Map_fold#"
-    in annotate (AnnType ret) f'
+              PrimFoldArray _a
+               -> "Array_fold#"
+              PrimFoldOption _a
+               -> "Option_fold#"
+              PrimFoldSum _a _b
+               -> "Sum_fold#"
+              PrimFoldMap _k _v
+               -> "Map_fold#"
+    in f'
 
- pretty (PrimArray (PrimArrayMap a b))
-  = annotate (AnnType (a, b)) "Array_map#"
+ pretty (PrimArray (PrimArrayMap _a _b))
+  = "Array_map#"
 
- pretty (PrimMap (PrimMapInsertOrUpdate k v))
-  = annotate (AnnType (k , v)) "Map_insertOrUpdate#"
+ pretty (PrimMap (PrimMapInsertOrUpdate _k _v))
+  = "Map_insertOrUpdate#"
 
- pretty (PrimMap (PrimMapDelete k v))
-  = annotate (AnnType (k , v)) "Map_delete#"
+ pretty (PrimMap (PrimMapDelete _k _v))
+  = "Map_delete#"
 
- pretty (PrimMap (PrimMapMapValues k v v'))
-  = annotate (AnnType (k , v , v')) "Map_mapValues#"
+ pretty (PrimMap (PrimMapMapValues _k _v _v'))
+  = "Map_mapValues#"
 
- pretty (PrimMap (PrimMapLookup k v))
-  = annotate (AnnType (k , v)) "Map_lookup#"
+ pretty (PrimMap (PrimMapLookup _k _v))
+  = "Map_lookup#"
 
- pretty (PrimLatest (PrimLatestPush i t))
-  = annotate (AnnType (BufT i t)) "Latest_push#"
+ pretty (PrimLatest (PrimLatestPush _i _t))
+  = "Latest_push#"
 
- pretty (PrimLatest (PrimLatestRead _ t))
-  = annotate (AnnType (ArrayT t)) "Latest_read#"
+ pretty (PrimLatest (PrimLatestRead _ _t))
+  = "Latest_read#"
 
  pretty (PrimWindow newer older)
-  = annotate (AnnType BoolT) ("window# " <> pretty newer <> pretty older)
-
+  = "window# " <> pretty newer <> pretty older

@@ -1,8 +1,8 @@
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ConstraintKinds   #-}
-{-# LANGUAGE DeriveGeneric     #-}
-
 module Icicle.Compiler.Source
   ( ErrorSource (..)
 
@@ -74,7 +74,6 @@ import qualified Icicle.Source.Type                       as Type
 
 import           Data.Functor.Identity
 import qualified Data.Map                                 as M
-import           Data.Monoid
 import           Data.String
 import           Data.Hashable                            (Hashable)
 
@@ -156,20 +155,34 @@ annotOfError e
      -> Nothing
 
 instance (Hashable a, Eq a, IsString a, Pretty a) => Pretty (ErrorSource a) where
- pretty e
-  = case e of
-     ErrorSourceParse p
-      -> "Parse error:" <> line
-      <> indent 2 (text $ show p)
-     ErrorSourceDesugar d
-      -> "Desugar error:" <> line
-      <> indent 2 (pretty d)
-     ErrorSourceCheck ce
-      -> "Check error:" <> line
-      <> indent 2 (pretty ce)
-     ErrorSourceResolveError t
-      -> "Could not resolve input name:" <> line
-      <> indent 2 (pretty t)
+  pretty = \case
+    ErrorSourceParse p ->
+      vsep [
+          reannotate AnnErrorHeading $ prettyH2 "Parse error"
+        , mempty
+        , indent 2 . text $ show p
+        ]
+
+    ErrorSourceDesugar d ->
+      vsep [
+          reannotate AnnErrorHeading $ prettyH2 "Desugar error"
+        , mempty
+        , indent 2 $ pretty d
+        ]
+
+    ErrorSourceCheck ce ->
+      vsep [
+          reannotate AnnErrorHeading $ prettyH2 "Check error"
+        , mempty
+        , indent 2 $ pretty ce
+        ]
+
+    ErrorSourceResolveError t ->
+      vsep [
+          reannotate AnnErrorHeading $ prettyH2 "Could not resolve input name"
+        , mempty
+        , indent 2 $ pretty t
+        ]
 
 --------------------------------------------------------------------------------
 
