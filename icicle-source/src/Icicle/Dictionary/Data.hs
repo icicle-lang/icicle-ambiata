@@ -238,38 +238,51 @@ prettyDictionarySummary :: Dictionary -> Doc
 prettyDictionarySummary dict =
   vsep [
       prettyH2 "Functions"
-    , indent 2 . vsep . List.intersperse mempty $
+    , mempty
+    , indent 2 . pprList $
         (pprInbuilt <$> SQ.listOfBuiltinFuns) <>
         (pprFun <$> dictionaryFunctions dict)
     , mempty
     , prettyH2 "Inputs"
-    , indent 2 . vsep . List.intersperse mempty $
+    , mempty
+    , indent 2 . pprList $
         fmap pprInput .
         Map.elems $ dictionaryInputs dict
     , mempty
     , prettyH2 "Outputs"
-    , indent 2 . vsep . List.intersperse mempty $
+    , mempty
+    , indent 2 . pprList $
         fmap pprOutput .
         Map.elems $ dictionaryOutputs dict
     ]
  where
+  pprList = \case
+    [] ->
+      prettyPunctuation "<none>"
+    xs ->
+      vsep $ List.intersperse mempty xs
+
   pprInput (DictionaryInput attr enc _ (InputKey mkey)) =
     case mkey of
       Nothing ->
-        prettyTyped (annotate AnnBinding $ pretty attr) $
-          align (pretty enc)
+        prettyTypedBest'
+          (annotate AnnBinding $ pretty attr)
+          (prettyEncodingFlat enc)
+          (prettyEncodingHang enc)
       Just key ->
-        prettyTyped (annotate AnnBinding (pretty attr) <+> prettyKeyword "by" <+> annotate AnnVariable (pretty key)) $
-          align (pretty enc)
+        prettyTypedBest'
+          (annotate AnnBinding (pretty attr) <+> prettyKeyword "by" <+> annotate AnnVariable (pretty key))
+          (prettyEncodingFlat enc)
+          (prettyEncodingHang enc)
 
   pprOutput (DictionaryOutput attr q)
    = prettyBinding (pretty attr) $ pretty q
 
   pprFun (DictionaryFunction f t _)
-   = prettyTyped (pretty f) $ align (ST.prettyFunWithLetters t)
+   = prettyTypedFun (pretty f) (ST.prettyFunWithLetters t)
 
   pprInbuilt f
-   = prettyTyped (pretty f) $ align (prettyInbuiltType f)
+   = prettyTypedFun (pretty f) (prettyInbuiltType f)
 
   prettyInbuiltType
    = ST.prettyFunWithLetters

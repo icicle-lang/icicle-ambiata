@@ -15,6 +15,44 @@ Selected psv file as input: test/cli/repl/data.psv
      ░            ░
                   ░     :help for help
 
-λ -- Load dictionary
-λ Loaded dictionary with 4 inputs, 4 outputs, 38 functions.
+λ -- Load a zebra file
+λ Loaded dictionary with 1 inputs, 0 outputs, 0 functions.
+Loaded 38 functions from prelude.icicle
+Selected zebra binary file as input: data/example/sample.zbin
+λ Queries will be evaluated using the C evaluator.
+λ λ C evaluation
+------------
+
+homer|[ None, None, Some "ignore", None ]
+marge|[ None, None, Some "ignore", None ]
+moe|[ None, None ]
+
+λ λ C evaluation
+------------
+
+homer|None
+marge|None
+moe|None
+
+λ λ C evaluation
+------------
+
+homer|{ "arm" -> [ None, None ], "torso" -> [ Some "ignore", None ] }
+marge|{ "head" -> [ Some "ignore", None ], "leg" -> [ None, None ] }
+moe|{ "ear" -> [ None ], "hair" -> [ None ] }
+
+λ λ C evaluation
+------------
+
+homer|{ Some "arm" -> Some 4.0 }
+marge|{ Some "leg" -> Some 4.0 }
+moe|{ Some "ear" -> Some 1.0, Some "hair" -> Some 2.0 }
+
+λ λ C evaluation
+------------
+
+homer|{ "arm" -> Some 0.04, "torso" -> Some 0.04 }
+marge|{ "head" -> Some 0.04, "leg" -> Some 0.04 }
+moe|{ "ear" -> Some 0.01, "hair" -> Some 0.02 }
+
 λ 

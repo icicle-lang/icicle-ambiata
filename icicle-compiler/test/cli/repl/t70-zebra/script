@@ -1,0 +1,13 @@
+-- Load a zebra file
+:load data/example/sample.zbin
+:set +c-eval
+
+feature injury ~> latest 4 ~> action
+
+feature injury ~> newest action
+
+feature injury ~> group location ~> latest 2 ~> action
+
+feature injury ~> fold x = map_create : case map_lookup (Some location) x | None -> map_insert (Some location) (Some severity) x | Some _ -> map_delete (Some location) x end ~> x
+
+feature injury ~> group location ~> Some (mean (double severity / 100.0))

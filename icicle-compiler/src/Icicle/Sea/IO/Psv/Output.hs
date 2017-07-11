@@ -574,19 +574,19 @@ outputChar x
 outputString :: Text -> Doc
 outputString xs
  = vsep
- [ "if (buffer_end - buffer_ptr < " <> int rounded <> ") {"
+ [ "if (buffer_end - buffer_ptr < " <> pretty rounded <> ") {"
  , "    error = psv_flush_output (fd, buffer, &buffer_ptr);"
  , indent 4 outputDie
  , "}"
  , vsep (fmap mkdoc swords)
- , "buffer_ptr += " <> int size <> ";"
+ , "buffer_ptr += " <> pretty size <> ";"
  ]
  where
   swords = wordsOfString xs
 
   rounded  = length swords * 8
   size     = sum (fmap swSize swords)
-  mkdoc sw = "*(uint64_t *)(buffer_ptr + " <> int (swOffset sw) <> ") = " <> swBits sw <> ";"
+  mkdoc sw = "*(uint64_t *)(buffer_ptr + " <> pretty (swOffset sw) <> ") = " <> swBits sw <> ";"
 
 outputDie :: Doc
 outputDie = "if (error) return error;"
@@ -676,10 +676,10 @@ schemaOfFleet config clusters =
       columns0 <- concat <$> traverse schemaOfProgram clusters
 
       let
-        columns =
+        columns1 =
           columns0 <> schemaOfLabel (outputPsvMode config)
 
         missing =
           PsvMissingValue $ outputPsvMissing config
 
-      pure $ PsvSchema missing columns
+      pure $ PsvSchema missing columns1

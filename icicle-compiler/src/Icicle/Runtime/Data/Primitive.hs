@@ -33,6 +33,7 @@ module Icicle.Runtime.Data.Primitive (
   , fromError64
   , isError
 
+  , renderTime
   , packTime
   , packTimeVector
   , unpackTime
@@ -41,6 +42,7 @@ module Icicle.Runtime.Data.Primitive (
 
 import           Data.Bits ((.|.), (.&.), unsafeShiftL, unsafeShiftR)
 import qualified Data.List as List
+import qualified Data.Text as Text
 import qualified Data.Vector.Storable as Storable
 import           Data.Word (Word64, Word32, Word8)
 
@@ -54,6 +56,8 @@ import           Icicle.Common.Base (ExceptionInfo(..))
 import           Numeric (showHex)
 
 import           P
+
+import           Text.Printf (printf)
 
 import           X.Text.Show (gshowsPrec)
 
@@ -258,6 +262,21 @@ fromError64 = \case
   _ ->
     Nothing
 {-# INLINE fromError64 #-}
+
+renderTime :: Time64 -> Text
+renderTime x =
+  let
+    UnpackedTime64 year month day daySeconds =
+      unpackTime x
+
+    (dayMinutes, sec) =
+      daySeconds `quotRem` 60
+
+    (hour, minute) =
+      dayMinutes `quotRem` 60
+  in
+    Text.pack $
+      printf "%04d-%02d-%02d %02d:%02d:%02d" year month day hour minute sec
 
 packTime :: UnpackedTime64 -> Time64
 packTime x =

@@ -359,7 +359,7 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
 
     Output n t xs ->
       prettyKeyword "output" <+>
-        prettyTyped (annotate AnnBinding $ pretty n) (pretty t) <+> prettyPunctuation "=" <> line <>
+        prettyTypedFlat (annotate AnnBinding $ pretty n) (pretty t) <+> prettyPunctuation "=" <> line <>
       case xs of
         [x] ->
           -- output =
@@ -393,7 +393,7 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
      = pretty stmt
 
     prettyFactPart ann (nf, tf) =
-      prettyTyped (annotate ann $ pretty nf) (pretty tf)
+      prettyTypedFlat (annotate ann $ pretty nf) (pretty tf)
 
     prettyFactParts ann xs0 =
       case reverse xs0 of
@@ -412,7 +412,7 @@ instance Pretty WhileType where
 
 instance (Pretty n, Pretty p) => Pretty (Accumulator a n p) where
   pretty (Accumulator n vt x) =
-    prettyTyped (annotate AnnBinding $ pretty n) (pretty vt) <+> text "=" <> line <>
+    prettyTypedFlat (annotate AnnBinding $ pretty n) (pretty vt) <+> text "=" <> line <>
     indent 2 (pretty x)
 
 instance Pretty FactLoopType where

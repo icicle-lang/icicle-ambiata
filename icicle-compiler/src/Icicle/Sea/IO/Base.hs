@@ -483,7 +483,7 @@ seaOfStringEq str ptr msize
    nbytes = length bytes
    bytes  = B.unpack (T.encodeUtf8 str)
 
-   szdoc size = size <+> "==" <+> int nbytes <+> "&&"
+   szdoc size = size <+> "==" <+> pretty nbytes <+> "&&"
    cmpdoc     = seaOfBytesEq bytes ptr
 
 seaOfBytesEq :: [Word8] -> Doc -> Doc
@@ -491,7 +491,7 @@ seaOfBytesEq bs ptr
  = vsep . punctuate " &&" . fmap go $ wordsOfBytes bs
  where
    go (StringWord off _ mask bits)
-    = "(*(uint64_t *)(" <> ptr <+> "+" <+> int off <> ") &" <+> mask <> ") ==" <+> bits
+    = "(*(uint64_t *)(" <> ptr <+> "+" <+> pretty off <> ") &" <+> mask <> ") ==" <+> bits
 
 --------------------------------------------------------------------------------
 

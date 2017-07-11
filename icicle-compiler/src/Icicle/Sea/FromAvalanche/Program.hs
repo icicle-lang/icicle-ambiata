@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Icicle.Sea.FromAvalanche.Program (
     seaOfPrograms
   , seaOfXValue
@@ -23,7 +24,6 @@ import           Icicle.Common.Type
 import           Icicle.Data
 
 import           Icicle.Internal.Pretty
-import qualified Icicle.Internal.Pretty as Pretty
 
 import           Icicle.Sea.Data
 import           Icicle.Sea.Error
@@ -111,7 +111,7 @@ seaOfStatement ::
 seaOfStatement cluster kernel stmt
  = case stmt of
      Block []
-      -> Pretty.empty
+      -> mempty
 
      Block (s:[])
       -> seaOfStatement cluster kernel s
@@ -234,10 +234,10 @@ seaOfStatement cluster kernel stmt
      -- TODO Implement historical facts
 
      ForeachFacts _ _ FactLoopHistory _
-      -> Pretty.empty
+      -> mempty
 
      KeepFactInHistory _
-      -> Pretty.empty
+      -> mempty
   where
    stNew   n = "s->" <> clusterInputNew (prettySeaName n)
    stRes   n = "s->" <> clusterInputRes (nameOfResumable kernel $ prettySeaName n)
@@ -292,24 +292,24 @@ seaOfXValue v t
       | isInfinite (fromIntegral x :: Double)
       -> inf
       | otherwise
-      -> int x
+      -> pretty x
      VDouble x
       | isNaN      x
       -> nan
       | isInfinite x
       -> inf
       | otherwise
-      -> double x
+      -> pretty x
 
      VArray vs
       | ArrayT t' <- t
       -> let len = length vs
-             writes arr (v',i)
+             writes arr (v', i :: Int)
               = prim (PrimArray $ PrimArrayPutMutable t')
-                     [arr, int i, seaOfXValue v' t']
+                     [arr, pretty i, seaOfXValue v' t']
              init
               = prim (PrimUnsafe $ PrimUnsafeArrayCreate t')
-                     [int len]
+                     [pretty len]
         in  foldl writes init (vs `List.zip` [0..])
 
       | otherwise

@@ -32,7 +32,6 @@ library
                      , icicle-source
                      , aeson                           >= 0.8        && < 1.2
                      , aeson-pretty                    >= 0.8        && < 0.9
-                     , annotated-wl-pprint             == 0.7.*
                      , ansi-terminal                   == 0.6.*
                      , bifunctors                      >= 4.2        && < 5.4
                      , bytestring                      == 0.10.*
@@ -70,6 +69,7 @@ library
                      , vector                          == 0.11.*
                      , vector-space                    == 0.10.*
                      , void                            >= 0.5        && < 0.8
+                     , wl-pprint-annotated             == 0.1.*
                      , zenc                            == 0.1.*
 
                      -- Used for benchmark data generation
@@ -153,6 +153,8 @@ library
                        Icicle.Runtime.Data.Striped
                        Icicle.Runtime.Evaluator
                        Icicle.Runtime.Serial.Zebra
+                       Icicle.Runtime.Serial.Zebra.Schema
+                       Icicle.Runtime.Serial.Zebra.Striped
 
                        Icicle.Simulator
 

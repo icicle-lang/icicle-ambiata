@@ -39,7 +39,15 @@ genTime64 =
 
 genError64 :: Jack Error64
 genError64 =
-  elements [Tombstone64] -- FIXME Fold1NoValue64, CannotCompute64
+  elements [NotAnError64, Tombstone64, Fold1NoValue64, CannotCompute64]
+
+genResultError :: Jack Error64
+genResultError =
+  elements [Tombstone64, Fold1NoValue64, CannotCompute64]
+
+genTombstoneOrSuccess :: Jack Error64
+genTombstoneOrSuccess =
+  elements [Tombstone64, NotAnError64]
 
 genField :: Jack a -> Jack (Field a)
 genField g =
@@ -62,24 +70,6 @@ genSchema =
     , Schema.Struct . Cons.unsafeFromList <$> listOfN 1 5 (genField genSchema)
     , Schema.Array <$> genSchema
     , Schema.Map <$> genSchema <*> genSchema
-    ]
-
-genSchemaNoResult :: Jack Schema
-genSchemaNoResult =
-  oneOfRec [
-      pure Schema.Unit
-    , pure Schema.Bool
-    , pure Schema.Int
-    , pure Schema.Double
-    , pure Schema.Time
-    , pure Schema.String
-    ] [
-      Schema.Sum <$> genSchemaNoResult <*> genSchemaNoResult
-    , Schema.Option <$> genSchemaNoResult
-    , Schema.Pair <$> genSchemaNoResult <*> genSchemaNoResult
-    , Schema.Struct . Cons.unsafeFromList <$> listOfN 1 5 (genField genSchemaNoResult)
-    , Schema.Array <$> genSchemaNoResult
-    , Schema.Map <$> genSchemaNoResult <*> genSchemaNoResult
     ]
 
 genValue :: Schema -> Jack Value
@@ -108,7 +98,7 @@ genValue = \case
       ]
   Schema.Result x ->
     oneOf [
-        Logical.Error <$> genError64
+        Logical.Error <$> genResultError
       , Logical.Success <$> genValue x
       ]
   Schema.Pair x y ->
@@ -154,19 +144,21 @@ genEntityKey =
 
 genEntityInputColumn :: Schema -> Jack InputColumn
 genEntityInputColumn schema = do
-  column <- genColumn (Schema.Result schema)
+  column <- genColumn schema
 
   let
     n =
       Striped.length column
 
   times <- Storable.fromList <$> vectorOf n genTime64
-  pure $ InputColumn (Storable.singleton $ fromIntegral n) times column
+  tombstones <- Storable.fromList <$> vectorOf n genTombstoneOrSuccess
+
+  pure $ InputColumn (Storable.singleton $ fromIntegral n) times tombstones column
 
 genInputColumn :: Int -> Jack InputColumn
 genInputColumn n_entities =
   justOf $ do
-    schema <- genSchemaNoResult
+    schema <- genSchema
     columns <- vectorOf n_entities (genEntityInputColumn schema)
     pure . rightToMaybe . concatInputColumn $ Cons.unsafeFromList columns
 
@@ -188,6 +180,11 @@ genInput = do
   Input entities
     <$> genInputColumns (Boxed.length entities)
 
+genInputSchemas :: Jack (Map InputId Schema)
+genInputSchemas =
+  Map.fromList
+    <$> listOfN 1 5 ((,) <$> genInputId <*> genSchema)
+
 genOutputId :: Jack OutputId
 genOutputId =
   justOf . fmap parseOutputId $
@@ -198,7 +195,7 @@ genOutputId =
 genOutputColumn :: Int -> Jack Column
 genOutputColumn n_entities =
   justOf $ do
-    schema <- genSchemaNoResult
+    schema <- genSchema
     columns <- vectorOf n_entities (genColumn schema)
     pure . rightToMaybe . Striped.unsafeConcat $ Cons.unsafeFromList columns
 

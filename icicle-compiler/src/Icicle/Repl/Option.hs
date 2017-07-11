@@ -11,7 +11,6 @@ module Icicle.Repl.Option (
   , showOptions
 
   , takeOptionInfo
-  , putCustomFlagMessage
   , putAllOption
   , putOption
   ) where
@@ -57,7 +56,7 @@ putAllOption xs =
     mapM_ (putOption n) xs
 
 takeOptionInfo :: FlagInfo -> Repl OptionInfo
-takeOptionInfo (FlagInfo flag name _) = do
+takeOptionInfo (FlagInfo flag name _ _ _) = do
   x <- get
   if Set.member flag (stateFlags x) then
     pure $ OptionInfo name "✓"
@@ -85,56 +84,30 @@ showOptions = do
 
   liftIO $ IO.putStrLn ""
 
-putCustomFlagMessage :: Flag -> Repl ()
-putCustomFlagMessage = \case
-  FlagSeaEval ->
-    liftIO $ do
-      IO.putStrLn "                   _________-----_____"
-      IO.putStrLn "        _____------           __      ----_"
-      IO.putStrLn " ___----             ___------              \\"
-      IO.putStrLn "    ----________        ----                 \\"
-      IO.putStrLn "                -----__    |             _____)"
-      IO.putStrLn "                     __-                /     \\"
-      IO.putStrLn "         _______-----    ___--          \\    /)\\"
-      IO.putStrLn "   ------_______      ---____            \\__/  /"
-      IO.putStrLn "                -----__    \\ --    _          /\\"
-      IO.putStrLn "                       --__--__     \\_____/   \\_/\\"
-      IO.putStrLn "                               ----|   /          |"
-      IO.putStrLn "                                   |  |___________|"
-      IO.putStrLn "                                   |  | ((_(_)| )_)"
-      IO.putStrLn "                                   |  \\_((_(_)|/(_)"
-      IO.putStrLn "                                   \\             ("
-      IO.putStrLn "                                    \\_____________)"
-  _ ->
-    pure ()
-
 setFlagOn :: Flag -> Repl ()
 setFlagOn flag = do
-  putCustomFlagMessage flag
-  case Map.lookup flag flagNames of
+  case Map.lookup flag flagInfo of
     Nothing ->
       liftIO . IO.putStrLn $ "Unknown flag: " <> show flag
-    Just name -> do
-      liftIO . IO.putStrLn $
-        "OK, " <> name <> " is now on."
+    Just x -> do
+      liftIO . IO.putStrLn $ flagOn x
       modify $ \s ->
         s { stateFlags = Set.insert flag (stateFlags s) }
 
 setFlagOff :: Flag -> Repl ()
 setFlagOff flag =
-  case Map.lookup flag flagNames of
+  case Map.lookup flag flagInfo of
     Nothing ->
       liftIO . IO.putStrLn $ "Unknown flag: " <> show flag
-    Just name -> do
-      liftIO . IO.putStrLn $
-        "OK, " <> name <> " is now off."
+    Just x -> do
+      liftIO . IO.putStrLn $ flagOff x
       modify $ \s ->
         s { stateFlags = Set.delete flag (stateFlags s) }
 
 setSnapshot :: Date -> Repl ()
 setSnapshot date = do
   liftIO . IO.putStrLn $
-    "OK, snapshot mode activated with a snapshot date of " <> Text.unpack (renderDate date) <> "."
+    "Snapshot mode activated with a snapshot date of " <> Text.unpack (renderDate date) <> "."
   modify $ \s ->
     s { stateSnapshotDate = date }
 
@@ -148,14 +121,14 @@ pluralise n single plural =
 setMaxMapSize :: Int -> Repl ()
 setMaxMapSize n = do
   liftIO . IO.putStrLn $
-    "OK, the maximum map size has been set to " <> show n <> " " <> pluralise n "element" "elements" <> "."
+    "The maximum map size has been set to " <> show n <> " " <> pluralise n "element" "elements" <> "."
   modify $ \s ->
     s { stateMaxMapSize = n }
 
 setLimit :: Int -> Repl ()
 setLimit n = do
   liftIO . IO.putStrLn $
-    "OK, the output limit has been set to " <> show n <> " " <> pluralise n "row" "rows" <> "."
+    "The output limit has been set to " <> show n <> " " <> pluralise n "row" "rows" <> "."
   modify $ \s ->
     s { stateLimit = n }
 

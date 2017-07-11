@@ -3,6 +3,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 module Icicle.Runtime.Data.Logical (
     Value(..)
@@ -22,19 +23,26 @@ module Icicle.Runtime.Data.Logical (
   , takeArray
   , takeMap
 
+  , prettyValue
+
   , LogicalError(..)
   , renderLogicalError
   ) where
 
+import qualified Anemone.Pretty as Anemone
+
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
+import qualified Data.ByteString.Char8 as Char8
 import qualified Data.Either as Either
 import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
+import qualified Data.Text as Text
 import qualified Data.Vector as Boxed
 
 import           GHC.Generics (Generic)
 
+import           Icicle.Internal.Pretty
 import           Icicle.Runtime.Data.Primitive
 import           Icicle.Runtime.Data.Schema (Schema)
 import qualified Icicle.Runtime.Data.Schema as Schema
@@ -42,6 +50,7 @@ import qualified Icicle.Runtime.Data.Schema as Schema
 import           P hiding (Left, Right)
 
 import           X.Data.Vector.Cons (Cons)
+import qualified X.Data.Vector.Cons as Cons
 
 
 data Value =
@@ -82,39 +91,42 @@ data LogicalError =
   | LogicalExpectedString !Value
   | LogicalExpectedArray !Value
   | LogicalExpectedMap !Value
+  | LogicalSchemaMismatch !Schema !Value
     deriving (Eq, Ord, Show)
 
 renderLogicalError :: LogicalError -> Text
 renderLogicalError = \case
   LogicalExpectedUnit x ->
-    "Expected unit, but was: " <> ppSchema x
+    "Expected unit, but was: " <> ppValueSchema x
   LogicalExpectedBool x ->
-    "Expected bool, but was: " <> ppSchema x
+    "Expected bool, but was: " <> ppValueSchema x
   LogicalExpectedInt x ->
-    "Expected int, but was: " <> ppSchema x
+    "Expected int, but was: " <> ppValueSchema x
   LogicalExpectedDouble x ->
-    "Expected double, but was: " <> ppSchema x
+    "Expected double, but was: " <> ppValueSchema x
   LogicalExpectedTime x ->
-    "Expected time, but was: " <> ppSchema x
+    "Expected time, but was: " <> ppValueSchema x
   LogicalExpectedSum x ->
-    "Expected sum, but was: " <> ppSchema x
+    "Expected sum, but was: " <> ppValueSchema x
   LogicalExpectedOption x ->
-    "Expected option, but was: " <> ppSchema x
+    "Expected option, but was: " <> ppValueSchema x
   LogicalExpectedResult x ->
-    "Expected result, but was: " <> ppSchema x
+    "Expected result, but was: " <> ppValueSchema x
   LogicalExpectedPair x ->
-    "Expected pair, but was: " <> ppSchema x
+    "Expected pair, but was: " <> ppValueSchema x
   LogicalExpectedStruct x ->
-    "Expected struct, but was: " <> ppSchema x
+    "Expected struct, but was: " <> ppValueSchema x
   LogicalExpectedString x ->
-    "Expected string, but was: " <> ppSchema x
+    "Expected string, but was: " <> ppValueSchema x
   LogicalExpectedArray x ->
-    "Expected array, but was: " <> ppSchema x
+    "Expected array, but was: " <> ppValueSchema x
   LogicalExpectedMap x ->
-    "Expected map, but was: " <> ppSchema x
+    "Expected map, but was: " <> ppValueSchema x
+  LogicalSchemaMismatch s v ->
+    "Expected " <> Text.pack (show s) <> ", but was: " <> Text.pack (show v)
 
-ppSchema :: Value -> Text
-ppSchema = \case
+ppValueSchema :: Value -> Text
+ppValueSchema = \case
   Unit ->
     "unit"
   Bool _ ->
@@ -147,6 +159,161 @@ ppSchema = \case
     "array"
   Map _ ->
     "map"
+
+prettyValue :: Int -> Schema -> Value -> Either LogicalError Doc
+prettyValue p schema = \case
+  Unit
+    | Schema.Unit <- schema
+    ->
+      pure $
+        prettyPunctuation "()"
+
+  Bool (Bool64 0)
+    | Schema.Bool <- schema
+    ->
+      pure $
+        annotate AnnConstant "False"
+
+  Bool (Bool64 _)
+    | Schema.Bool <- schema
+    ->
+      pure $
+        annotate AnnConstant "True"
+
+  Int x
+    | Schema.Int <- schema
+    ->
+      pure $
+        annotate AnnConstant $ pretty x
+
+  Double x
+    | Schema.Double <- schema
+    ->
+      pure $
+        annotate AnnConstant . pretty . Char8.unpack $ Anemone.renderDouble x
+
+  Time x
+    | Schema.Time <- schema
+    ->
+      pure $
+        annotate AnnConstant . prettyText $ renderTime x
+
+  Left x
+    | Schema.Sum s _ <- schema
+    -> do
+      px <- prettyValue appPrec1 s x
+      pure . parensWhenArg p $
+        prettyConstructor "Left" <+> px
+
+  Right x
+    | Schema.Sum _ s <- schema
+    -> do
+      px <- prettyValue appPrec1 s x
+      pure . parensWhenArg p $
+        prettyConstructor "Right" <+> px
+
+  None
+    | Schema.Option _ <- schema
+    ->
+      pure $
+        prettyConstructor "None"
+
+  Some x
+    | Schema.Option s <- schema
+    -> do
+      px <- prettyValue appPrec1 s x
+      pure . parensWhenArg p $
+        prettyConstructor "Some" <+> px
+
+  Error Tombstone64
+    | Schema.Result _ <- schema
+    ->
+      pure $
+        annotate AnnError "Tombstone"
+
+  Error Fold1NoValue64
+    | Schema.Result _ <- schema
+    ->
+      pure $
+        annotate AnnError "Fold1NoValue"
+
+  Error CannotCompute64
+    | Schema.Result _ <- schema
+    ->
+      pure $
+        annotate AnnError "CannotCompute"
+
+  Error _
+    | Schema.Result _ <- schema
+    ->
+      pure $
+        annotate AnnError "Error"
+
+  Success x
+    | Schema.Result s <- schema
+    ->
+      prettyValue p s x
+
+  Pair x y
+    | Schema.Pair sx sy <- schema
+    -> do
+      px <- prettyValue 0 sx x
+      py <- prettyValue 0 sy y
+      pure $
+        prettyPunctuation "(" <> px <> prettyPunctuation "," <+> py <> prettyPunctuation ")"
+
+  Struct xs0
+    | Schema.Struct sxs0 <- schema
+    , Cons.length xs0 == Cons.length sxs0
+    -> do
+      let
+        xs =
+          Cons.toList xs0
+
+        sxs =
+          Cons.toList sxs0
+
+        takeField (Field name s) x = do
+          px <- prettyValue 0 s x
+          pure (pretty name, px)
+
+        ppField n x =
+          n <+> prettyPunctuation "=" <+> x
+
+      pxs <- zipWithM takeField sxs xs
+
+      pure $
+        prettyStruct ppField hcat pxs
+
+  String x
+    | Schema.String <- schema
+    ->
+      pure .
+        annotate AnnConstant $ pretty (show x)
+
+  Array xs
+    | Schema.Array s <- schema
+    -> do
+      pxs <- traverse (prettyValue 0 s) (Boxed.toList xs)
+      pure $
+        prettySep hcat (prettyPunctuation "[") (prettyPunctuation "]") pxs
+
+  Map kvs
+    | Schema.Map sk sv <- schema
+    -> do
+      pkvs <-
+        for (Map.toList kvs) $ \(k, v) ->
+          (,) <$> prettyValue 0 sk k <*> prettyValue 0 sv v
+
+      let
+        ppPair k v =
+          k <+> prettyPunctuation "->" <+> v
+
+      pure $
+        prettyStruct ppPair hcat pkvs
+
+  value ->
+    Either.Left $ LogicalSchemaMismatch schema value
 
 defaultValue :: Schema -> Value
 defaultValue = \case

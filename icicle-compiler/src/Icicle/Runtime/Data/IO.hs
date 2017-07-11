@@ -131,7 +131,7 @@ instance Show ChordKey where
 
 data Input =
   Input {
-      inputEntity :: !(Boxed.Vector EntityKey)
+      inputKey :: !(Boxed.Vector EntityKey)
 
     -- | /invariant: all ((length inputEntityId ==) . length . inputLength) inputColumns
     --
@@ -146,6 +146,10 @@ data InputColumn =
     --
     , inputTime :: !(Storable.Vector Time64)
 
+    -- | /invariant: length inputTombstone = sum inputLength/
+    --
+    , inputTombstone :: !(Storable.Vector Error64)
+
     -- | /invariant: length inputColumn = sum inputLength/
     --
     , inputColumn :: !Striped.Column
@@ -153,7 +157,7 @@ data InputColumn =
 
 data Output key =
   Output {
-      outputEntity :: !(Boxed.Vector key)
+      outputKey :: !(Boxed.Vector key)
 
     -- | /invariant: all ((length outputEntityId ==) . length) outputColumns
     --
@@ -165,4 +169,5 @@ concatInputColumn xss =
   InputColumn
     (Storable.concat . Cons.toList $ fmap inputLength xss)
     (Storable.concat . Cons.toList $ fmap inputTime xss)
+    (Storable.concat . Cons.toList $ fmap inputTombstone xss)
     <$> Striped.unsafeConcat (fmap inputColumn xss)

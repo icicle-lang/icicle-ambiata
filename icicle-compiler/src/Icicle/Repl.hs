@@ -14,7 +14,6 @@ import           Control.Monad.IO.Class (MonadIO(..))
 import qualified Data.List as List
 import qualified Data.Set as Set
 import           Data.String (String)
-import qualified Data.Text.IO as Text
 
 import           Icicle.Data.Time
 import           Icicle.Dictionary
@@ -87,6 +86,7 @@ getInitialState = do
           Set.fromList $ [
               FlagCoreEval
             , FlagCoreSimp
+            , FlagSeaEval
             ] <>
             case use of
               NoColor ->
@@ -114,9 +114,50 @@ readDotFiles = do
 
   pure $ commands1 <> commands2
 
+putBanner :: Repl ()
+putBanner = do
+  use <- getUseColor
+
+  let
+    dblue =
+      sgrSetColor use Dull Blue
+
+    vblue =
+      sgrSetColor use Vivid Blue
+
+    dyellow =
+      sgrSetColor use Dull Yellow
+
+    reset =
+      sgrReset use
+
+    mrepl =
+      vblue <> "REPL" <> dblue
+
+    mhelp =
+      dyellow <> ":help for help" <> dblue
+
+    banner =
+      List.unlines [
+          ""
+        , "  ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████"
+        , " ▓██▒▒██▀ ▀█  ▓██▒▒██▀ ▀█  ▓██▒    ▓█   ▀"
+        , " ▒██▒▒▓█    ▄ ▒██▒▒▓█    ▄ ▒██░    ▒███"
+        , " ░██░▒▓▓▄ ▄██▒░██░▒▓▓▄ ▄██▒▒██░    ▒▓█  ▄"
+        , " ░██░▒ ▓███▀ ░░██░▒ ▓███▀ ░░██████▒░▒████▒"
+        , " ░▓  ░ ░▒ ▒  ░░▓  ░ ░▒ ▒  ░░ ▒░▓  ░░░ ▒░ ░"
+        , "  ▒ ░  ░  ▒    ▒ ░  ░  ▒   ░ ░ ▒  ░ ░ ░  ░"
+        , "  ▒ ░░         ▒ ░░          ░ ░ " <> mrepl <> " ░"
+        , "  ░  ░ ░       ░  ░ ░          ░  ░   ░  ░"
+        , "     ░            ░"
+        , "                  ░     " <> mhelp
+        ]
+
+  liftIO . IO.putStrLn $
+    dblue <> banner <> reset
+
 repl :: ReplOptions -> IO ()
 repl options = do
-  Text.putStrLn "Icicle REPL, :help for help"
   initial <- getInitialState
   runRepl initial $ do
     case replDotfiles options of
@@ -127,8 +168,12 @@ repl options = do
         pure ()
 
     traverse_ evaluate $ replInit options
+    traverse_ loadFile $ replLoad options
+
+    putBanner
+
     withUserInput evaluate
 
 repl_ :: IO ()
 repl_ =
-  repl $ ReplOptions [] SkipDotfiles
+  repl $ ReplOptions SkipDotfiles [] []

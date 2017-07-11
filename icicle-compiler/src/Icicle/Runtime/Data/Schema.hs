@@ -11,6 +11,9 @@ module Icicle.Runtime.Data.Schema (
   , toEncoding
   , toFieldEncoding
 
+  , fromEncoding
+  , fromFieldEncoding
+
   , SchemaError(..)
   , renderSchemaError
   ) where
@@ -60,6 +63,7 @@ data SchemaError =
   | SchemaEncodingResult !Schema
   | SchemaEncodingPair !Schema !Schema
   | SchemaEncodingMap !Schema !Schema
+  | SchemaEncodingEmptyStruct
     deriving (Eq, Ord, Show)
 
 renderSchemaError :: SchemaError -> Text
@@ -84,6 +88,8 @@ renderSchemaError = \case
     "Found Pair when converting Schema to Encoding"
   SchemaEncodingMap _ _ ->
     "Found Map when converting Schema to Encoding"
+  SchemaEncodingEmptyStruct ->
+    "Found empty Struct when converting Encoding to Schema"
 
 fromValType :: ValType -> Either SchemaError Schema
 fromValType = \case
@@ -200,3 +206,28 @@ toEncoding = \case
     Fact.ListEncoding <$> toEncoding x
   Map k v ->
     Left $ SchemaEncodingMap k v
+
+fromFieldEncoding :: Fact.StructField -> Either SchemaError (Field Schema)
+fromFieldEncoding = \case
+  Fact.StructField Fact.Optional name x ->
+    Field name . Option <$> fromEncoding x
+  Fact.StructField Fact.Mandatory name x ->
+    Field name <$> fromEncoding x
+
+fromEncoding :: Fact.Encoding -> Either SchemaError Schema
+fromEncoding = \case
+  Fact.BooleanEncoding ->
+    pure Bool
+  Fact.IntEncoding ->
+    pure Int
+  Fact.DoubleEncoding ->
+    pure Double
+  Fact.TimeEncoding ->
+    pure Time
+  Fact.StructEncoding fields -> do
+    xs <- traverse fromFieldEncoding fields
+    Struct <$> maybeToRight SchemaEncodingEmptyStruct (Cons.fromList xs)
+  Fact.StringEncoding ->
+    pure String
+  Fact.ListEncoding x ->
+    Array <$> fromEncoding x

@@ -361,7 +361,7 @@ clusterSnapshot cluster maxMapSize stime input =
 
     inputData =
       Striped.Pair
-        (inputColumn input)
+        (Striped.Result (inputTombstone input) (inputColumn input))
         (Striped.Time (inputTime input))
 
     inputSchema =
@@ -429,7 +429,7 @@ snapshot :: Runtime -> MaximumMapSize -> SnapshotTime -> Input -> EitherT Runtim
 snapshot runtime maxsize stime input =
   let
     eids =
-      inputEntity input
+      inputKey input
 
     keys =
       fmap SnapshotKey eids

@@ -76,7 +76,7 @@ instance (Pretty n) => Pretty (Stream a n) where
     SFold n t z k ->
       vsep [
           annotate AnnHeading "STREAM_FOLD"
-            <+> prettyTyped (annotate AnnBinding $ pretty n) (pretty t)
+            <+> prettyTypedFlat (annotate AnnBinding $ pretty n) (pretty t)
         , indent 2 $ vsep [
               annotate AnnHeading "INIT:"
             , indent 2 $ pretty z

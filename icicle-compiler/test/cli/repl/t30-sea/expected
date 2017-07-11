@@ -1,28 +1,25 @@
-Icicle REPL, :help for help
-OK, snapshot mode activated with a snapshot date of 1970-01-01.
-OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
-OK, selected psv file as input data: test/cli/repl/data.psv
+Queries will no longer be evaluated using the C evaluator.
+Snapshot mode activated with a snapshot date of 1970-01-01.
+Loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+Selected psv file as input: test/cli/repl/data.psv
+
+  ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
+ ▓██▒▒██▀ ▀█  ▓██▒▒██▀ ▀█  ▓██▒    ▓█   ▀
+ ▒██▒▒▓█    ▄ ▒██▒▒▓█    ▄ ▒██░    ▒███
+ ░██░▒▓▓▄ ▄██▒░██░▒▓▓▄ ▄██▒▒██░    ▒▓█  ▄
+ ░██░▒ ▓███▀ ░░██░▒ ▓███▀ ░░██████▒░▒████▒
+ ░▓  ░ ░▒ ▒  ░░▓  ░ ░▒ ▒  ░░ ▒░▓  ░░░ ▒░ ░
+  ▒ ░  ░  ▒    ▒ ░  ░  ▒   ░ ░ ▒  ░ ░ ░  ░
+  ▒ ░░         ▒ ░░          ░ ░ REPL ░
+  ░  ░ ░       ░  ░ ░          ░  ░   ░  ░
+     ░            ░
+                  ░     :help for help
+
 λ -- Show everything
-λ OK, flatten-simp is now on.
-OK, c is now on.
+λ The flattened avalanche will be shown during evaluation.
+The C will be shown during evaluation.
 λ λ -- Enable C evaluation
-λ                    _________-----_____
-        _____------           __      ----_
- ___----             ___------              \
-    ----________        ----                 \
-                -----__    |             _____)
-                     __-                /     \
-         _______-----    ___--          \    /)\
-   ------_______      ---____            \__/  /
-                -----__    \ --    _          /\
-                       --__--__     \_____/   \_/\
-                               ----|   /          |
-                                   |  |___________|
-                                   |  | ((_(_)| )_)
-                                   |  \_((_(_)|/(_)
-                                   \             (
-                                    \_____________)
-OK, c-eval is now on.
+λ Queries will be evaluated using the C evaluator.
 λ λ -- An interesting expression with structs and strings
 λ Flattened (simplified), not typechecked
 ---------------------------------------
@@ -4875,8 +4872,8 @@ homer|2029-12-27
 marge|2009-12-12
 
 λ λ -- Math
-λ OK, c is now off.
-OK, flatten-simp is now off.
+λ The C will be hidden during evaluation.
+The flattened avalanche will be hidden during evaluation.
 λ λ Core evaluation
 ---------------
 

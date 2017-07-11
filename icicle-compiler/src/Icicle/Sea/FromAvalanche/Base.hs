@@ -84,7 +84,7 @@ seaOfTime x = text ("0x" <> showHex (packedOfTime x) "")
 ------------------------------------------------------------------------
 
 seaError :: Show a => Doc -> a -> Doc
-seaError subject x = seaError' subject (string (List.take 100 (show x)))
+seaError subject x = seaError' subject (text (List.take 100 (show x)))
 
 seaError' :: Doc -> Doc -> Doc
 seaError' subject msg = line <> "#error Failed during codegen (" <> subject <> ": " <> msg <> "..)" <> line

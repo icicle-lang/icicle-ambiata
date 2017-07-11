@@ -87,10 +87,10 @@ instance (Pretty n, Pretty p) => Pretty (Program a n p) where
   pretty p =
     vsep [
         prettyBinding
-          (prettyTyped (pretty $ bindtime p) (pretty TimeT))
+          (prettyTypedFlat (pretty $ bindtime p) (pretty TimeT))
           (annotate AnnConstant $ text "TIME")
       , prettyBinding
-          (prettyTyped (pretty $ maxMapSize p) (pretty IntT))
+          (prettyTypedFlat (pretty $ maxMapSize p) (pretty IntT))
           (annotate AnnConstant $ text "MAX_MAP_SIZE")
       , mempty
       , pretty (statements p)

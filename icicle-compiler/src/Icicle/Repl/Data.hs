@@ -33,8 +33,9 @@ data UseDotfiles =
 
 data ReplOptions =
   ReplOptions {
-      replInit :: ![String]
-    , replDotfiles :: !UseDotfiles
+      replDotfiles :: !UseDotfiles
+    , replInit :: ![String]
+    , replLoad :: ![FilePath]
     } deriving (Eq, Ord, Show)
 
 data Input =
@@ -73,6 +74,8 @@ data FlagInfo =
   FlagInfo {
       flagFlag :: !Flag
     , flagName :: !String
+    , flagOn :: !String
+    , flagOff :: !String
     , flagDescription :: !String
     } deriving (Eq, Ord, Show)
 

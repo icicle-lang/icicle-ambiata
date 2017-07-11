@@ -16,6 +16,7 @@ do
     then
         dist/build/icicle/icicle repl \
             --skip-dotfiles \
+            --init ":set -c-eval" \
             --init ":set snapshot 1970-01-01" \
             --init ":load test/cli/repl/dictionary.toml" \
             --init ":load test/cli/repl/data.psv" \
@@ -25,6 +26,7 @@ do
         echo " --- Updating expected "
         dist/build/icicle/icicle repl \
             --skip-dotfiles \
+            --init ":set -c-eval" \
             --init ":set snapshot 1970-01-01" \
             --init ":load test/cli/repl/dictionary.toml" \
             --init ":load test/cli/repl/data.psv" \

@@ -1,11 +1,24 @@
-Icicle REPL, :help for help
-OK, snapshot mode activated with a snapshot date of 1970-01-01.
-OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
-OK, selected psv file as input data: test/cli/repl/data.psv
+Queries will no longer be evaluated using the C evaluator.
+Snapshot mode activated with a snapshot date of 1970-01-01.
+Loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+Selected psv file as input: test/cli/repl/data.psv
+
+  ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
+ ▓██▒▒██▀ ▀█  ▓██▒▒██▀ ▀█  ▓██▒    ▓█   ▀
+ ▒██▒▒▓█    ▄ ▒██▒▒▓█    ▄ ▒██░    ▒███
+ ░██░▒▓▓▄ ▄██▒░██░▒▓▓▄ ▄██▒▒██░    ▒▓█  ▄
+ ░██░▒ ▓███▀ ░░██░▒ ▓███▀ ░░██████▒░▒████▒
+ ░▓  ░ ░▒ ▒  ░░▓  ░ ░▒ ▒  ░░ ▒░▓  ░░░ ▒░ ░
+  ▒ ░  ░  ▒    ▒ ░  ░  ▒   ░ ░ ▒  ░ ░ ░  ░
+  ▒ ░░         ▒ ░░          ░ ░ REPL ░
+  ░  ░ ░       ░  ░ ░          ░  ░   ░  ░
+     ░            ░
+                  ░     :help for help
+
 λ -- Show everything
-λ OK, core is now on.
-OK, core-type is now on.
-OK, core-simp is now on.
+λ The core will be shown during evaluation.
+The core type will be shown during evaluation.
+The core will be simplified prior to evaluation.
 λ λ -- A rather complicated feature to convert to Avalanche
 λ Core (simplified)
 -----------------
@@ -113,13 +126,14 @@ repl:output =
 Core type
 ---------
 
-repl:output : Sum Error (Int, Array (Sum Error Int))
+repl:output :
+  Sum Error (Int, Array (Sum Error Int))
 
 Core evaluation
 ---------------
 
-homer|(5,[ 300 , 400 , 500 ])
-marge|(1,[ 0 , 10 , 20 ])
+homer|(5, [ 300 , 400 , 500 ])
+marge|(1, [ 0 , 10 , 20 ])
 
 λ λ -- Something involves the abstract buffer type
 λ Core (simplified)
@@ -245,7 +259,8 @@ repl:output =
 Core type
 ---------
 
-repl:output : Sum Error (Map Time Int)
+repl:output :
+  Sum Error (Map Time Int)
 
 Core evaluation
 ---------------

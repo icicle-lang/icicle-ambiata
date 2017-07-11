@@ -31,36 +31,45 @@ module Icicle.Internal.Pretty (
     , prettyApp
     , prettyApp'
     , prettySep
-    , prettyTyped
     , prettyBinding
     , prettyHeading
     , prettyPunctuation
     , prettyKeyword
     , prettyConstructor
+    , prettyStruct
     , prettyStructType
     , prettyH1
     , prettyH2
 
+    , prettyTypedFlat
+    , prettyTypedHang
+    , prettyTypedBest
+    , prettyTypedBest'
+
+    , PrettyFunType(..)
+    , prettyTypedFun
+
     , PrettyItem(..)
     , prettyItems
+
+    , appPrec
+    , appPrec1
     ) where
 
-import              Data.String (String)
-import              Data.List (replicate, lines, maximum)
-import              Data.List.NonEmpty (NonEmpty(..))
-import qualified    Data.Text as T
+import           Data.String (String)
+import           Data.List (replicate, lines, maximum, zipWith)
+import           Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.Text as T
 
-import              GHC.Show (appPrec, appPrec1)
+import           GHC.Show (appPrec, appPrec1)
 
-import              P
+import           P
 
--- The one we want to export without <> or <$>
-import              Text.PrettyPrint.Annotated.Leijen as PP hiding ((<>), (<$>), Doc)
--- The one with <>
-import qualified    Text.PrettyPrint.Annotated.Leijen as PJOIN
+import           Text.PrettyPrint.Annotated.WL as PP hiding (Doc, Pretty(..), (<>))
+import qualified Text.PrettyPrint.Annotated.WL as WL
 
 
-type Doc = PJOIN.Doc Annotation
+type Doc = WL.Doc Annotation
 
 data Annotation =
     AnnError
@@ -76,11 +85,7 @@ data Annotation =
     deriving (Eq, Ord, Show)
 
 prettyText :: Text -> Doc
-prettyText = string . T.unpack
-
-instance Monoid Doc where
- mempty  =  PJOIN.empty
- mappend = (PJOIN.<>)
+prettyText = text . T.unpack
 
 class Pretty a where
   pretty :: a -> Doc
@@ -93,7 +98,7 @@ class Pretty a where
 
   prettyList :: [a] -> Doc
   prettyList =
-    align . prettySep (prettyPunctuation "[") (prettyPunctuation "]") . fmap pretty
+    align . prettySep vsep (prettyPunctuation "[") (prettyPunctuation "]") . fmap pretty
 
 instance Pretty a => Pretty [a] where
   pretty        = prettyList
@@ -106,23 +111,26 @@ instance Pretty () where
     prettyPunctuation "()"
 
 instance Pretty Bool where
-  pretty b      = PP.bool b
+  pretty b      = WL.pretty b
 
 instance Pretty Char where
-  pretty c      = PP.char c
-  prettyList s  = PP.string s
+  pretty c      = WL.pretty c
+  prettyList s  = WL.pretty s
 
 instance Pretty Int where
-  pretty i      = PP.int i
+  pretty i      = WL.pretty i
+
+instance Pretty Int64 where
+  pretty i      = WL.pretty i
 
 instance Pretty Integer where
-  pretty i      = PP.integer i
+  pretty i      = WL.pretty i
 
 instance Pretty Float where
-  pretty f      = PP.float f
+  pretty f      = WL.pretty f
 
 instance Pretty Double where
-  pretty d      = PP.double d
+  pretty d      = WL.pretty d
 
 instance (Pretty a, Pretty b) => Pretty (a,b) where
   pretty (x,y) =
@@ -143,7 +151,7 @@ instance (Pretty a, Pretty b, Pretty c) => Pretty (a,b,c) where
     prettyPunctuation ")"
 
 instance Pretty a => Pretty (Maybe a) where
-  pretty Nothing        = PP.empty
+  pretty Nothing        = mempty
   pretty (Just x)       = pretty x
 
 instance Pretty T.Text where
@@ -219,22 +227,69 @@ prettyApp :: (Pretty a, Pretty b) => ([Doc] -> Doc) -> Int -> a -> [b] -> Doc
 prettyApp xsep p fun args =
   prettyApp' xsep p (prettyArg fun) (fmap prettyArg args)
 
-prettySep :: Doc -> Doc -> [Doc] -> Doc
-prettySep bra ket = \case
+prettySep :: ([Doc] -> Doc) -> Doc -> Doc -> [Doc] -> Doc
+prettySep xsep bra ket = \case
   [] ->
     bra <> ket
   [x] ->
-    bra <+> pretty x <+> ket
+    bra <+> x <+> ket
   x : xs ->
-    vsep $
-      [ bra <+> pretty x
-      ] <> fmap (("," <+>) . pretty) xs <>
-      [ ket
-      ]
+    xsep $
+      [bra <+> x] <>
+      fmap ("," <+>) xs <>
+      [prettySepGap xsep <> ket]
 
-prettyTyped :: Doc -> Doc -> Doc
-prettyTyped name typ =
-  name <+> prettyPunctuation ":" <+> typ
+prettyTypedFlat :: Doc -> Doc -> Doc
+prettyTypedFlat name typ =
+  name <+> prettyPunctuation ":" <+> align typ
+
+prettyTypedHang :: Doc -> Doc -> Doc
+prettyTypedHang name typ =
+  vsep [
+      name <+> prettyPunctuation ":"
+    , indent 2 $ align typ
+    ]
+
+prettyTypedBest' :: Doc -> Doc -> Doc -> Doc
+prettyTypedBest' name typ1 typH =
+  Union
+    (prettyTypedFlat name typ1)
+    (prettyTypedHang name typH)
+
+prettyTypedBest :: Doc -> Doc -> Doc
+prettyTypedBest name typ =
+  prettyTypedBest' name typ typ
+
+data PrettyFunType =
+  PrettyFunType {
+      typeConstraints :: [Doc]
+    , typeArguments :: [Doc]
+    , typeResult :: Doc
+    }
+
+instance Pretty PrettyFunType where
+  pretty typ =
+    hsep $ prettyTypedFunParts mempty typ
+
+separators :: Doc -> PrettyFunType -> [Doc]
+separators hd (PrettyFunType cs as _) =
+  [hd] <>
+  replicate (length cs) "=> " <>
+  replicate (length as) "-> "
+
+prettyTypedFunParts :: Doc -> PrettyFunType -> [Doc]
+prettyTypedFunParts hd pt@(PrettyFunType cs as r) =
+  zipWith (<>) (separators hd pt) (cs <> as <> [r])
+
+prettyTypedFun :: Doc -> PrettyFunType -> Doc
+prettyTypedFun name0 typ =
+  let
+    name =
+      name0 <+> prettyPunctuation ":"
+  in
+    Union
+      (hsep $ name : prettyTypedFunParts mempty typ)
+      (vsep $ name : fmap (indent 2) (prettyTypedFunParts "   " typ))
 
 prettyBinding :: Doc -> Doc -> Doc
 prettyBinding n x =
@@ -243,19 +298,36 @@ prettyBinding n x =
     , indent 2 x
     ]
 
-prettyStructType :: (Pretty n, Pretty t) => [(n, t)] -> Doc
-prettyStructType nts =
-  let
-    fields =
-      with nts $ \(n, t) ->
-        annotate AnnBinding (pretty n) <+>
-        prettyPunctuation ":" <+>
-        pretty t
-  in
-    hsep $
-      [prettyPunctuation "{"] <>
-      punctuate (prettyPunctuation ",") fields <>
-      [prettyPunctuation "}"]
+prettySepGap :: ([Doc] -> Doc) -> Doc
+prettySepGap xsep =
+  case lines . show $ xsep ["1", "2"] of
+    _ : _ : _ ->
+      mempty
+    _ ->
+      " "
+
+prettyStruct :: (Doc -> Doc -> Doc) -> ([Doc] -> Doc) -> [(Doc, Doc)] -> Doc
+prettyStruct xitem xsep = \case
+  [] ->
+    prettyPunctuation "{}"
+
+  x0 : xs0 ->
+    let
+      ppField (n, v) =
+        xitem (annotate AnnBinding n) v
+
+      x =
+        prettyPunctuation "{" <+> ppField x0
+
+      xs =
+        fmap ((prettyPunctuation "," <+>) . ppField) xs0
+    in
+      xsep $
+        [x] <> xs <> [prettySepGap xsep <> prettyPunctuation "}"]
+
+prettyStructType :: ([Doc] -> Doc) -> [(Doc, Doc)] -> Doc
+prettyStructType =
+  prettyStruct prettyTypedFlat
 
 reannotate :: Annotation -> Doc -> Doc
 reannotate ann =
