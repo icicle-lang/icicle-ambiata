@@ -227,7 +227,7 @@ pattern Fold1NoValue64 =
 pattern CannotCompute64 :: Error64
 #endif
 pattern CannotCompute64 =
-  Error64 2
+  Error64 3
 
 fromExceptionInfo :: ExceptionInfo -> Error64
 fromExceptionInfo = \case
