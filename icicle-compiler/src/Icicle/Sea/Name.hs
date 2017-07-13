@@ -70,7 +70,7 @@ mangle =
 mangleIx :: Pretty n => n -> Int -> SeaName
 mangleIx n ix =
   mangle $
-    pretty n <> text "/ix/" <> int ix
+    pretty n <> text "/ix/" <> pretty ix
 
 unmangle :: SeaName -> Text
 unmangle =

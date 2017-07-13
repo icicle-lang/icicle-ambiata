@@ -34,7 +34,7 @@ import                  Data.Hashable (Hashable)
 -- however fresh variable names are quite ugly.
 -- Instead of actually using nice names, we will clean them up
 -- just before pretty printing.
-prettyFunWithNames :: (Pretty n, Eq n) => [Name n] -> FunctionType n -> Doc
+prettyFunWithNames :: (Pretty n, Eq n) => [Name n] -> FunctionType n -> PrettyFunType
 prettyFunWithNames names fun
   =  prettyFun fun'
   where
@@ -46,12 +46,12 @@ prettyFunWithNames names fun
 
 -- We make them actual names (with the hash code) because they will be used
 -- for substituations.
-prettyFunFromStrings :: (IsString n, Pretty n, Hashable n, Eq n) => FunctionType n -> Doc
+prettyFunFromStrings :: (IsString n, Pretty n, Hashable n, Eq n) => FunctionType n -> PrettyFunType
 prettyFunFromStrings
  = prettyFunWithNames
  $ fmap (nameOf . NameBase . fromString) letterNames
 
-prettyFunWithLetters :: FunctionType Variable -> Doc
+prettyFunWithLetters :: FunctionType Variable -> PrettyFunType
 prettyFunWithLetters
  = prettyFunWithNames
  $ fmap (nameOf . NameBase . Variable . T.pack) letterNames

@@ -292,7 +292,7 @@ instance Pretty Prim where
   = "Melt_pack#"
 
  pretty (PrimMelt (PrimMeltUnpack i _t))
-  = "Melt_unpack" <> int i <> "#"
+  = "Melt_unpack" <> pretty i <> "#"
 
 
  pretty (PrimMap (PrimMapPack _a _b))

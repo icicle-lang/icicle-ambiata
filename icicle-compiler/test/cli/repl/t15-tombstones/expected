@@ -1,17 +1,30 @@
-Icicle REPL, :help for help
-OK, snapshot mode activated with a snapshot date of 1970-01-01.
-OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
-OK, selected psv file as input data: test/cli/repl/data.psv
-λ OK, loaded dictionary with 1 inputs, 0 outputs, 38 functions.
-λ OK, selected psv file as input data: test/cli/repl/t15-tombstones/data.psv
+Queries will no longer be evaluated using the C evaluator.
+Snapshot mode activated with a snapshot date of 1970-01-01.
+Loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+Selected psv file as input: test/cli/repl/data.psv
+
+  ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
+ ▓██▒▒██▀ ▀█  ▓██▒▒██▀ ▀█  ▓██▒    ▓█   ▀
+ ▒██▒▒▓█    ▄ ▒██▒▒▓█    ▄ ▒██░    ▒███
+ ░██░▒▓▓▄ ▄██▒░██░▒▓▓▄ ▄██▒▒██░    ▒▓█  ▄
+ ░██░▒ ▓███▀ ░░██░▒ ▓███▀ ░░██████▒░▒████▒
+ ░▓  ░ ░▒ ▒  ░░▓  ░ ░▒ ▒  ░░ ▒░▓  ░░░ ▒░ ░
+  ▒ ░  ░  ▒    ▒ ░  ░  ▒   ░ ░ ▒  ░ ░ ░  ░
+  ▒ ░░         ▒ ░░          ░ ░ REPL ░
+  ░  ░ ░       ░  ░ ░          ░  ░   ░  ░
+     ░            ░
+                  ░     :help for help
+
+λ Loaded dictionary with 1 inputs, 0 outputs, 38 functions.
+λ Selected psv file as input: test/cli/repl/t15-tombstones/data.psv
 λ λ Core evaluation
 ---------------
 
-gonzo|[ ("a",False)
-      , ("b",False)
+gonzo|[ ("a", False)
+      , ("b", False)
       , tombstone
       , tombstone
-      , ("c",False)
+      , ("c", False)
       ]
 
 λ λ Core evaluation

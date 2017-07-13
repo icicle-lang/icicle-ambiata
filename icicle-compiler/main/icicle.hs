@@ -40,7 +40,6 @@ data IcicleCommand =
   | IcicleQuery QueryOptions
     deriving (Eq, Ord, Show)
 
-
 main :: IO ()
 main = do
   hSetBuffering stdout LineBuffering
@@ -71,14 +70,33 @@ pRepl :: Parser IcicleCommand
 pRepl =
   fmap IcicleRepl $
   ReplOptions
-    <$> many pReplCommand
-    <*> pUseDotfiles
+    <$> pUseDotfiles
+    <*> many pReplCommand
+    <*> many (pReplZebra <|> pReplPSV <|> pReplTOML)
 
 pUseDotfiles :: Parser UseDotfiles
 pUseDotfiles =
   flag UseDotfiles SkipDotfiles $
     long "skip-dotfiles" <>
     help "Don't load the .icicle file from $HOME or the current directory"
+
+pReplZebra :: Parser FilePath
+pReplZebra =
+  argument str $
+    metavar "INPUT_ZEBRA" <>
+    help "Path to a Zebra binary file to load"
+
+pReplPSV :: Parser FilePath
+pReplPSV =
+  argument str $
+    metavar "INPUT_PSV" <>
+    help "Path to a PSV file to load"
+
+pReplTOML :: Parser FilePath
+pReplTOML =
+  argument str $
+    metavar "DICTIONARY_TOML" <>
+    help "Path to a TOML dictionary to load"
 
 pCompile :: Parser IcicleCommand
 pCompile =

@@ -70,7 +70,7 @@ instance Pretty n => Pretty (Program a n) where
   pretty p =
     let
       ppInput nm ty =
-        prettyTyped (annotate AnnBinding $ pretty nm) ty
+        prettyTypedFlat (annotate AnnBinding $ pretty nm) ty
 
       ppBind (nm, bind') =
         vsep [

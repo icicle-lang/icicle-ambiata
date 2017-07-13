@@ -17,7 +17,6 @@ import           Control.Monad.Trans.Resource (MonadResource, runResourceT)
 
 import qualified Data.ByteString as ByteString
 import qualified Data.ByteString.Char8 as Char8
-import qualified Data.Char as Char
 import qualified Data.List as List
 import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.Map.Strict as Map
@@ -25,10 +24,12 @@ import qualified Data.Set as Set
 import           Data.String (String)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
+import qualified Data.Vector as Boxed
 
 import qualified Icicle.Avalanche.Annot as Avalanche
 import qualified Icicle.Avalanche.Prim.Flat as Flat
 import qualified Icicle.Avalanche.Simp as Avalanche
+import           Icicle.Common.Type
 import qualified Icicle.Compiler as Compiler
 import qualified Icicle.Compiler.Source as Source
 import qualified Icicle.Core.Program.Check as Core
@@ -43,8 +44,13 @@ import           Icicle.Repl.Monad
 import           Icicle.Repl.Pretty
 import           Icicle.Repl.Source
 import qualified Icicle.Runtime.Data as Runtime
+import qualified Icicle.Runtime.Data.Logical as Logical
+import           Icicle.Runtime.Data.Schema (Schema, SchemaError)
+import qualified Icicle.Runtime.Data.Schema as Schema
+import qualified Icicle.Runtime.Data.Striped as Striped
 import qualified Icicle.Runtime.Evaluator as Runtime
 import qualified Icicle.Runtime.Serial.Zebra as Runtime
+import qualified Icicle.Sea.Data as Sea
 import qualified Icicle.Sea.Eval as Sea
 import qualified Icicle.Sea.FromAvalanche.Program as Sea
 import qualified Icicle.Sea.Preamble as Sea
@@ -68,8 +74,7 @@ import           Zebra.Serial.Binary (BinaryStripedDecodeError)
 import qualified Zebra.Serial.Binary as Binary
 import           Zebra.Serial.Text (TextStripedEncodeError)
 import qualified Zebra.Serial.Text as Text
-import           Zebra.Table.Striped (StripedError)
-import qualified Zebra.Table.Striped as Striped
+import qualified Zebra.Table.Striped as Zebra
 import qualified Zebra.X.ByteStream as ByteStream
 import           Zebra.X.Stream (Stream, Of)
 import qualified Zebra.X.Stream as Stream
@@ -77,7 +82,8 @@ import qualified Zebra.X.Stream as Stream
 
 data CompiledQuery =
   CompiledQuery {
-      compiledSource :: Source.QueryTop (Source.TypeAnnot Parsec.SourcePos) Source.Var
+      compiledOutputId :: OutputId
+    , compiledSource :: Source.QueryTop (Source.TypeAnnot Parsec.SourcePos) Source.Var
     , compiledCore :: Source.CoreProgramUntyped Source.Var
     , compiledAvalanche :: Maybe (Compiler.AvalProgramTyped Source.Var Flat.Prim)
     }
@@ -88,30 +94,24 @@ data QueryError =
  | QueryCompilerError !(Compiler.ErrorCompile Source.Var)
  | QueryRuntimeError !Runtime.RuntimeError
  | QueryIOError !IOError
- | QueryZebraError !Runtime.ZebraError
+ | QueryRuntimeZebraSchemaError !Runtime.ZebraSchemaError
+ | QueryRuntimeZebraStripedError !Runtime.ZebraStripedError
  | QueryBinaryStripedDecodeError !BinaryStripedDecodeError
  | QueryTextStripedEncodeError !TextStripedEncodeError
- | QueryStripedError !StripedError
+ | QueryZebraStripedError !Zebra.StripedError
+ | QueryStripedError !Striped.StripedError
+ | QueryLogicalError !Logical.LogicalError
+ | QuerySchemaError !SchemaError
+ | QueryUnexpectedInputType !ValType
+ | QueryOutputMissing !OutputId
 
 posOfError :: QueryError -> Maybe Parsec.SourcePos
 posOfError = \case
-  QueryDecodeError _ ->
-    Nothing
   QuerySourceError x ->
     Source.annotOfError x
   QueryCompilerError x ->
     Compiler.annotOfError x
-  QueryRuntimeError _ ->
-    Nothing
-  QueryIOError _ ->
-    Nothing
-  QueryZebraError _ ->
-    Nothing
-  QueryBinaryStripedDecodeError _ ->
-    Nothing
-  QueryTextStripedEncodeError _ ->
-    Nothing
-  QueryStripedError _ ->
+  _ ->
     Nothing
 
 ppQueryError :: QueryError -> Pretty.Doc
@@ -134,8 +134,11 @@ ppQueryError = \case
   QueryIOError x ->
     Pretty.text (ppShow x)
 
-  QueryZebraError x ->
-    Pretty.text (ppShow x)
+  QueryRuntimeZebraSchemaError x ->
+    Pretty.text (ppShow x) -- FIXME render
+
+  QueryRuntimeZebraStripedError x ->
+    Pretty.text (ppShow x) -- FIXME render
 
   QueryBinaryStripedDecodeError x ->
     Pretty.text . Text.unpack $ Binary.renderBinaryStripedDecodeError x
@@ -143,8 +146,23 @@ ppQueryError = \case
   QueryTextStripedEncodeError x ->
     Pretty.text . Text.unpack $ Text.renderTextStripedEncodeError x
 
+  QueryZebraStripedError x ->
+    Pretty.text . Text.unpack $ Zebra.renderStripedError x
+
   QueryStripedError x ->
     Pretty.text . Text.unpack $ Striped.renderStripedError x
+
+  QueryLogicalError x ->
+    Pretty.text . Text.unpack $ Logical.renderLogicalError x
+
+  QuerySchemaError x ->
+    Pretty.text . Text.unpack $ Schema.renderSchemaError x
+
+  QueryUnexpectedInputType x ->
+    "Unexpected cluster input type: " <> Pretty.pretty x
+
+  QueryOutputMissing x ->
+    "Output missing for " <> Pretty.pretty x
 
 runEitherRepl :: EitherT QueryError Repl () -> Repl ()
 runEitherRepl ee = do
@@ -198,9 +216,9 @@ defineFunction function =
     for_ (List.zip fundefs logs) $ \((nm, (typ, annot)), log0) -> do
       whenSet FlagType $
         putSection "Type" $
-          Pretty.prettyTyped
+          Pretty.prettyTypedBest
             (Pretty.annotate Pretty.AnnBinding $ Pretty.pretty nm)
-            (Pretty.align $ Pretty.pretty typ)
+            (Pretty.pretty typ)
 
       whenSet FlagAnnotated $
         putSection "Annotated" $
@@ -236,9 +254,9 @@ compileQuery query = do
 
   whenSet FlagType $
     putSection "Type" $
-      Pretty.prettyTyped
+      Pretty.prettyTypedBest
         (Pretty.annotate Pretty.AnnBinding $ Pretty.pretty sourceOid)
-        (Pretty.align $ Pretty.pretty sourceType)
+        (Pretty.pretty sourceType)
 
   whenSet FlagAnnotated $
     putSection "Annotated" (Source.PrettyAnnot annot)
@@ -298,7 +316,7 @@ compileQuery query = do
     Right coreType ->
       whenSet FlagCoreType .
         putSection "Core type" . Pretty.vsep . with coreType $ \(oid, typ) ->
-          Pretty.prettyTyped (Pretty.annotate Pretty.AnnBinding $ Pretty.pretty oid) (Pretty.pretty typ)
+          Pretty.prettyTypedBest (Pretty.annotate Pretty.AnnBinding $ Pretty.pretty oid) (Pretty.pretty typ)
 
   --
   -- Avalanche, simplified.
@@ -340,7 +358,7 @@ compileQuery query = do
     Left err -> do
       putSection "Flatten Avalanche (simplified) error" err
       pure $
-        CompiledQuery finalSource core Nothing
+        CompiledQuery sourceOid finalSource core Nothing
 
     Right flatSimped -> do
       whenSet FlagFlattenSimp $
@@ -354,14 +372,14 @@ compileQuery query = do
         Left err -> do
           putSection "Flattened Avalanche (simplified) type error" err
           pure $
-            CompiledQuery finalSource core Nothing
+            CompiledQuery sourceOid finalSource core Nothing
 
         Right flatChecked -> do
           whenSet FlagFlattenSimp $
             putSection "Flattened Avalanche (simplified), typechecked" flatChecked
 
           pure $
-            CompiledQuery finalSource core (Just flatChecked)
+            CompiledQuery sourceOid finalSource core (Just flatChecked)
 
 evaluateCore :: CompiledQuery -> [AsAt Fact] -> Repl ()
 evaluateCore compiled facts =
@@ -445,22 +463,37 @@ evaluateSea compiled facts =
           Right x ->
             putSection "C evaluation" $ ppResults x
 
-readStriped :: (MonadResource m, MonadCatch m) => FilePath -> Stream (Of Striped.Table) (EitherT QueryError m) ()
+readStriped :: (MonadResource m, MonadCatch m) => FilePath -> Stream (Of Zebra.Table) (EitherT QueryError m) ()
 readStriped path =
   hoist (firstJoin QueryBinaryStripedDecodeError) .
     Binary.decodeStriped .
   hoist (firstT QueryIOError) $
     ByteStream.readFile path
 
-readStripedN :: (MonadResource m, MonadCatch m) => Int -> FilePath -> Stream (Of Striped.Table) (EitherT QueryError m) ()
+readStripedN :: (MonadResource m, MonadCatch m) => Int -> FilePath -> Stream (Of Zebra.Table) (EitherT QueryError m) ()
 readStripedN n path =
-  hoist (firstJoin QueryStripedError) .
-    Striped.rechunk n $ readStriped path
+  hoist (firstJoin QueryZebraStripedError) .
+    Zebra.rechunk n $ readStriped path
 
-readZebraRows :: MonadIO m => Int -> FilePath -> EitherT QueryError m (Maybe Striped.Table)
+readZebraRows :: MonadIO m => Int -> FilePath -> EitherT QueryError m (Maybe Zebra.Table)
 readZebraRows limit path =
   hoist (liftIO . runResourceT) $
     Stream.head_ (readStripedN limit path)
+
+fromInputType :: ValType -> Either QueryError Schema
+fromInputType = \case
+  PairT (SumT ErrorT x) TimeT ->
+    first QuerySchemaError $ Schema.fromValType x
+  x ->
+    Left $ QueryUnexpectedInputType x
+
+fromOutput :: OutputId -> Runtime.Output key -> Either QueryError (Boxed.Vector (key, Pretty.Doc))
+fromOutput oid output = do
+  column <- maybeToRight (QueryOutputMissing oid) . Map.lookup oid $ Runtime.outputColumns output
+  values <- first QueryStripedError $ Striped.toLogical column
+  pvalues <- first QueryLogicalError $ traverse (Logical.prettyValue 0 $ Striped.schema column) values
+  pure $
+    Boxed.zip (Runtime.outputKey output) pvalues
 
 evaluateZebra :: CompiledQuery -> FilePath -> EitherT QueryError Repl ()
 evaluateZebra compiled path = do
@@ -501,25 +534,36 @@ evaluateZebra compiled path = do
             pure ()
 
           Just input0 -> do
+            inputSchemas <-
+              hoistEither $
+                traverse (fromInputType . Sea.clusterInputType) (Runtime.runtimeClusters runtime)
+
+            zschema <-
+              hoistEither . first QueryRuntimeZebraSchemaError $
+                Runtime.encodeInputSchemas inputSchemas
+
+            input1 <-
+              hoistEither . first QueryZebraStripedError $
+                Zebra.transmute zschema input0
+
             input <-
-              hoistEither . first QueryZebraError $
-                Runtime.decodeInput input0
+              hoistEither . first QueryRuntimeZebraStripedError $
+                Runtime.decodeInput input1
 
             output0 <-
               firstT QueryRuntimeError . hoist liftIO $
                 Runtime.snapshot runtime mapSize time input
 
-            output1 <-
-              hoistEither . first QueryZebraError $
-                Runtime.encodeSnapshotOutput output0
+            output1 <- hoistEither $ fromOutput (compiledOutputId compiled) output0
 
-            -- FIXME more pleasant pretty printing for output, is currently verbose JSON
-            output <-
-              hoistEither . first QueryTextStripedEncodeError $
-                Text.encodeStripedBlock output1
+            let
+              output =
+                Pretty.vsep . with output1 $ \(Runtime.SnapshotKey (Runtime.EntityKey _ (Runtime.EntityId k)), v) ->
+                  Pretty.annotate Pretty.AnnBinding (Pretty.pretty (Char8.unpack k)) <>
+                  Pretty.prettyPunctuation "|" <>
+                  v
 
-            putSection "C evaluation" $
-              List.dropWhileEnd Char.isSpace (Char8.unpack output)
+            putSection "C evaluation" output
 
 evaluateQuery :: String -> Repl ()
 evaluateQuery query =

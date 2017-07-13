@@ -35,6 +35,22 @@ trippingBoth to from x =
     counterexample "" $
       property (original === roundtrip)
 
+prop_roundtrip_zebra_input_schema :: Property
+prop_roundtrip_zebra_input_schema =
+  gamble genInputSchemas $
+    trippingBoth encodeInputSchemas decodeInputSchemas
+
+prop_roundtrip_zebra_column_schema :: Property
+prop_roundtrip_zebra_column_schema =
+  gamble genSchema $
+    trippingBoth (pure . encodeColumnSchema) decodeColumnSchema
+
+prop_roundtrip_zebra_column :: Property
+prop_roundtrip_zebra_column =
+  gamble genSchema $ \schema ->
+  gamble (genColumn schema) $
+    trippingBoth encodeColumn decodeColumn
+
 prop_roundtrip_zebra_input :: Property
 prop_roundtrip_zebra_input =
   gamble genInput $
@@ -53,4 +69,4 @@ prop_roundtrip_zebra_chord_output =
 return []
 tests :: IO Bool
 tests =
-  $checkAllWith TestRunMore checkArgs
+  $checkAllWith TestRunNormal checkArgs

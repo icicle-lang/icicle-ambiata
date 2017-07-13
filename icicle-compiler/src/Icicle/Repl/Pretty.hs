@@ -16,7 +16,7 @@ module Icicle.Repl.Pretty (
   , putErrorPosition
   , putSection
 
-  , withColor
+  , setColor
   , ppType
 
   , sgrColor
@@ -96,38 +96,38 @@ ppType =
   Pretty.renderCompact .
   Pretty.pretty
 
-withColor :: UseColor -> Pretty.Annotation -> String -> String
-withColor use annot str =
+setColor :: UseColor -> Pretty.Annotation -> String
+setColor use annot =
   case annot of
     Pretty.AnnError ->
-      sgrColor use Dull Red str
+      sgrSetColor use Dull Red
 
     Pretty.AnnErrorHeading ->
-      sgrColor use Vivid Red str
+      sgrSetColor use Vivid Red
 
     Pretty.AnnHeading ->
-      sgrColor use Vivid Yellow str
+      sgrSetColor use Vivid Yellow
 
     Pretty.AnnPunctuation ->
-      sgrColor use Vivid Black str
+      sgrSetColor use Vivid Black
 
     Pretty.AnnKeyword ->
-      sgrColor use Dull Blue str
+      sgrSetColor use Dull Blue
 
     Pretty.AnnConstant ->
-      sgrColor use Vivid Red str
+      sgrSetColor use Vivid Red
 
     Pretty.AnnPrimitive ->
-      sgrColor use Dull Yellow str
+      sgrSetColor use Dull Yellow
 
     Pretty.AnnBinding ->
-      sgrColor use Dull Magenta str
+      sgrSetColor use Dull Magenta
 
     Pretty.AnnVariable ->
-      sgrColor use Dull Cyan str
+      sgrSetColor use Dull Cyan
 
     Pretty.AnnConstructor ->
-      sgrColor use Dull Green str
+      sgrSetColor use Dull Green
 
 putPretty :: (MonadState State m, MonadIO m, Pretty a) => a -> m ()
 putPretty x = do
@@ -135,7 +135,7 @@ putPretty x = do
   width <- fromMaybe 80 <$> getTerminalWidth
   liftIO .
     IO.putStrLn .
-    Pretty.displayDecorated (withColor use) .
+    Pretty.displayDecorated (setColor use) (const $ sgrReset use) id .
     Pretty.renderPretty 0.4 width $
     Pretty.pretty x
 
@@ -148,7 +148,7 @@ putErrorPosition = \case
     use <- getUseColor
     liftIO . IO.putStrLn $
       List.replicate (Parsec.sourceColumn x + 1) ' ' <>
-      withColor use Pretty.AnnError "^"
+      setColor use Pretty.AnnError <> "^" <> sgrReset use
 
 putError :: (MonadState State m, MonadIO m) => Pretty.Doc -> Maybe Parsec.SourcePos -> m ()
 putError x mpos = do

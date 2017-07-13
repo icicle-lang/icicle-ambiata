@@ -56,7 +56,7 @@ seaOfDefinition expandedType
  = case expandedType of
      BufT n t' ->
        Just $
-         "MAKE_BUF (" <> int n <> ", " <> baseOfValType t' <> ")"
+         "MAKE_BUF (" <> pretty n <> ", " <> baseOfValType t' <> ")"
      ArrayT t' ->
        Just $
          "MAKE_ARRAY (" <> baseOfValType t' <> ")"
@@ -145,7 +145,7 @@ defOfVar' :: Int -> Doc -> Doc -> Doc
 defOfVar' nptrs typ var
  = let tystr   = show typ
        nspaces = max 1 (17 - length tystr - nptrs)
-   in string (tystr <> List.replicate nspaces ' ' <> List.replicate nptrs '*') <> var
+   in pretty (tystr <> List.replicate nspaces ' ' <> List.replicate nptrs '*') <> var
 
 seaOfValType :: ValType -> Doc
 seaOfValType t
@@ -169,8 +169,8 @@ baseOfValType t =
             -> "ifactid"
 
   StringT   -> "istring"
-  BufT n t' -> "ibuf_" <> int n <> "_" <> baseOfValType t'
-  ArrayT t' -> "iarray_"               <> baseOfValType t'
+  BufT n t' -> "ibuf_" <> pretty n <> "_" <> baseOfValType t'
+  ArrayT t' -> "iarray_" <> baseOfValType t'
 
   MapT{}    -> Savage.error "maps should have been melted"
   StructT{} -> Savage.error "structs should have been melted"

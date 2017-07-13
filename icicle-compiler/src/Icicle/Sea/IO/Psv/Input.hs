@@ -24,7 +24,6 @@ import           Icicle.Data.Name
 import           Icicle.Storage.Dictionary.Toml.Dense (PsvInputDenseDict(..), MissingValue, PsvInputDenseFeedName)
 
 import           Icicle.Internal.Pretty
-import qualified Icicle.Internal.Pretty as Pretty
 
 import           Icicle.Sea.Data
 import           Icicle.Sea.Error (SeaError(..))
@@ -94,7 +93,7 @@ seaOfReadInputFields inType inVars
 
 seaOfReadTombstone :: CheckedInput -> [Text] -> Doc
 seaOfReadTombstone input = \case
-  []     -> Pretty.empty
+  []     -> mempty
   (t:ts) -> "if (" <> seaOfStringEq t "value_ptr" (Just "value_size") <> ") {" <> line
          <> "    " <> pretty (inputSumError input) <> " = ierror_tombstone;" <> line
          <> "} else " <> seaOfReadTombstone input ts
@@ -638,7 +637,7 @@ seaOfFieldMapping assign (FieldMapping fname ftype vars) = do
   pure $ vsep
     [ "/* " <> pretty fname <> " */"
     , "if (" <> seaOfStringEq needle "p" Nothing <> ") {"
-    , "    p += " <> int (sizeOfString needle) <> ";"
+    , "    p += " <> pretty (sizeOfString needle) <> ";"
     , ""
     , indent 4 field_sea
     , ""

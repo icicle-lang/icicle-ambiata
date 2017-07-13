@@ -1,10 +1,23 @@
-Icicle REPL, :help for help
-OK, snapshot mode activated with a snapshot date of 1970-01-01.
-OK, loaded dictionary with 5 inputs, 0 outputs, 38 functions.
-OK, selected psv file as input data: test/cli/repl/data.psv
+Queries will no longer be evaluated using the C evaluator.
+Snapshot mode activated with a snapshot date of 1970-01-01.
+Loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+Selected psv file as input: test/cli/repl/data.psv
+
+  ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
+ ▓██▒▒██▀ ▀█  ▓██▒▒██▀ ▀█  ▓██▒    ▓█   ▀
+ ▒██▒▒▓█    ▄ ▒██▒▒▓█    ▄ ▒██░    ▒███
+ ░██░▒▓▓▄ ▄██▒░██░▒▓▓▄ ▄██▒▒██░    ▒▓█  ▄
+ ░██░▒ ▓███▀ ░░██░▒ ▓███▀ ░░██████▒░▒████▒
+ ░▓  ░ ░▒ ▒  ░░▓  ░ ░▒ ▒  ░░ ▒░▓  ░░░ ▒░ ░
+  ▒ ░  ░  ▒    ▒ ░  ░  ▒   ░ ░ ▒  ░ ░ ░  ░
+  ▒ ░░         ▒ ░░          ░ ░ REPL ░
+  ░  ░ ░       ░  ░ ░          ░  ░   ░  ░
+     ░            ░
+                  ░     :help for help
+
 λ -- Show everything
-λ OK, core-simp is now on.
-OK, avalanche is now on.
+λ The core will be simplified prior to evaluation.
+The avalanche will be shown during evaluation.
 λ λ -- A rather complicated feature to convert to Avalanche
 λ Avalanche (simplified)
 ----------------------
@@ -102,8 +115,8 @@ output repl:output : Sum Error (Int, Array (Sum Error Int)) =
 Core evaluation
 ---------------
 
-homer|(5,[ 300 , 400 , 500 ])
-marge|(1,[ 0 , 10 , 20 ])
+homer|(5, [ 300 , 400 , 500 ])
+marge|(1, [ 0 , 10 , 20 ])
 
 λ λ -- Something involves the abstract buffer type
 λ Avalanche (simplified)

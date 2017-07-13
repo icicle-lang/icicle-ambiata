@@ -19,7 +19,7 @@ import qualified    Icicle.Common.Fresh                      as Fresh
 
 import qualified    Icicle.Core.Exp.Prim           as Core
 
-import              Icicle.Internal.Pretty
+import              Icicle.Internal.Pretty hiding (flatten)
 
 import              P
 

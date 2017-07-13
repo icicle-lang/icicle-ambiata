@@ -17,6 +17,9 @@ module Icicle.Data.Fact (
   , StructField(..)
   , StructFieldType(..)
   , structFieldName
+
+  , prettyEncodingFlat
+  , prettyEncodingHang
   ) where
 
 import           Icicle.Data.Name
@@ -75,8 +78,8 @@ data Value =
 instance Pretty Value where
   pretty v = case v of
     StringValue  t  -> text $ show t
-    IntValue     i  -> int i
-    DoubleValue  d  -> double d
+    IntValue     i  -> pretty i
+    DoubleValue  d  -> pretty d
     BooleanValue b  -> pretty b
     TimeValue    d  -> pretty $ renderTime d
     StructValue  s  -> pretty s
@@ -117,26 +120,38 @@ data Encoding =
   deriving (Eq, Show, Generic)
 
 instance Pretty Encoding where
-  pretty = \case
-    StringEncoding ->
-      prettyConstructor "String"
-    IntEncoding ->
-      prettyConstructor "Int"
-    DoubleEncoding ->
-      prettyConstructor "Double"
-    BooleanEncoding ->
-      prettyConstructor "Bool"
-    TimeEncoding ->
-      prettyConstructor "Time"
-    StructEncoding ss ->
-      prettyStructType . with ss $ \(StructField t nm enc) ->
-        case t of
-          Mandatory ->
-            (annotate AnnBinding (pretty nm), enc)
-          Optional ->
-            (prettyKeyword "optional" <+> annotate AnnBinding (pretty nm), enc)
-    ListEncoding l ->
-      "[" <> pretty l <> "]"
+  pretty =
+    prettyEncodingFlat
+
+prettyEncoding :: ([Doc] -> Doc) -> Encoding -> Doc
+prettyEncoding xsep = \case
+  StringEncoding ->
+    prettyConstructor "String"
+  IntEncoding ->
+    prettyConstructor "Int"
+  DoubleEncoding ->
+    prettyConstructor "Double"
+  BooleanEncoding ->
+    prettyConstructor "Bool"
+  TimeEncoding ->
+    prettyConstructor "Time"
+  StructEncoding ss ->
+    prettyStructType xsep . with ss $ \(StructField t nm enc) ->
+      case t of
+        Mandatory ->
+          (prettyKeyword "required" <+> annotate AnnBinding (pretty nm), prettyEncoding xsep enc)
+        Optional ->
+          (prettyKeyword "optional" <+> annotate AnnBinding (pretty nm), prettyEncoding xsep enc)
+  ListEncoding l ->
+    "[" <> prettyEncoding xsep l <> "]"
+
+prettyEncodingFlat :: Encoding -> Doc
+prettyEncodingFlat =
+  prettyEncoding hcat
+
+prettyEncodingHang :: Encoding -> Doc
+prettyEncodingHang =
+  prettyEncoding vsep
 
 data StructField =
   StructField StructFieldType Text Encoding
@@ -144,9 +159,9 @@ data StructField =
 
 instance Pretty StructField where
  pretty (StructField Mandatory attr enc)
-  = prettyTyped (pretty attr) (pretty enc)
+  = prettyKeyword "required" <+> prettyTypedBest (pretty attr) (pretty enc)
  pretty (StructField Optional attr enc)
-  = prettyKeyword "optional" <+> prettyTyped (pretty attr) (pretty enc)
+  = prettyKeyword "optional" <+> prettyTypedBest (pretty attr) (pretty enc)
 
 structFieldName :: StructField -> Text
 structFieldName (StructField _ attr _) =

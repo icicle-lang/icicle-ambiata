@@ -71,7 +71,7 @@ showDictionary = do
 setDictionary :: Dictionary -> Repl ()
 setDictionary dictionary = do
   liftIO . IO.putStrLn $
-     "OK, loaded dictionary with " <>
+     "Loaded dictionary with " <>
      show (length $ dictionaryInputs dictionary) <> " inputs, " <>
      show (length $ dictionaryOutputs dictionary) <> " outputs, " <>
      show (length $ dictionaryFunctions dictionary) <> " functions."
@@ -106,7 +106,7 @@ loadFunctionsFrom path src = do
 
    Right functions0 -> do
      liftIO . IO.putStrLn $
-       "OK, loaded " <> show (length functions0) <> " functions from " <> path
+       "Loaded " <> show (length functions0) <> " functions from " <> path
 
      dictionary <- gets stateDictionary
 
@@ -151,18 +151,18 @@ loadFile path = do
         mschema <- tryLoadZebra path
         case mschema of
           Nothing -> do
-            liftIO . IO.putStrLn $ "OK, selected psv file as input data: " <> path
+            liftIO . IO.putStrLn $ "Selected psv file as input: " <> path
             modify $ \s ->
               s { stateInput = InputPsv path }
 
           Just schema ->
-            case Runtime.resolveDictionary schema of
+            case Runtime.decodeDictionary schema of
               Left err ->
                 putPretty (show err) -- FIXME pretty
 
               Right dictionary -> do
                 setDictionary dictionary
                 traverse_ (uncurry loadFunctionsFrom) Toml.prelude
-                liftIO . IO.putStrLn $ "OK, selected zebra file as input data: " <> path
+                liftIO . IO.putStrLn $ "Selected zebra binary file as input: " <> path
                 modify $ \s ->
                   s { stateInput = InputZebra path }

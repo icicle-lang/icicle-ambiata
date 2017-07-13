@@ -359,11 +359,11 @@ instance Pretty ValType where
 
 instance Pretty StructType where
   prettyPrec _ (StructType fs) =
-    prettyStructType $ Map.toList fs
+    prettyStructType hcat . fmap (bimap pretty pretty) $ Map.toList fs
 
 instance Pretty FunType where
    pretty (FunT [] t)     = pretty t
-   pretty (FunT (b:bs) t) = inner b <> text " -> " <> pretty (FunT bs t)
+   pretty (FunT (b:bs) t) = inner b <+> prettyPunctuation "->" <+> pretty (FunT bs t)
     where
      inner i@(FunT [] _) = pretty i
-     inner i             = parens (pretty i)
+     inner i             = prettyPunctuation "(" <> pretty i <> prettyPunctuation ")"

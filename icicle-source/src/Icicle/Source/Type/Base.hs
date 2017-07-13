@@ -176,7 +176,7 @@ instance Pretty n => Pretty (Type n) where
     SumT a b ->
       prettyApp hsep p (prettyConstructor "Sum") [a, b]
     StructT fs ->
-      prettyStructType $ Map.toList fs
+      prettyStructType hcat . fmap (bimap pretty pretty) $ Map.toList fs
     TypeVar v ->
       annotate AnnVariable (pretty v)
 
@@ -229,22 +229,16 @@ instance Pretty n => Pretty (Constraint n) where
       pretty a <+> prettyPunctuation "=:" <+>
       prettyApp hsep 0 (prettyConstructor "PossibilityJoin") [b, c]
 
-prettyFun :: Pretty n => FunctionType n -> Doc
+prettyFun :: Pretty n => FunctionType n -> PrettyFunType
 prettyFun fun =
-  let
-    constrs =
-      fmap (PrettyItem (prettyPunctuation "=>") . pretty)
-
-    args =
-      fmap (PrettyItem (prettyPunctuation "->") . pretty)
-  in
-    prettyItems sep (pretty $ functionReturn fun) $
-      constrs (functionConstraints fun) <>
-      args (functionArguments fun)
+  PrettyFunType
+    (fmap pretty $ functionConstraints fun)
+    (fmap pretty $ functionArguments fun)
+    (pretty $ functionReturn fun)
 
 instance Pretty n => Pretty (FunctionType n) where
   pretty =
-    prettyFun
+    pretty . prettyFun
 
 instance (Pretty n) => Pretty (Annot a n) where
   pretty ann =

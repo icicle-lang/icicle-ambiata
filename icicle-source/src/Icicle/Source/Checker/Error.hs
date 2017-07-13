@@ -237,8 +237,8 @@ instance (IsString n, Pretty n, Hashable n, Eq n) => Pretty (ErrorSuggestion a n
       text str
 
    where
-    pretty_ty     (k,t) = prettyTyped (annotate AnnBinding $ pretty k) $ align (pretty t)
-    pretty_fun_ty (k,t) = prettyTyped (annotate AnnBinding $ pretty k) $ align (prettyFunFromStrings t)
+    pretty_ty     (k,t) = prettyTypedBest (annotate AnnBinding $ pretty k) (pretty t)
+    pretty_fun_ty (k,t) = prettyTypedFun (annotate AnnBinding $ pretty k) (prettyFunFromStrings t)
 
     grabInbuilt f       = (NameBase . fromString . (flip displayS "") . renderCompact . pretty . Fun $ f, prettyInbuiltType f)
 
