@@ -258,7 +258,7 @@ seaOfOutput
   -> PsvMissing                    -- ^ Drop missing values or output something
   -> NameEnv                       -- ^ C names in use
   -> ValType                       -- ^ Output type
-  -> [ValType]                     -- ^ Types of arguments
+  -> [ValType]                     -- ^ Unmelted types of arguments
   -> (ValType -> Doc -> Doc)       -- ^ Transformation to be applied to this struct member, e.g. index
   -> Either SeaError ( Maybe Doc   -- Output the value when this is true
                      , Maybe Doc   -- Otherwise output this
@@ -280,10 +280,12 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
 
    in case outType of
        ArrayT te
-        | tes@(arg0:_) <- meltType te
-        , (arr  : _)   <- members
-        -> do (mcond, _, body, ix, ts1)
+        | tes@(arg0 : _) <- meltType te
+        , arr : _  <- members
+        -> do (mcond, _, body, ix, tes_empty)
                  <- seaOfOutput InJSON struct structIndex outId PsvDrop env' te tes arrayIndex'
+
+              unless (null tes_empty) (Left mismatch)
 
               -- For nested arrays, we get the inner array out first,
               -- so we can retrieve the correct count. For flat arrays the transform
@@ -297,17 +299,19 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
               let numElems  = arrayCount arr'
               body'        <- seaOfOutputArray mcond body numElems counter countLimit
 
-              return (Nothing, Nothing, body', ix, ts1)
+              return (Nothing, Nothing, body', ix, drop (length tes) argTypes)
 
 
        MapT tk tv
-        | tks@(arg0:_) <- meltType tk
+        | tks@(arg0 : _) <- meltType tk
         , tvs <- meltType tv
-        , (arr : _)       <- members
-        -> do (mcondk, _, bk, ixk, _)
+        , arr : _ <- members
+        -> do (mcondk, _, bk, ixk, tks_empty)
                  <- seaOfOutput InJSON struct structIndex outId PsvDrop env' tk tks arrayIndex'
-              (mcondv, _, bv, ixv, ts)
+              (mcondv, _, bv, ixv, tvs_empty)
                  <- seaOfOutput InJSON struct ixk outId PsvDrop env' tv tvs arrayIndex'
+
+              unless (null tks_empty && null tvs_empty) (Left mismatch)
 
               let p         = pair bk bv
               let arr'      = transform (ArrayT arg0) arr
@@ -315,21 +319,19 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
 
               body <- seaOfOutputArray (condAnd mcondk mcondv) p numElems counter countLimit
 
-              return (Nothing, Nothing, body, ixv, ts)
+              return (Nothing, Nothing, body, ixv, drop (length tks + length tvs) argTypes)
 
 
        PairT ta tb
-        | tas <- meltType ta
-        , tbs <- meltType tb
-        -> do (mcondk, _, ba, ixa, _)
-                 <- seaOfOutput InJSON struct structIndex outId PsvDrop env' ta tas transform
-              (mcondv, _, bb, ixb, ts)
-                 <- seaOfOutput InJSON struct ixa outId PsvDrop env' tb tbs transform
+        -> do (mcondk, _, ba, ixa, ts0)
+                 <- seaOfOutput InJSON struct structIndex outId PsvDrop env' ta argTypes transform
+              (mcondv, _, bb, ixb, ts1)
+                 <- seaOfOutput InJSON struct ixa outId PsvDrop env' tb ts0 transform
 
               let p  = pair ba bb
               let p' = seaOfOutputCond' (condAnd mcondk mcondv) $ p
 
-              return (condAnd mcondk mcondv, outputMissing, p', ixb, ts)
+              return (condAnd mcondk mcondv, outputMissing, p', ixb, ts1)
 
 
        StructT fs
@@ -353,26 +355,26 @@ seaOfOutput isJSON struct structIndex outId missing env outType argTypes transfo
 
        -- Conditional's
        OptionT otype1
-        | (BoolT : ts1) <- argTypes
-        , (nb    : _)   <- members
-        -> do (mcond, mfalse, body, ix, ts)
-                 <- seaOfOutput isJSON struct (structIndex + 1) outId missing env' otype1 ts1 transform
+        | BoolT : ts0 <- argTypes
+        , nb    : _   <- members
+        -> do (mcond, mfalse, body, ix, ts1)
+                 <- seaOfOutput isJSON struct (structIndex + 1) outId missing env' otype1 ts0 transform
 
               let body' = seaOfOutputCond mcond mfalse body
               let nb'   = transform BoolT nb
               pure ( condAnd (Just nb') mcond
-                   , outputMissing, body', ix, ts )
+                   , outputMissing, body', ix, ts1 )
 
        SumT ErrorT otype1
-        | (ErrorT : ts1) <- argTypes
-        , (ne     : _)   <- members
-        -> do (mcond, mfalse, body, ix, ts)
-                 <- seaOfOutput isJSON struct (structIndex + 1) outId missing env' otype1 ts1 transform
+        | ErrorT : ts0 <- argTypes
+        , ne     : _   <- members
+        -> do (mcond, mfalse, body, ix, ts1)
+                 <- seaOfOutput isJSON struct (structIndex + 1) outId missing env' otype1 ts0 transform
 
               let ne'   = transform ErrorT ne
               let body' = seaOfOutputCond mcond mfalse body
               let condSum = condAnd (Just (seaOfNotAnError ne')) mcond
-              pure ( condSum, outputMissing, body', ix, ts )
+              pure ( condSum, outputMissing, body', ix, ts1 )
 
        BufT _ a ->
          seaOfOutput isJSON struct structIndex outId missing env (ArrayT a) argTypes transform
