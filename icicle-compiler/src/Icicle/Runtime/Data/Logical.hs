@@ -243,11 +243,11 @@ prettyValue p schema = \case
       pure $
         annotate AnnError "CannotCompute"
 
-  Error _
+  Error (Error64 x)
     | Schema.Result _ <- schema
     ->
       pure $
-        annotate AnnError "Error"
+        annotate AnnError ("Error" <> text (show x))
 
   Success x
     | Schema.Result s <- schema
