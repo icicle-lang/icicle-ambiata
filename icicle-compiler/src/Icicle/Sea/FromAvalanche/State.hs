@@ -32,6 +32,8 @@ module Icicle.Sea.FromAvalanche.State (
   , hasPrefix
   , resPrefix
   , newPrefix
+
+  , seaOfKernelOutput
   ) where
 
 import qualified Data.List as List
@@ -175,9 +177,9 @@ seaOfClusterState cluster =
     , ""
     , "    /* inputs */"
     , indent 4 (defOfVar_ 0 (pretty (clusterInputTypeName cluster)) "input;")
-    , ""
-    , vsep . fmap seaOfKernelState . NonEmpty.toList $ clusterKernels cluster
-    , ""
+    , vsep . fmap seaOfKernelOutput . NonEmpty.toList $ clusterKernels cluster
+    , vsep . fmap seaOfKernelFlags . NonEmpty.toList $ clusterKernels cluster
+    , vsep . fmap seaOfKernelResumables . NonEmpty.toList $ clusterKernels cluster
     , "}" <+> pretty (nameOfClusterState cluster) <> ";"
     , ""
     , "iint_t " <> pretty (nameOfClusterStateSize cluster) <+> "()"
@@ -186,22 +188,22 @@ seaOfClusterState cluster =
     , "}"
     ]
 
-seaOfKernelState :: Kernel a -> Doc
-seaOfKernelState kernel =
+seaOfKernelOutput :: Kernel a -> Doc
+seaOfKernelOutput kernel =
   vsep [
-      "    /*** kernel " <> prettyKernelId (kernelId kernel) <> " ***/"
-    , ""
-    , "    /* outputs */"
+      ""
+    , "    /* kernel " <> prettyKernelId (kernelId kernel) <> " outputs */"
     , indent 4 .
         vsep . concat . fmap defsOfOutput $ kernelOutputs kernel
-    , ""
-    , "    /* resumables: values */"
-    , indent 4 .
-        vsep . fmap (defValueOfResumable kernel . first renderSeaName) $ kernelResumables kernel
-    , ""
+    ]
+
+seaOfKernelFlags :: Kernel a -> Doc
+seaOfKernelFlags kernel =
+  vsep [
+      ""
     -- Grouping all the has_* flags together lets us set them all to false with a single memset.
     -- Surprisingly, this can save a large amount of compilation time.
-    , "    /* resumables: has flags */"
+    , "    /* kernel " <> prettyKernelId (kernelId kernel) <> " flags */"
     , indent 4 $
         defOfVar 0 BoolT (nameOfResumableHasFlagsStart kernel) <> semi
 
@@ -210,7 +212,15 @@ seaOfKernelState kernel =
 
     , indent 4 $
         defOfVar 0 BoolT (nameOfResumableHasFlagsEnd kernel) <> semi
-    , ""
+    ]
+
+seaOfKernelResumables :: Kernel a -> Doc
+seaOfKernelResumables kernel =
+  vsep [
+      ""
+    , "    /* kernel " <> prettyKernelId (kernelId kernel) <> " resumables */"
+    , indent 4 .
+        vsep . fmap (defValueOfResumable kernel . first renderSeaName) $ kernelResumables kernel
     ]
 
 ------------------------------------------------------------------------

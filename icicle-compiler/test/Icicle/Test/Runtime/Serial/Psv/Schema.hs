@@ -1,12 +1,12 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-module Icicle.Test.Sea.Psv.Schema where
+module Icicle.Test.Runtime.Serial.Psv.Schema where
 
 import           Disorder.Corpus (muppets, boats, viruses)
 import           Disorder.Jack (Property, Jack, quickCheckAll, tripping, gamble)
 import           Disorder.Jack (elements, listOfN, listOf, oneOfRec, sized)
 
-import           Icicle.Sea.IO.Psv.Schema
+import           Icicle.Runtime.Serial.Psv.Schema
 
 import           P
 

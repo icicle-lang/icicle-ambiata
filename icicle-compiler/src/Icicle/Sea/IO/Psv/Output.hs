@@ -8,7 +8,6 @@ import qualified Data.List as List
 import qualified Data.List.NonEmpty as NonEmpty
 import           Data.Map (Map)
 import qualified Data.Map as Map
-import qualified Data.Text as Text
 
 import           Icicle.Avalanche.Prim.Flat (Prim(..), PrimUnsafe(..))
 import           Icicle.Avalanche.Prim.Flat (meltType)
@@ -25,7 +24,6 @@ import           Icicle.Sea.FromAvalanche.Base hiding (assign)
 import           Icicle.Sea.FromAvalanche.Prim
 import           Icicle.Sea.FromAvalanche.State
 import           Icicle.Sea.IO.Base
-import           Icicle.Sea.IO.Psv.Schema
 import           Icicle.Sea.Name
 
 import           P
@@ -61,7 +59,6 @@ seaOfWriteFleetOutput config whitelist states = do
                   Just as -> filter (flip List.elem as . renderInputName . inputName . clusterInputId) states
 
   write_sea <- traverse (seaOfWriteProgramOutput config) states'
-  schema_sea <- seaOfGetOutputSchema config states'
 
   let (beforeChord, inChord, afterChord)
          = case outputPsvFormat config of
@@ -101,8 +98,6 @@ seaOfWriteFleetOutput config whitelist states = do
     , ""
     , "    return 0;"
     , "}"
-    , ""
-    , schema_sea
     ]
 
 seaOfChordName :: Mode -> Doc
@@ -128,42 +123,6 @@ outputChord
   , indent 4 $ outputValue "string" ["chord_name", "chord_name_length"]
   , "}"
   ]
-
-seaOfConstantString :: Text -> Doc
-seaOfConstantString =
-  pretty . show -- FIXME this could be more robust, but I think it's OK for schemas
-
-textGroups80 :: Text -> [Text]
-textGroups80 xs =
-  let
-    (hd, tl) =
-      Text.splitAt 80 xs
-  in
-    if Text.null tl then
-      [hd]
-    else
-      hd : textGroups80 tl
-
-seaOfGetOutputSchema :: PsvOutputConfig -> [Cluster c k] -> Either SeaError Doc
-seaOfGetOutputSchema config clusters =
-  case outputPsvFormat config of
-    PsvOutputSparse ->
-      pure $ vsep [
-          "istring_t psv_get_output_schema ()"
-        , "{"
-        , "    return NULL; /* no schema for sparse output */"
-        , "}"
-        ]
-
-    PsvOutputDense -> do
-      schema <- renderCompactPsvSchema <$> schemaOfFleet config clusters
-      pure $ vsep [
-          "istring_t psv_get_output_schema ()"
-        , "{"
-        , "    return"
-        , indent 8 (vsep . fmap seaOfConstantString $ textGroups80 schema) <> ";"
-        , "}"
-        ]
 
 seaOfWriteProgramOutput :: PsvOutputConfig -> Cluster c k -> Either SeaError Doc
 seaOfWriteProgramOutput config cluster = do
@@ -596,92 +555,3 @@ outputDie = "if (error) return error;"
 quotedOutput :: IsInJSON -> Doc -> Doc
 quotedOutput NotInJSON out = out
 quotedOutput InJSON    out = vsep [outputChar '"', out, outputChar '"']
-
-------------------------------------------------------------------------
-
-schemaOfStructField :: StructField -> ValType -> Either SeaError PsvStructField
-schemaOfStructField (StructField name) typ =
-  PsvStructField name <$> schemaOfValType typ
-
-schemaOfValType :: ValType -> Either SeaError PsvEncoding
-schemaOfValType = \case
-  BoolT ->
-    pure $ PsvPrimitive PsvBoolean
-  IntT ->
-    pure $ PsvPrimitive PsvInt
-  DoubleT ->
-    pure $ PsvPrimitive PsvDouble
-  StringT ->
-    pure $ PsvPrimitive PsvString
-  TimeT ->
-    pure $ PsvPrimitive PsvString
-
-  -- NOTE in generated C code, fact identifiers are treated as ints.
-  FactIdentifierT ->
-    pure $ PsvPrimitive PsvInt
-
-  UnitT ->
-    Left $ SeaUnsupportedOutputType UnitT
-  ErrorT ->
-    Left $ SeaUnsupportedOutputType ErrorT
-
-  ArrayT a ->
-    PsvList <$> schemaOfValType a
-
-  -- Map is just an array of size-two-array
-  MapT k v ->
-    PsvList <$> (PsvPair <$> schemaOfValType k <*> schemaOfValType v)
-
-  -- None becomes missing_value, Some is just the value
-  OptionT a ->
-    schemaOfValType a
-
-  PairT a b ->
-    PsvPair <$> schemaOfValType a <*> schemaOfValType b
-
-  -- In dense PSV, an error is always missing_value
-  SumT ErrorT v ->
-    schemaOfValType v
-  SumT x y ->
-    Left $ SeaUnsupportedOutputType (SumT x y)
-
-  StructT s ->
-    PsvStruct
-      <$> traverse (uncurry schemaOfStructField) (Map.toList $ getStructType s)
-
-  BufT _ a ->
-    PsvList <$> schemaOfValType a
-
-schemaOfOutput :: OutputId -> ValType -> Either SeaError PsvColumn
-schemaOfOutput outputId typ =
-  PsvColumn (renderOutputId outputId) <$> schemaOfValType typ
-
-schemaOfProgram :: Cluster c k -> Either SeaError [PsvColumn]
-schemaOfProgram =
-  -- NOTE the order of the columns here must match 'seaOfWriteProgramOutput' above
-  traverse (\(n, MeltedType t _) -> schemaOfOutput n t) . Map.toList . clusterOutputs
-
-schemaOfLabel :: Mode -> [PsvColumn]
-schemaOfLabel = \case
-  Snapshot _ ->
-    []
-  Chords ->
-    [PsvColumn "timestamp" (PsvPrimitive PsvString)]
-
-schemaOfFleet :: PsvOutputConfig -> [Cluster c k] -> Either SeaError PsvSchema
-schemaOfFleet config clusters =
-  case outputPsvFormat config of
-    PsvOutputSparse ->
-      Left SeaCannotGenerateSchemaForSparseOutput
-
-    PsvOutputDense -> do
-      columns0 <- concat <$> traverse schemaOfProgram clusters
-
-      let
-        columns1 =
-          columns0 <> schemaOfLabel (outputPsvMode config)
-
-        missing =
-          PsvMissingValue $ outputPsvMissing config
-
-      pure $ PsvSchema missing columns1

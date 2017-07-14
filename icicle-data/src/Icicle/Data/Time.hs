@@ -18,6 +18,7 @@ module Icicle.Data.Time (
   , localSecond
   , daysCountIvory
   , secondsCountIvory
+  , dateOfText
   , timeOfText
   , dateOfYMD
   , timeOfYMD
@@ -42,6 +43,7 @@ module Icicle.Data.Time (
   , renderDate
   , renderTime
   , pTime
+  , pDate
 
   , renderOutputTime
   ) where
@@ -221,6 +223,18 @@ dateOfYMD y m d =
 unsafeDateOfYMD :: Int -> Int -> Int -> Date
 unsafeDateOfYMD y m d =
   Date $ Thyme.fromGregorian y m d
+
+pDate :: Parser Date
+pDate = do
+  let
+    dash =
+      () <$ char '-'
+  mdate <- dateOfYMD <$> decimal <* dash <*> decimal <* dash <*> decimal
+  maybe (fail "Invalid date") pure mdate
+
+dateOfText :: Text -> Maybe Date
+dateOfText =
+  rightToMaybe . parseOnly pDate
 
 --------------------------------------------------------------------------------
 

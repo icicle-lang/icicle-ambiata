@@ -19,14 +19,6 @@ module Icicle.Sea.IO.Psv (
   , defaultPsvInputBufferSize
   , defaultPsvOutputBufferSize
   , defaultPsvMaxMapSize
-
-  , PsvSchema
-  , renderPrettyPsvSchema
-  , renderCompactPsvSchema
-  , parsePsvSchema
-
-  , PsvSchemaDecodeError
-  , renderPsvSchemaDecodeError
   ) where
 
 import           Icicle.Internal.Pretty
@@ -36,7 +28,6 @@ import           Icicle.Sea.Error (SeaError(..))
 import           Icicle.Sea.IO.Base
 import           Icicle.Sea.IO.Psv.Input
 import           Icicle.Sea.IO.Psv.Output
-import           Icicle.Sea.IO.Psv.Schema
 
 import           P
 

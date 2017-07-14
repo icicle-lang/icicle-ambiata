@@ -45,8 +45,10 @@ library
                      , hashable                        == 1.2.*
                      , haskeline                       == 0.7.*
                      , lens                            >= 4.7        && < 4.15
+                     , lifted-async                    == 0.9.*
                      , lifted-base                     == 0.2.*
                      , mmorph                          == 1.0.*
+                     , monad-control                   == 1.0.*
                      , mtl                             == 2.2.*
                      , old-locale                      == 1.0.*
                      , parallel                        == 3.2.*
@@ -63,6 +65,7 @@ library
                      , time                            >= 1.5        && < 1.7
                      , time-locale-compat              == 0.1.*
                      , transformers                    >= 0.3        && < 0.6
+                     , transformers-base               == 0.4.*
                      , unix                            == 2.7.*
                      , unordered-containers            == 0.2.*
                      , validation                      == 0.5.*
@@ -124,8 +127,8 @@ library
 
                        Icicle.Benchmark.Generator
 
-                       Icicle.Command
                        Icicle.Command.Compile
+                       Icicle.Command.Query
 
                        Icicle.Compiler
 
@@ -153,6 +156,9 @@ library
                        Icicle.Runtime.Data.Schema
                        Icicle.Runtime.Data.Striped
                        Icicle.Runtime.Evaluator
+                       Icicle.Runtime.Serial.Psv
+                       Icicle.Runtime.Serial.Psv.Data
+                       Icicle.Runtime.Serial.Psv.Schema
                        Icicle.Runtime.Serial.Zebra
                        Icicle.Runtime.Serial.Zebra.Schema
                        Icicle.Runtime.Serial.Zebra.Striped
@@ -179,7 +185,6 @@ library
                        Icicle.Sea.IO.Psv
                        Icicle.Sea.IO.Psv.Input
                        Icicle.Sea.IO.Psv.Output
-                       Icicle.Sea.IO.Psv.Schema
                        Icicle.Sea.IO.Zebra
                        Icicle.Sea.Name
                        Icicle.Sea.Preamble

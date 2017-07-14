@@ -13,6 +13,7 @@ module Icicle.Runtime.Data.Any (
   , read
   , unsafeFrom
   , unsafeRead
+  , nullString
   , toString
   , toArray
   , fromString
@@ -35,7 +36,7 @@ import           Data.Word (Word8, Word64)
 import           Foreign.C.Types (CSize(..))
 import           Foreign.ForeignPtr (withForeignPtr)
 import           Foreign.Marshal.Alloc (alloca)
-import           Foreign.Ptr (Ptr, castPtr, plusPtr)
+import           Foreign.Ptr (Ptr, castPtr, plusPtr, nullPtr, ptrToWordPtr)
 import           Foreign.Storable (Storable(..))
 
 import           GHC.Generics (Generic)
@@ -111,9 +112,23 @@ read !any = do
   pure $! unsafeRead any
 {-# INLINE read #-}
 
+nullString :: Any64
+nullString =
+  Any64 0x0
+{-# INLINE nullString #-}
+
 toString :: Any64 -> IO ByteString
-toString any = do
-  liftIO $! ByteString.packCString $! unsafeRead any
+toString any =
+  let
+    !ptr =
+      unsafeRead any
+  in
+    if ptr == nullPtr then
+      pure ByteString.empty
+    else if ptrToWordPtr ptr < 10000 then
+      Savage.error "Runtime.Data.Any.toString"
+    else
+      liftIO $! ByteString.packCString ptr
 {-# INLINE toString #-}
 
 fromString :: Mempool -> ByteString -> IO Any64

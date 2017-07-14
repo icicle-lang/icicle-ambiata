@@ -23,6 +23,7 @@ import           Data.List.NonEmpty (NonEmpty)
 import           Data.Map (Map)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
+import           Data.Time (getCurrentTime, diffUTCTime)
 
 import qualified Icicle.Avalanche.Prim.Flat as Avalanche
 import qualified Icicle.Avalanche.Program as Avalanche
@@ -38,7 +39,9 @@ import qualified Icicle.Storage.Dictionary.Toml as Toml
 
 import           P
 
-import           System.IO (IO, FilePath)
+import           System.IO (IO, FilePath, putStrLn)
+
+import           Text.Printf (printf)
 
 import           X.Control.Monad.Trans.Either (EitherT, hoistEither)
 
@@ -114,6 +117,11 @@ writeSeaDictionary (OutputDictionarySea path) context =
 
 icicleCompile :: Compile -> EitherT CompileError IO ()
 icicleCompile compile = do
+  startTime <- liftIO getCurrentTime
+
+  liftIO $
+    putStrLn "icicle: starting compilation: Icicle -> C"
+
   dictionary <-
     loadDictionary (compileInputDictionary compile)
 
@@ -126,3 +134,12 @@ icicleCompile compile = do
       Runtime.AvalancheContext (compileFingerprint compile) avalanche
 
   liftIO $ writeSeaDictionary (compileOutputDictionary compile) sea
+
+  endTime <- liftIO getCurrentTime
+
+  let
+    seconds =
+      realToFrac (endTime `diffUTCTime` startTime) :: Double
+
+  liftIO $
+    printf "icicle: compilation time = %.2fs\n" seconds

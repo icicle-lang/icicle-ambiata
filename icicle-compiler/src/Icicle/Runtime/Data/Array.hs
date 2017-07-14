@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DoAndIfThenElse #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
@@ -46,6 +47,8 @@ module Icicle.Runtime.Data.Array (
   , renderArrayError
 
   -- * Internal
+  , null
+  , isNull
   , headerSize
   , elementSize
   , calculateCapacity
@@ -69,6 +72,7 @@ import           Control.Monad.Primitive (PrimState)
 import           Data.Bits (countLeadingZeros, shiftL)
 import qualified Data.ByteString as ByteString
 import           Data.ByteString.Internal (ByteString(..))
+import qualified Data.ByteString.Internal as ByteString
 import qualified Data.Text as Text
 import qualified Data.Vector as Boxed
 import qualified Data.Vector.Storable as Storable
@@ -79,12 +83,12 @@ import           Data.Word (Word8)
 import           Foreign.C.Types (CInt(..), CSize(..))
 import           Foreign.C.String (CString)
 import           Foreign.ForeignPtr (newForeignPtr_, withForeignPtr)
-import           Foreign.Ptr (Ptr, plusPtr, castPtr)
+import           Foreign.Ptr (Ptr, plusPtr, castPtr, nullPtr)
 import           Foreign.Storable (Storable(..))
 
 import           GHC.Generics (Generic)
 
-import           P hiding (length, toList)
+import           P hiding (length, toList, null)
 
 import qualified Prelude as Savage
 
@@ -133,6 +137,7 @@ data ArrayError =
     ArrayElementsMustBeWordSize !Int
   | ArrayIndexOutOfBounds !ArrayIndex !ArrayLength
   | ArraySegmentDescriptorMismatch !ArrayLength !ArrayLength
+  | ArrayStringContainsNull !ByteString
     deriving (Eq, Ord, Show)
 
 renderArrayError :: ArrayError -> Text
@@ -143,6 +148,9 @@ renderArrayError = \case
     "Array index <" <> Text.pack (show ix) <> "> was out of bounds [0, " <> Text.pack (show len) <> ")"
   ArraySegmentDescriptorMismatch (ArrayLength m) (ArrayLength n) ->
     "Array length <" <> Text.pack (show n) <> "> did not match segment descriptor length <" <> Text.pack (show m) <> ">"
+  ArrayStringContainsNull bs ->
+    "Cannot convert the string " <> Text.pack (show (".." <> bs <> "..")) <>
+    ", because it contains \\NUL and the runtime uses C-strings which must be null-terminated."
 
 instance Show Array where
   showsPrec =
@@ -228,9 +236,22 @@ new pool len = do
   pure array
 {-# INLINABLE new #-}
 
+null :: Array
+null =
+  Array nullPtr
+{-# INLINE null #-}
+
+isNull :: Array -> Bool
+isNull (Array ptr) =
+  ptr == nullPtr
+{-# INLINE isNull #-}
+
 length :: Array -> IO ArrayLength
-length =
-  fmap ArrayLength . peek . unsafeLengthPtr
+length array =
+  if isNull array then
+    pure 0
+  else
+    fmap ArrayLength . peek $ unsafeLengthPtr array
 {-# INLINE length #-}
 
 checkElementSize :: Storable a => a -> EitherT ArrayError IO ()
@@ -262,6 +283,20 @@ checkSegmentDescriptor ns m =
       left $ ArraySegmentDescriptorMismatch m n
 {-# INLINE checkSegmentDescriptor #-}
 
+checkStringNull :: ByteString -> EitherT ArrayError IO ()
+checkStringNull bs =
+  case ByteString.elemIndex 0 bs of
+    Nothing ->
+      pure ()
+    Just ix ->
+      let
+        sample =
+          ByteString.take 11 $
+          ByteString.drop (ix - 5) bs
+      in
+        left $ ArrayStringContainsNull sample
+{-# INLINE checkStringNull #-}
+
 unsafeRead :: Storable a => Array -> ArrayIndex -> IO a
 unsafeRead array (ArrayIndex ix) =
   peekByteOff (unsafeElementPtr array) (fromIntegral (elementSize * ix))
@@ -287,48 +322,51 @@ write array ix x = do
 {-# INLINE write #-}
 
 grow :: Mempool -> Array -> ArrayLength -> IO Array
-grow pool arrayOld@(Array ptrOld) lengthNew = do
-  lengthOld <- length arrayOld
-
-  let
-    !capacityOld =
-      calculateCapacity lengthOld
-
-    !capacityNew =
-      calculateCapacity lengthNew
-
-  if lengthOld > lengthNew then do
-    let
-      deadSize =
-        (lengthOld - lengthNew) * elementSize
-
-      deadPtr =
-        unsafeElementPtr arrayOld `plusPtr`
-        fromIntegral (lengthNew * elementSize)
-
-    c_memset deadPtr 0 (fromIntegral deadSize)
-    unsafeWriteLength arrayOld lengthNew
-
-    pure arrayOld
-
-  else if capacityOld >= capacityNew then do
-    unsafeWriteLength arrayOld lengthNew
-    pure arrayOld
-
+grow pool arrayOld@(Array ptrOld) lengthNew =
+  if isNull arrayOld then
+    new pool lengthNew
   else do
+    lengthOld <- length arrayOld
+
     let
-      !bytesOld =
-        calculateFootprint capacityOld
+      !capacityOld =
+        calculateCapacity lengthOld
 
-      !bytesNew =
-        calculateFootprint capacityNew
+      !capacityNew =
+        calculateCapacity lengthNew
 
-    arrayNew@(Array ptrNew) <- unsafeAllocate pool bytesNew
+    if lengthOld > lengthNew then do
+      let
+        deadSize =
+          (lengthOld - lengthNew) * elementSize
 
-    c_memcpy ptrNew ptrOld (fromIntegral bytesOld)
-    unsafeWriteLength arrayNew lengthNew
+        deadPtr =
+          unsafeElementPtr arrayOld `plusPtr`
+          fromIntegral (lengthNew * elementSize)
 
-    pure arrayNew
+      c_memset deadPtr 0 (fromIntegral deadSize)
+      unsafeWriteLength arrayOld lengthNew
+
+      pure arrayOld
+
+    else if capacityOld >= capacityNew then do
+      unsafeWriteLength arrayOld lengthNew
+      pure arrayOld
+
+    else do
+      let
+        !bytesOld =
+          calculateFootprint capacityOld
+
+        !bytesNew =
+          calculateFootprint capacityNew
+
+      arrayNew@(Array ptrNew) <- unsafeAllocate pool bytesNew
+
+      c_memcpy ptrNew ptrOld (fromIntegral bytesOld)
+      unsafeWriteLength arrayNew lengthNew
+
+      pure arrayNew
 {-# INLINABLE grow #-}
 
 replicate :: Storable a => Mempool -> ArrayLength -> a -> IO Array
@@ -409,13 +447,13 @@ unsafeFromVector pool vector =
   unsafeFromMVector pool =<<! Storable.unsafeThaw vector
 {-# INLINE unsafeFromVector #-}
 
-fromVector :: forall a. Storable a => Mempool -> Storable.Vector a -> EitherT ArrayError IO Array
+fromVector :: forall a. (Storable a, Show a) => Mempool -> Storable.Vector a -> EitherT ArrayError IO Array
 fromVector pool vector = do
   checkElementSize (Savage.undefined :: a)
   liftIO $! unsafeFromVector pool vector
 {-# INLINE fromVector #-}
 
-fromList :: forall a. Storable a => Mempool -> [a] -> EitherT ArrayError IO Array
+fromList :: (Storable a, Show a) => Mempool -> [a] -> EitherT ArrayError IO Array
 fromList pool xs =
   fromVector pool $! Storable.fromList xs
 {-# INLINE fromList #-}
@@ -465,14 +503,18 @@ unsafeFromStringSegments pool ns (PS fp off0 _) =
 fromStringSegments :: Mempool -> Storable.Vector ArrayLength -> ByteString -> EitherT ArrayError IO Array
 fromStringSegments pool ns bs = do
   checkSegmentDescriptor ns . fromIntegral $ ByteString.length bs
+  checkStringNull bs
   liftIO $! unsafeFromStringSegments pool ns bs
 {-# INLINE fromStringSegments #-}
 
 unsafeViewCString :: CString -> IO ByteString
-unsafeViewCString ptr = do
-  !n <- c_strlen ptr
-  !fp <- newForeignPtr_ (castPtr ptr)
-  pure $! PS fp 0 (fromIntegral n)
+unsafeViewCString ptr =
+  if ptr == nullPtr then
+    pure ByteString.empty
+  else do
+    !n <- c_strlen ptr
+    !fp <- newForeignPtr_ (castPtr ptr)
+    pure $! PS fp 0 (fromIntegral n)
 {-# INLINE unsafeViewCString #-}
 
 toStringSegments :: Array -> IO (Storable.Vector ArrayLength, ByteString)
@@ -484,8 +526,21 @@ toStringSegments array = do
     !ns =
       Storable.convert $ fmap (fromIntegral . ByteString.length) bss
 
-    !bs =
-      ByteString.concat $ Boxed.toList bss
+    !n =
+      Storable.sum $ Storable.map fromIntegral ns
+
+  !bs <-
+    ByteString.create n $ \dst ->
+      let
+        loop dst_off (PS src_fp src_off src_len) =
+          withForeignPtr src_fp $ \src -> do
+            c_memcpy
+              (dst `plusPtr` dst_off)
+              (src `plusPtr` src_off)
+              (fromIntegral src_len)
+            pure $! dst_off + src_len
+      in
+        Boxed.foldM'_ loop 0 bss
 
   pure (ns, bs)
 {-# INLINE toStringSegments #-}

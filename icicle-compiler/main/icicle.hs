@@ -8,31 +8,22 @@
 import           BuildInfo_icicle
 import           DependencyInfo_icicle
 
-import           Control.Monad.IO.Class (MonadIO, liftIO)
-import           Control.Monad.Morph
-
-import qualified Data.ByteString as B
 import           Data.String (String)
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import           Data.Time (getCurrentTime, diffUTCTime)
+import qualified Data.Text as Text
 
-import           Icicle.Command
+import           GHC.Conc (getNumProcessors, setNumCapabilities)
+
 import           Icicle.Command.Compile
-import           Icicle.Data.Time (timeOfText)
+import           Icicle.Command.Query
+import           Icicle.Data.Time (dateOfText)
 import           Icicle.Repl
-import           Icicle.Sea.Eval
 
 import           P
 
 import           System.IO (IO, FilePath, BufferMode(..))
-import           System.IO (putStrLn, hSetBuffering, stdout, stderr)
+import           System.IO (hSetBuffering, stdout, stderr)
 
-import           Text.Printf (printf)
-
-import           X.Control.Monad.Trans.Either
 import           X.Control.Monad.Trans.Either.Exit (orDie)
-import           X.Options.Applicative
 import           X.Options.Applicative (Parser, Mod, CommandFields)
 import qualified X.Options.Applicative as Options
 
@@ -40,33 +31,35 @@ import qualified X.Options.Applicative as Options
 data IcicleCommand =
     IcicleRepl !ReplOptions
   | IcicleCompile !Compile
-  | IcicleQuery QueryOptions
+  | IcicleQuery !Query
     deriving (Eq, Ord, Show)
 
 main :: IO ()
 main = do
+  n <- getNumProcessors
+  setNumCapabilities (min 16 n)
   hSetBuffering stdout LineBuffering
   hSetBuffering stderr LineBuffering
-  cli "icicle" buildInfoVersion dependencyInfo parser runCommand
+  Options.cli "icicle" buildInfoVersion dependencyInfo parser runCommand
 
 parser :: Parser IcicleCommand
 parser =
-  subparser . mconcat $ commands
+  Options.subparser . mconcat $ commands
 
 commands :: [Mod CommandFields IcicleCommand]
 commands = [
-    command'
+    Options.command'
       "repl"
       "Interactively evaluate icicle expressions."
       (IcicleRepl <$> pRepl)
-  , command'
+  , Options.command'
       "compile"
       "Compile a dictionary to its C intermediate form."
       (IcicleCompile <$> pCompile)
-  , command'
+  , Options.command'
       "query"
       "Run an icicle query over some data."
-      pQuery
+      (IcicleQuery <$> pQuery)
   ]
 
 pRepl :: Parser ReplOptions
@@ -78,27 +71,34 @@ pRepl =
 
 pUseDotfiles :: Parser UseDotfiles
 pUseDotfiles =
-  flag UseDotfiles SkipDotfiles $
-    long "skip-dotfiles" <>
-    help "Don't load the .icicle file from $HOME or the current directory"
+  Options.flag UseDotfiles SkipDotfiles $
+    Options.long "skip-dotfiles" <>
+    Options.help "Don't load the .icicle file from $HOME or the current directory"
 
 pReplZebra :: Parser FilePath
 pReplZebra =
-  argument str $
-    metavar "INPUT_ZEBRA" <>
-    help "Path to a Zebra binary file to load"
+  Options.argument Options.str $
+    Options.metavar "INPUT_ZEBRA" <>
+    Options.help "Path to a Zebra binary file to load"
 
 pReplPSV :: Parser FilePath
 pReplPSV =
-  argument str $
-    metavar "INPUT_PSV" <>
-    help "Path to a PSV file to load"
+  Options.argument Options.str $
+    Options.metavar "INPUT_PSV" <>
+    Options.help "Path to a PSV file to load"
 
 pReplTOML :: Parser FilePath
 pReplTOML =
-  argument str $
-    metavar "DICTIONARY_TOML" <>
-    help "Path to a TOML dictionary to load"
+  Options.argument Options.str $
+    Options.metavar "DICTIONARY_TOML" <>
+    Options.help "Path to a TOML dictionary to load"
+
+pReplCommand :: Parser String
+pReplCommand =
+  Options.strOption $
+    Options.long "init" <>
+    Options.metavar "COMMAND" <>
+    Options.help "A command to execute in the REPL before interative evaluation begins."
 
 pCompile :: Parser Compile
 pCompile =
@@ -112,155 +112,127 @@ pMaximumQueriesPerKernel :: Parser MaximumQueriesPerKernel
 pMaximumQueriesPerKernel =
   fmap MaximumQueriesPerKernel .
   Options.option Options.auto $
+    Options.showDefault <>
     Options.value 100 <>
     Options.long "max-queries-per-kernel" <>
     Options.metavar "QUERY_COUNT" <>
-    Options.help "The maximum number of queries to include in each compute kernel. (defaults to 100)"
+    Options.help "The maximum number of queries to include in each compute kernel."
 
 pInputDictionaryToml :: Parser InputDictionaryToml
 pInputDictionaryToml =
   fmap InputDictionaryToml .
   Options.option Options.str $
-    Options.short 'i' <>
     Options.long "input-toml" <>
     Options.metavar "DICTIONARY_TOML" <>
-    Options.help "Path to a dictionary to compile (in TOML format)"
+    Options.help "Path to a TOML dictionary to compile."
 
 pOutputDictionarySea :: Parser OutputDictionarySea
 pOutputDictionarySea =
   fmap OutputDictionarySea .
   Options.option Options.str $
-    Options.short 'o' <>
     Options.long "output-c" <>
     Options.metavar "DICTIONARY_C" <>
-    Options.help "Path to write the compiled dictionary (as C source code)"
+    Options.help "Path to write the compiled C dictionary."
 
-pQuery :: Parser IcicleCommand
+pQuery :: Parser Query
 pQuery =
-  fmap IcicleQuery $
-  QueryOptions
-    <$> pDictionaryFile
-    <*> pInputFile
-    <*> pOutputFile
-    <*> optional pOutputCode
-    <*> (pSnapshot <|> pChordPath)
-    <*> pLimit
-    <*> pDrop
-    <*> pFlagDrop
-    <*> pMaxMapSize
+  Query
+    <$> pDictionarySea
+    <*> pQueryInput
+    <*> pQueryOutput
+    <*> (pQuerySnapshot <|> pQueryChord)
+    <*> pMaximumMapSize
 
-pReplCommand :: Parser String
-pReplCommand =
-  strOption $
-    long "init" <>
-    metavar "COMMAND" <>
-    help "A command to execute in the REPL before interative evaluation begins."
+pDictionarySea :: Parser DictionarySea
+pDictionarySea =
+  fmap DictionarySea .
+  Options.option Options.str $
+    Options.long "dictionary-c" <>
+    Options.metavar "DICTIONARY_C" <>
+    Options.help "Path to a compiled C dictionary."
 
-pDictionaryFile :: Parser DictionaryFile
-pDictionaryFile =
-  pDictionaryToml <|> pDictionaryCode
+pQueryInput :: Parser QueryInput
+pQueryInput =
+  fmap QueryInputZebra pInputZebra
 
-pDictionaryToml :: Parser DictionaryFile
-pDictionaryToml =
-  fmap DictionaryToml pDictionaryTomlPath
-
-pDictionaryTomlPath :: Parser FilePath
-pDictionaryTomlPath =
-  strOption (long "dictionary-toml" <> metavar "DICTIONARY_TOML")
-
-pDictionaryCode :: Parser DictionaryFile
-pDictionaryCode =
-  fmap DictionaryCode $
-    strOption (long "dictionary-code" <> metavar "DICTIONARY_C")
-
-pInputFile :: Parser InputFile
-pInputFile =
-  pInputSparse <|> pInputDense <|> pInputZebra
-
-pInputSparse :: Parser InputFile
-pInputSparse =
-  fmap (InputFile InputSparsePsv) $
-    strOption (long "input-sparse-psv" <> metavar "INPUT_PSV")
-
-pInputDense :: Parser InputFile
-pInputDense =
-  fmap (InputFile InputDensePsv) $
-    strOption (long "input-dense-psv" <> metavar "INPUT_PSV")
-
-pInputZebra :: Parser InputFile
+pInputZebra :: Parser InputZebra
 pInputZebra =
-  fmap (InputFile InputZebra) $
-    strOption (long "input-zebra" <> metavar "INPUT_ZEBRA")
+  fmap InputZebra .
+  Options.option Options.str $
+    Options.long "input-zebra" <>
+    Options.metavar "INPUT_ZEBRA" <>
+    Options.help "Path to a zebra binary file."
 
-pOutputFile :: Parser OutputFile
-pOutputFile =
-  pOutputSparse <|> pOutputDense
+pQueryOutput :: Parser QueryOutput
+pQueryOutput =
+      (QueryOutputZebra <$> pOutputZebra)
+  <|> (QueryOutputPsv <$> pOutputPsv <*> optional pOutputPsvSchema)
 
-pOutputSparse :: Parser OutputFile
-pOutputSparse =
-  fmap (\path -> OutputFile OutputSparsePsv path Nothing) $
-    strOption (long "output-sparse-psv" <> metavar "OUTPUT_PSV")
+pOutputZebra :: Parser OutputZebra
+pOutputZebra =
+  fmap OutputZebra .
+  Options.option Options.str $
+    Options.long "output-zebra" <>
+    Options.metavar "OUTPUT_ZEBRA" <>
+    Options.help "Path to write the zebra binary output file."
 
-pOutputDense :: Parser OutputFile
-pOutputDense =
-  OutputFile OutputDensePsv
-    <$> strOption (long "output-dense-psv" <> metavar "OUTPUT_PSV")
-    <*> optional pOutputSchema
+pOutputPsv :: Parser OutputPsv
+pOutputPsv =
+  fmap OutputPsv $
+  Options.option Options.str $
+    Options.long "output-psv" <>
+    Options.metavar "OUTPUT_PSV" <>
+    Options.help "Path to write the dense psv file."
 
-pOutputCode :: Parser FilePath
-pOutputCode =
-  strOption (long "output-code" <> metavar "DICTIONARY_C")
+pOutputPsvSchema :: Parser OutputPsvSchema
+pOutputPsvSchema =
+  fmap OutputPsvSchema .
+  Options.option Options.str $
+    Options.long "output-psv-schema" <>
+    Options.metavar "OUTPUT_PSV_SCHEMA_JSON" <>
+    Options.help "Location to write the output schema for a dense psv output. (default: <output-path>.schema.json)"
 
-pOutputSchema :: Parser FilePath
-pOutputSchema =
-  strOption $
-       long "output-schema"
-    <> metavar "OUTPUT_PSV_SCHEMA_JSON"
-    <> help
-         "Location to write the output schema when using dense PSV output. (defaults to <output-path>.schema.json)"
+pQuerySnapshot :: Parser QueryScope
+pQuerySnapshot =
+  fmap QuerySnapshot .
+  Options.option (tryRead "cannot parse snapshot date" (dateOfText . Text.pack) id) $
+    Options.long "snapshot" <>
+    Options.metavar "SNAPSHOT_DATE" <>
+    Options.help "Run a snapshot on an inclusive date."
 
-pSnapshot :: Parser (Scope a)
-pSnapshot =
-  fmap ScopeSnapshot . flip option (long "snapshot" <> metavar "SNAPSHOT_DATE") $
-    tryRead "cannot parse snapshot date" (timeOfText . T.pack) id
+pQueryChord :: Parser QueryScope
+pQueryChord =
+  fmap QueryChord .
+  Options.option Options.str $
+    Options.long "chord" <>
+    Options.metavar "CHORD_DESCRIPTOR" <>
+    Options.help "Path to a chord descriptor."
 
-pChordPath :: Parser (Scope FilePath)
-pChordPath =
-  fmap ScopeChord $
-    strOption (long "chord" <> metavar "CHORD_DESCRIPTOR")
+pMaximumMapSize :: Parser MaximumMapSize
+pMaximumMapSize =
+  fmap MaximumMapSize .
+  Options.option Options.auto $
+    Options.showDefault <>
+    Options.value (1024 * 1024) <>
+    Options.long "max-map-size" <>
+    Options.metavar "QUERY_COUNT" <>
+    Options.help "The maximum allowed size of a map at runtime."
 
-pLimit :: Parser Int
-pLimit =
-  flip option (long "facts-limit" <> value defaultPsvFactsLimit) $
-    tryRead "--facts-limit NUMBER" readMaybe id
-
-pDrop :: Parser (Maybe FilePath)
-pDrop =
-  optional $ strOption (long "drop" <> metavar "DROP_FILE")
-
-pFlagDrop :: Parser FlagUseDrop
-pFlagDrop =
-  flag FlagUseDropFile FlagNoUseDropFile $
-    long "drop-to-output" <>
-    help "write partial results to dropped-X.txt or normal output"
-
-pMaxMapSize :: Parser Int
-pMaxMapSize =
-  flip option (long "max-map-size" <> value defaultZebraMaxMapSize) $
-    tryRead "--max-map-size NUMBER_ELEMENTS" readMaybe id
-
-tryRead :: [Char] -> ([Char] -> Maybe a) -> (a -> b) -> ReadM b
+tryRead :: [Char] -> ([Char] -> Maybe a) -> (a -> b) -> Options.ReadM b
 tryRead err f g =
-  readerAsk >>= \s -> case f s of
-    Just i  -> return $ g i
-    Nothing -> readerError err
+  Options.readerAsk >>= \s ->
+    case f s of
+      Just i ->
+        pure $ g i
+      Nothing ->
+        Options.readerError err
 
 ------------------------------------------------------------------------
 
 icicleFingerprint :: Fingerprint
 icicleFingerprint =
   Fingerprint $
-    "icicle-" <> T.pack buildInfoVersion
+    "icicle-" <> Text.pack buildInfoVersion
 
 runCommand :: IcicleCommand -> IO ()
 runCommand = \case
@@ -268,84 +240,9 @@ runCommand = \case
     repl options
 
   IcicleCompile options ->
-    orDie renderCompileError $ do
-      start <- liftIO getCurrentTime
-
-      liftIO $
-        putStrLn "icicle: starting compilation"
-
+    orDie renderCompileError $
       icicleCompile options
-      end <- liftIO getCurrentTime
 
-      let
-        seconds =
-          realToFrac (end `diffUTCTime` start) :: Double
-
-      liftIO $
-        printf "icicle: compilation time = %.2fs\n" seconds
-
-  IcicleQuery q -> do
-    orDie renderIcicleError $ do
-      liftIO . putStrLn $ "icicle: facts_limit = " <> show (optFactsLimit q)
-      liftIO $ putStrLn "icicle: starting compilation"
-      case inputFormat $ optInput q of
-        InputSparsePsv
-          -> bracketEitherT'
-               (createPsvQuery icicleFingerprint q)
-               (hoist liftIO . releaseQuery)
-               (hoist liftIO . runQuery runPsvQuery (optOutputCode q))
-        InputDensePsv
-          -> bracketEitherT'
-               (createPsvQuery icicleFingerprint q)
-               (hoist liftIO . releaseQuery)
-               (hoist liftIO . runQuery runPsvQuery (optOutputCode q))
-        InputZebra
-          -> bracketEitherT'
-               (createZebraQuery icicleFingerprint q)
-               (hoist liftIO . releaseQuery)
-               (hoist liftIO . runQuery runZebraQuery (optOutputCode q))
-
-runQuery ::
-      MonadIO m
-  => (Query a -> m QueryStatistics)
-  -> Maybe FilePath
-  -> Query a
-  -> m ()
-runQuery f msrc query = do
-  let compSecs = realToFrac (queryCompilationTime query) :: Double
-  liftIO (printf "icicle: compilation time = %.2fs\n" compSecs)
-
-  case msrc of
-    Nothing ->
-      pure ()
-    Just src ->
-      writeUtf8 src (querySource query)
-
-  case sfOutputSchema (queryFleet query) of
-    Nothing ->
-      pure ()
-    Just schema -> do
-      let path = queryOutputSchemaPath query
-      liftIO . putStrLn $ "icicle: writing output schema to " <> path
-      writeUtf8 path (renderPrettyPsvSchema schema)
-
-  liftIO (putStrLn "icicle: starting query")
-
-  stats <- f query
-
-  let entities = queryEntities stats
-      facts    = queryFacts stats
-      bytes    = queryBytes stats
-      secs     = realToFrac (queryTime stats) :: Double
-      mbps     = (fromIntegral bytes / secs) / (1024 * 1024)
-      fps      = fromIntegral facts / secs
-
-  liftIO (printf "icicle: query time      = %.2fs\n" secs)
-  liftIO (printf "icicle: total entities  = %d\n" entities)
-  liftIO (printf "icicle: total facts     = %d\n" facts)
-  liftIO (printf "icicle: fact throughput = %.0f facts/s\n" fps)
-  liftIO (printf "icicle: byte throughput = %.2f MiB/s\n" mbps)
-
-writeUtf8 :: MonadIO m => FilePath -> Text -> m ()
-writeUtf8 path txt =
-  liftIO . B.writeFile path $ T.encodeUtf8 txt
+  IcicleQuery options -> do
+    orDie renderQueryError $ do
+      icicleQuery options

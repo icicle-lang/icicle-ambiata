@@ -1,23 +1,26 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 module Icicle.Runtime.Evaluator (
     AvalancheContext(..)
   , SeaContext(..)
+  , UseJetskiCache(..)
 
   , Runtime(..)
+  , ClusterInfo(..)
   , KernelIO(..)
+  , runtimeOutputSchema
 
   , compileAvalanche
   , compileSea
 
-  , snapshot
   , snapshotBlock
   , snapshotCluster
 
@@ -29,10 +32,8 @@ import qualified Anemone.Foreign.Mempool as Mempool
 
 import           Control.Exception.Lifted (bracket)
 import           Control.Monad.IO.Class (MonadIO(..))
-import           Control.Monad.Morph (hoist)
-import           Control.Monad.Trans.Class (lift)
-import           Control.Monad.Trans.State.Strict (StateT(..), evalStateT, get, put)
 
+import qualified Data.Foldable as Foldable
 import qualified Data.List as List
 import           Data.List.NonEmpty (NonEmpty(..))
 import           Data.Map (Map)
@@ -52,7 +53,7 @@ import           GHC.Generics (Generic)
 import qualified Icicle.Avalanche.Prim.Flat as Avalanche
 import qualified Icicle.Avalanche.Program as Avalanche
 import           Icicle.Common.Annot (Annot)
-import           Icicle.Common.Base ()
+import           Icicle.Common.Type (ValType(..))
 import           Icicle.Data.Name
 import           Icicle.Internal.Pretty (Pretty)
 import qualified Icicle.Internal.Pretty as Pretty
@@ -80,9 +81,8 @@ import           X.Control.Monad.Trans.Either (EitherT, hoistEither, left)
 import qualified X.Data.Vector.Cons as Cons
 import           X.Text.Show (gshowsPrec)
 
-import           Zebra.X.Stream (Stream, Of)
-import qualified Zebra.X.Stream as Stream
-
+import           Zebra.X.Vector.Segment (SegmentError)
+import qualified Zebra.X.Vector.Segment as Segment -- FIXME move to x-vector
 
 data RuntimeError =
     RuntimeSeaError !Sea.SeaError
@@ -90,6 +90,8 @@ data RuntimeError =
   | RuntimeHeaderError !HeaderDecodeError
   | RuntimeSchemaError !SchemaError
   | RuntimeStripedError !StripedError
+  | RuntimeSegmentError !SegmentError
+  | RuntimeUnexpectedInputType !ValType
   | RuntimeClusterHadNoOutputs !ClusterId
   | RuntimeExpectedStructOutput !Schema
   | RuntimeInvalidOutputId !Text
@@ -119,6 +121,12 @@ renderRuntimeError = \case
 
   RuntimeStripedError x ->
     Striped.renderStripedError x
+
+  RuntimeSegmentError x ->
+    Segment.renderSegmentError x
+
+  RuntimeUnexpectedInputType x ->
+    "Expected (Sum Error x, Time) but found: " <> Text.pack (show x)
 
   RuntimeClusterHadNoOutputs x ->
     "Found a cluster with no outputs: " <> renderClusterId x
@@ -181,22 +189,21 @@ data ClusterInfo =
   ClusterInfo {
       clusterStateSize :: !Int64
     , clusterInputSchema :: !Schema
+    , clusterInputCount :: !Int
     , clusterOutputSchema :: !Schema
+    , clusterOutputOffset :: !OutputOffset
     } deriving (Eq, Show)
 
 data KernelIO =
   KernelIO {
       kernelIO :: forall void. Ptr void -> IO ()
-    , kernelOffset :: !OutputOffset
     , kernelCount :: !OutputCount
     }
 
 instance Show KernelIO where
- showsPrec p (KernelIO _ off len) =
+ showsPrec p (KernelIO _ len) =
    showParen (p > 10) $
      showString "KernelIO " .
-     showsPrec 11 off .
-     showChar ' ' .
      showsPrec 11 len
 
 newtype OutputOffset =
@@ -217,76 +224,19 @@ instance Show OutputCount where
   showsPrec =
     gshowsPrec
 
--- typedef struct {
---     /* runtime */
---     anemone_mempool_t *mempool;
---     iint_t             max_map_size;
---
---     /* input */
---     itime_t   input_query_time;
---     iint_t    input_count;
---     ierror_t  *input_tombstone;
---     iany_t    *input_melted0;
---     iany_t    *input_melted1;
---     iany_t    *input_melted2;
---     ..
---     iany_t    *input_meltedN;
---     itime_t   *input_time;
---
---     /*** Kernel 0:0 ***/
---
---     /* outputs */
---     iany_t     output_melted0;
---     iany_t     output_melted1;
---     ..
---     iany_t     output_meltedN;
---
---     /* resumables: values */
---     ibuf_1_any_t res_0_0_melted0;
---     ibuf_1_any_t res_0_0_melted1;
---     ..
---     ibuf_1_any_t res_0_0_meltedN;
---
---     /* resumables: has flags */
---     ibool_t has_flags_start_0_0;
---     ibool_t has_0_0_melted0;
---     ibool_t has_0_0_melted1;
---     ..
---     ibool_t has_0_0_meltedN;
---     ibool_t has_flags_end_0_0;
---
---     /*** Kernel 0:1 ***/
---
---     ..
--- }
-
-resolveKernelIO :: MonadIO m => Jetski.Library -> Kernel a -> StateT OutputOffset (EitherT RuntimeError m) (Kernel KernelIO)
+resolveKernelIO :: MonadIO m => Jetski.Library -> Kernel a -> EitherT RuntimeError m (Kernel KernelIO)
 resolveKernelIO library kernel = do
-  compute <- lift . firstT RuntimeJetskiError $
+  compute <- firstT RuntimeJetskiError $
     Jetski.function library (Sea.nameOfKernel kernel) Jetski.retVoid
 
   let
     outputCount =
-      length $
+      fromIntegral . length $
         concatMap (typeMelted . snd) (kernelOutputs kernel)
-
-    resumeableCount =
-      length $
-        kernelResumables kernel
-
-    sentinelCount = -- has_flags_start / has_flags_end
-      2
-
-  offset <- get
-  put $
-    offset +
-    fromIntegral outputCount +
-    fromIntegral resumeableCount +
-    sentinelCount
 
   let
     kio =
-      KernelIO (\ptr -> compute [Jetski.argPtr ptr]) offset (fromIntegral outputCount)
+      KernelIO (\ptr -> compute [Jetski.argPtr ptr]) outputCount
 
   pure $
     kernel {
@@ -308,8 +258,8 @@ fromOutputField :: OutputId -> Schema -> Field Schema
 fromOutputField oid schema =
   Field (renderOutputId oid) schema
 
-resolveClusterSchema :: Cluster c k -> Either RuntimeError Schema
-resolveClusterSchema c = do
+resolveClusterOutputSchema :: Cluster c k -> Either RuntimeError Schema
+resolveClusterOutputSchema c = do
   xs0 <- resolveClusterSchemas c
   case xs0 of
     [] ->
@@ -320,26 +270,34 @@ resolveClusterSchema c = do
         fmap (uncurry fromOutputField) $
         Cons.fromNonEmpty (x :| xs)
 
+resolveClusterInputSchema :: ValType -> Either RuntimeError Schema
+resolveClusterInputSchema = \case
+  PairT (SumT ErrorT x) TimeT ->
+    first RuntimeSchemaError $ Schema.fromValType x
+  x ->
+    Left $ RuntimeUnexpectedInputType x
+
 resolveClusterKernelIO :: MonadIO m => Jetski.Library -> Cluster c k -> EitherT RuntimeError m (Cluster ClusterInfo KernelIO)
 resolveClusterKernelIO library cluster = do
-  let
-    outputStart =
-      fromIntegral . Offset.programOutputStart . length $
-        clusterInputVars cluster
-
-  kernels <- flip evalStateT outputStart $ traverse (resolveKernelIO library) (clusterKernels cluster)
+  kernels <- traverse (resolveKernelIO library) (clusterKernels cluster)
 
   sizeOfState <- firstT RuntimeJetskiError $
     Jetski.function library (Sea.nameOfClusterStateSize cluster) Jetski.retInt64
 
   size <- liftIO $ sizeOfState []
 
-  ischema <- hoistEither . first RuntimeSchemaError . Schema.fromValType $ clusterInputType cluster
-  oschema <- hoistEither $ resolveClusterSchema cluster
+  ischema <- hoistEither . resolveClusterInputSchema $ clusterInputType cluster
+  oschema <- hoistEither $ resolveClusterOutputSchema cluster
 
   let
+    icount =
+      length (clusterInputVars cluster)
+
+    ooffset =
+      fromIntegral . Offset.programOutputStart . length $ clusterInputVars cluster
+
     info =
-      ClusterInfo size ischema oschema
+      ClusterInfo size ischema icount oschema ooffset
 
   pure $
     cluster {
@@ -411,6 +369,29 @@ mkOutputColumns = \case
   x ->
     Left $ RuntimeExpectedStructOutput (Striped.schema x)
 
+mkOutputSchemas :: Schema -> Either RuntimeError (Map OutputId Schema)
+mkOutputSchemas = \case
+  Schema.Struct fields ->
+    fmap Map.fromList . for (Cons.toList fields) $ \(Field k v) ->
+      (,)
+        <$> maybeToRight (RuntimeInvalidOutputId k) (parseOutputId k)
+        <*> pure v
+  x ->
+    Left $ RuntimeExpectedStructOutput x
+
+runtimeOutputSchema :: Runtime -> Either RuntimeError (Map OutputId Schema)
+runtimeOutputSchema =
+  fmap Map.unions .
+  traverse (mkOutputSchemas . clusterOutputSchema . clusterAnnotation) .
+  Map.elems .
+  runtimeClusters
+
+resolveNewCount :: SnapshotTime -> Storable.Vector Int64 -> Storable.Vector Time64 -> Either RuntimeError (Storable.Vector Int64)
+resolveNewCount (SnapshotTime stime) ns ts = do
+  tss <- first RuntimeSegmentError $ Segment.reify ns ts
+  pure . Storable.convert $
+    Boxed.map (fromIntegral . Storable.length . Storable.takeWhile (< stime)) tss
+
 snapshotCluster ::
      Cluster ClusterInfo KernelIO
   -> MaximumMapSize
@@ -425,19 +406,25 @@ snapshotCluster cluster maxMapSize stime input =
     expectedInputSchema =
       clusterInputSchema $ clusterAnnotation cluster
 
-    outputSchema =
-      clusterOutputSchema $ clusterAnnotation cluster
-
     inputData =
       Striped.Pair
         (Striped.Result (inputTombstone input) (inputColumn input))
         (Striped.Time (inputTime input))
 
     inputSchema =
-      Striped.schema inputData
+      Striped.schema $ inputColumn input
 
-    !clusterInputCount =
-      length (clusterInputVars cluster)
+    inputCount =
+      clusterInputCount $ clusterAnnotation cluster
+
+    outputSchema =
+      clusterOutputSchema $ clusterAnnotation cluster
+
+    outputOffset =
+      clusterOutputOffset $ clusterAnnotation cluster
+
+    outputCount =
+      Foldable.sum . fmap (kernelCount . kernelAnnotation) $ clusterKernels cluster
   in
     if inputSchema /= expectedInputSchema then
       left $ RuntimeInputSchemaMismatch expectedInputSchema inputSchema
@@ -450,11 +437,17 @@ snapshotCluster cluster maxMapSize stime input =
           !n_arrays =
             Boxed.length arrays
 
-        when (clusterInputCount /= n_arrays) $
-          left $ RuntimeInputCountMismatch clusterInputCount n_arrays
+        when (inputCount /= n_arrays) $
+          left $ RuntimeInputCountMismatch inputCount n_arrays
+
+        ncounts <- hoistEither $ resolveNewCount stime (inputLength input) (inputTime input)
 
         let
-          loop (!offset0, dl) !ncount = do
+          offsets =
+            Storable.prescanl' (\off n -> off + fromIntegral n * 8) 0 ncounts
+
+          -- This loops runs once per entity
+          computeEntity offset ncount = do
             pState <- liftIO $ Mempool.callocBytes pool (fromIntegral size) 1
             pokeWordOff pState Offset.programMempool pool
             pokeWordOff pState Offset.programMaxMapSize maxMapSize
@@ -464,30 +457,19 @@ snapshotCluster cluster maxMapSize stime input =
             flip Boxed.imapM_ arrays $ \ix array ->
               let
                 !ptr =
-                  Array.unsafeElementPtr array `plusPtr` offset0
+                  Array.unsafeElementPtr array `plusPtr` offset
               in
                 pokeWordOff pState (Offset.programInputError + ix) ptr
 
-            let
-              !offset =
-                offset0 + fromIntegral ncount * 8
+            liftIO . for_ (clusterKernels cluster) $ \kernel ->
+              kernelIO (kernelAnnotation kernel) pState
 
-            outputs <-
-              liftIO . fmap concat . for (clusterKernels cluster) $ \kernel -> do
-                let
-                  kio =
-                    kernelAnnotation kernel
+            outputs <- peekOutputs pState outputOffset outputCount
+            firstT RuntimeStripedError $ Striped.fromAnys pool outputSchema outputs
 
-                kernelIO kio pState
-                peekOutputs pState (kernelOffset kio) (kernelCount kio)
+        columns <- Boxed.zipWithM computeEntity (Boxed.convert offsets) (Boxed.convert ncounts)
 
-            column <- firstT RuntimeStripedError $ Striped.fromAnys pool outputSchema outputs
-
-            pure (offset, dl . (column :))
-
-        (_, dl) <- Storable.foldM loop (0, id) (inputLength input)
-
-        case Cons.fromList $ dl [] of
+        case Cons.fromVector columns of
           Nothing ->
             left $ RuntimeClusterHadNoOutputs (clusterId cluster)
           Just xss0 -> do
@@ -520,16 +502,67 @@ snapshotBlock runtime maxsize stime input =
   in
     if Map.size both /= Map.size inputs then
       left $ RuntimeInputClusterMismatch (Map.keysSet missingInputs) (Map.keysSet missingClusters)
-    else
+    else do
       fmap (Output keys . Map.unions) . for (Map.elems both) $ \(cluster, column) ->
         snapshotCluster cluster maxsize stime column
 
-snapshot ::
-     MonadIO m
-  => Runtime
-  -> MaximumMapSize
-  -> SnapshotTime
-  -> Stream (Of Input) m r
-  -> Stream (Of (Output SnapshotKey)) (EitherT RuntimeError m) r
-snapshot runtime maxsize stime =
-  Stream.mapM (hoist liftIO . snapshotBlock runtime maxsize stime) . hoist lift
+------------------------------------------------------------------------
+-- Skeleton for generated cluster state
+--
+-- typedef struct {
+--     /* runtime */
+--     anemone_mempool_t *mempool;
+--     iint_t             max_map_size;
+--
+--     /* input */
+--     itime_t   input_query_time;
+--     iint_t    input_count;
+--     ierror_t  *input_tombstone;
+--     iany_t    *input_melted0;
+--     iany_t    *input_melted1;
+--     iany_t    *input_melted2;
+--     ..
+--     iany_t    *input_meltedN;
+--     itime_t   *input_time;
+--
+--     /* kernel 0:0 outputs */
+--     iany_t     output0_melted0;
+--     iany_t     output0_melted1;
+--     ..
+--     iany_t     output0_meltedN;
+--
+--     /* kernel 0:1 outputs */
+--     iany_t     output1_melted0;
+--     iany_t     output1_melted1;
+--     ..
+--     iany_t     output1_meltedN;
+--
+--     /* kernel 0:0 flags */
+--     ibool_t has_flags_start_0_0;
+--     ibool_t has_0_0_melted0;
+--     ibool_t has_0_0_melted1;
+--     ..
+--     ibool_t has_0_0_meltedN;
+--     ibool_t has_flags_end_0_0;
+--
+--     /* kernel 0:1 flags */
+--     ibool_t has_flags_start_0_1;
+--     ibool_t has_0_1_melted0;
+--     ibool_t has_0_1_melted1;
+--     ..
+--     ibool_t has_0_1_meltedN;
+--     ibool_t has_flags_end_0_1;
+--
+--     /* kernel 0:0 resumables */
+--     ibuf_1_any_t res_0_0_melted0;
+--     ibuf_1_any_t res_0_0_melted1;
+--     ..
+--     ibuf_1_any_t res_0_0_meltedN;
+--
+--     /* kernel 0:1 resumables */
+--     ibuf_1_any_t res_0_1_melted0;
+--     ibuf_1_any_t res_0_1_melted1;
+--     ..
+--     ibuf_1_any_t res_0_1_meltedN;
+-- } cluster_0_t;
+--

@@ -29,14 +29,6 @@ module Icicle.Sea.IO
   , PsvOutputFormat(..)
   , ZebraConfig (..)
 
-  , PsvSchema
-  , renderPrettyPsvSchema
-  , renderCompactPsvSchema
-  , parsePsvSchema
-
-  , PsvSchemaDecodeError
-  , renderPsvSchemaDecodeError
-
   , module Icicle.Sea.IO.Offset
   ) where
 

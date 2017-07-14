@@ -5,6 +5,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Runtime.Serial.Zebra.Schema (
     ZebraSchemaError(..)
+  , renderZebraSchemaError
 
   , decodeDictionary
   , encodeDictionary
@@ -19,6 +20,7 @@ module Icicle.Runtime.Serial.Zebra.Schema (
 import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
+import qualified Data.Text as Text
 
 import           Icicle.Data.Name
 import           Icicle.Dictionary.Data
@@ -44,6 +46,26 @@ data ZebraSchemaError =
   | ZebraSchemaReflectDictionaryError !Icicle.SchemaError
   | ZebraSchemaReifyDictionaryError !Icicle.SchemaError
     deriving (Eq, Show)
+
+renderZebraSchemaError :: ZebraSchemaError -> Text
+renderZebraSchemaError = \case
+  ZebraSchemaError x ->
+    Zebra.renderSchemaError x
+  ZebraSchemaUnexpectedBinaryEncoding x ->
+    "Unexpected binary encoding: " <> Text.pack (show x)
+  ZebraSchemaUnexpectedReversed x ->
+    "Unexpected reversed column: " <> Text.pack (show x)
+  ZebraSchemaUnknownEnum xs ->
+    "Could not convert unknown enum: " <> Text.pack (show xs)
+  ZebraSchemaInvalidInputId x ->
+    "Found invalid input-id: " <> x
+  ZebraSchemaNoInputs ->
+    "Could not encode schema in zebra as it had no inputs."
+  ZebraSchemaReflectDictionaryError x ->
+    "Error converting a schema in to a dictionary: " <> Icicle.renderSchemaError x
+  ZebraSchemaReifyDictionaryError x ->
+    "Error converting a dictionary in to a schema: " <> Icicle.renderSchemaError x
+
 
 ------------------------------------------------------------------------
 -- Schema: Zebra -> Icicle

@@ -4,58 +4,68 @@
 {-# LANGUAGE TupleSections #-}
 module Icicle.Test.Gen.Runtime.Data where
 
-import qualified Data.ByteString.Char8 as Char8
+import           Data.ByteString (ByteString)
 import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
 import qualified Data.Vector as Boxed
 import qualified Data.Vector.Storable as Storable
 
 import           Disorder.Corpus
-import           Disorder.Jack
+
+import           Hedgehog
+import qualified Hedgehog.Gen as Gen
+import qualified Hedgehog.Range as Range
 
 import           Icicle.Data.Name
 import           Icicle.Runtime.Data
 import qualified Icicle.Runtime.Data.Logical as Logical
 import qualified Icicle.Runtime.Data.Schema as Schema
 import qualified Icicle.Runtime.Data.Striped as Striped
+import           Icicle.Test.Gen.Data.Name
 
 import           P
+
+import qualified Prelude as Savage
 
 import qualified X.Data.Vector.Cons as Cons
 
 
-genBool64 :: Jack Bool64
+genBool64 :: Gen Bool64
 genBool64 =
-  elements [False64, True64]
+  Gen.element [False64, True64]
 
-genTime64 :: Jack Time64
+genTime64 :: Gen Time64
 genTime64 =
   fmap packTime $
     UnpackedTime64
-      <$> choose (1601, 2999)
-      <*> choose (1, 12)
-      <*> choose (1, 28)
-      <*> choose (0, 86399)
+      <$> Gen.integral (Range.linearFrom 2000 1601 2999)
+      <*> Gen.integral (Range.constant 1 12)
+      <*> Gen.integral (Range.constant 1 28)
+      <*> Gen.integral (Range.constant 0 86399)
 
-genError64 :: Jack Error64
+genSnapshotTime :: Gen SnapshotTime
+genSnapshotTime =
+  SnapshotTime <$> genTime64
+
+genError64 :: Gen Error64
 genError64 =
-  elements [NotAnError64, Tombstone64, Fold1NoValue64, CannotCompute64]
+  Gen.element [NotAnError64, Tombstone64, Fold1NoValue64, CannotCompute64]
 
-genResultError :: Jack Error64
+genResultError :: Gen Error64
 genResultError =
-  elements [Tombstone64, Fold1NoValue64, CannotCompute64]
+  Gen.element [Tombstone64, Fold1NoValue64, CannotCompute64]
 
-genTombstoneOrSuccess :: Jack Error64
+genTombstoneOrSuccess :: Gen Error64
 genTombstoneOrSuccess =
-  elements [Tombstone64, NotAnError64]
+  Gen.element [NotAnError64, Tombstone64]
 
-genField :: Jack a -> Jack (Field a)
+genField :: Gen a -> Gen (Field a)
 genField g =
-  Field <$> elements boats <*> g
+  Field <$> Gen.element boats <*> g
 
-genSchema :: Jack Schema
+genSchema :: Gen Schema
 genSchema =
-  oneOfRec [
+  Gen.recursive Gen.choice [
       pure Schema.Unit
     , pure Schema.Bool
     , pure Schema.Int
@@ -67,37 +77,48 @@ genSchema =
     , Schema.Option <$> genSchema
     , Schema.Result <$> genSchema
     , Schema.Pair <$> genSchema <*> genSchema
-    , Schema.Struct . Cons.unsafeFromList <$> listOfN 1 5 (genField genSchema)
+    , Schema.Struct . Cons.unsafeFromList <$> Gen.list (Range.linear 1 5) (genField genSchema)
     , Schema.Array <$> genSchema
     , Schema.Map <$> genSchema <*> genSchema
     ]
 
-genValue :: Schema -> Jack Value
+genChar :: Gen Char
+genChar =
+  Gen.filter (/= '\0') Gen.unicode
+
+genString :: Gen ByteString
+genString =
+  Gen.choice [
+      Gen.element viruses
+    , Gen.utf8 (Range.linear 0 20) genChar
+    ]
+
+genValue :: Schema -> Gen Value
 genValue = \case
   Schema.Unit ->
     pure Logical.Unit
   Schema.Bool ->
     Logical.Bool <$> genBool64
   Schema.Int ->
-    Logical.Int <$> sizedBounded
+    Logical.Int <$> Gen.int64 Range.linearBounded
   Schema.Double ->
-    Logical.Double <$> arbitrary
+    Logical.Double <$> Gen.double (Range.linearFracFrom 0 (-1e308) (1e308))
   Schema.Time ->
     Logical.Time <$> genTime64
   Schema.String ->
-    Logical.String . Char8.pack . filter (/= '\0') <$> listOfN 0 20 arbitrary
+    Logical.String <$> genString
   Schema.Sum x y ->
-    oneOf [
+    Gen.choice [
         Logical.Left <$> genValue x
       , Logical.Right <$> genValue y
       ]
   Schema.Option x ->
-    oneOf [
+    Gen.choice [
         pure Logical.None
       , Logical.Some <$> genValue x
       ]
   Schema.Result x ->
-    oneOf [
+    Gen.choice [
         Logical.Error <$> genResultError
       , Logical.Success <$> genValue x
       ]
@@ -106,43 +127,43 @@ genValue = \case
   Schema.Struct fields ->
     Logical.Struct <$> traverse (genValue . fieldData) fields
   Schema.Array x ->
-    Logical.Array . Boxed.fromList <$> listOfN 0 10 (genValue x)
+    Logical.Array . Boxed.fromList <$> Gen.list (Range.linear 0 10) (genValue x)
   Schema.Map k v ->
-    Logical.Map . Map.fromList <$> listOfN 0 10 ((,) <$> genValue k <*> genValue v)
+    Logical.Map <$> Gen.map (Range.linear 0 10) ((,) <$> genValue k <*> genValue v)
 
-genColumn :: Schema -> Jack Column
+genColumn :: Schema -> Gen Column
 genColumn schema =
-  justOf $
-    rightToMaybe . Striped.fromLogical schema . Boxed.fromList <$> listOfN 0 10 (genValue schema)
+  Gen.just $
+    rightToMaybe . Striped.fromLogical schema . Boxed.fromList <$> Gen.list (Range.linear 0 10) (genValue schema)
 
-genColumnN :: Int -> Schema -> Jack Column
+genColumnN :: Int -> Schema -> Gen Column
 genColumnN n schema =
-  justOf $
-    rightToMaybe . Striped.fromLogical schema . Boxed.fromList <$> vectorOf n (genValue schema)
+  Gen.just $
+    rightToMaybe . Striped.fromLogical schema . Boxed.fromList <$> Gen.list (Range.singleton n) (genValue schema)
 
-genSingleton :: Schema -> Jack (Value, Column)
+genSingleton :: Schema -> Gen (Value, Column)
 genSingleton schema =
-  justOf $ do
+  Gen.just $ do
     x <- genValue schema
     pure . fmap (x,) . rightToMaybe . Striped.fromLogical schema $ Boxed.singleton x
 
-genEntityHash :: Jack EntityHash
+genEntityHash :: Gen EntityHash
 genEntityHash =
   EntityHash
-    <$> choose (0, 5)
+    <$> Gen.word32 (Range.constant 0 5)
 
-genEntityId :: Jack EntityId
+genEntityId :: Gen EntityId
 genEntityId =
   EntityId
-    <$> elements simpsons
+    <$> Gen.element simpsons
 
-genEntityKey :: Jack EntityKey
+genEntityKey :: Gen EntityKey
 genEntityKey =
   EntityKey
     <$> genEntityHash
     <*> genEntityId
 
-genEntityInputColumn :: Schema -> Jack InputColumn
+genEntityInputColumn :: Schema -> Gen InputColumn
 genEntityInputColumn schema = do
   column <- genColumn schema
 
@@ -150,72 +171,66 @@ genEntityInputColumn schema = do
     n =
       Striped.length column
 
-  times <- Storable.fromList <$> vectorOf n genTime64
-  tombstones <- Storable.fromList <$> vectorOf n genTombstoneOrSuccess
+  times <- Storable.fromList <$> Gen.list (Range.singleton n) genTime64
+  tombstones <- Storable.fromList <$> Gen.list (Range.singleton n) genTombstoneOrSuccess
 
   pure $ InputColumn (Storable.singleton $ fromIntegral n) times tombstones column
 
-genInputColumn :: Int -> Jack InputColumn
-genInputColumn n_entities =
-  justOf $ do
-    schema <- genSchema
-    columns <- vectorOf n_entities (genEntityInputColumn schema)
-    pure . rightToMaybe . concatInputColumn $ Cons.unsafeFromList columns
+genInputColumn :: Int -> Schema -> Gen InputColumn
+genInputColumn n_entities schema = do
+  columns <- Gen.list (Range.singleton n_entities) (genEntityInputColumn schema)
+  either (\x -> Savage.error $ "genInputColumn: " <> show x) pure . concatInputColumn $
+    Cons.unsafeFromList columns
 
-genInputId :: Jack InputId
-genInputId =
-  justOf . fmap parseInputId $
-    (\ns n -> ns <> ":" <> n)
-      <$> elements colours
-      <*> elements muppets
-
-genInputColumns :: Int -> Jack (Map InputId InputColumn)
+genInputColumns :: Int -> Gen (Map InputId InputColumn)
 genInputColumns n_entities =
-  Map.fromList
-    <$> listOfN 1 5 ((,) <$> genInputId <*> genInputColumn n_entities)
+  Gen.map (Range.linear 1 5) $
+    (,) <$> genInputId <*> (genInputColumn n_entities =<< genSchema)
 
-genInput :: Jack Input
-genInput = do
-  entities <- Boxed.fromList <$> listOfN 1 5 genEntityKey
+genInputN :: Int -> Gen Input
+genInputN n_entities = do
+  entities <- Boxed.fromList <$> Gen.list (Range.singleton n_entities) genEntityKey
   Input entities
     <$> genInputColumns (Boxed.length entities)
 
-genInputSchemas :: Jack (Map InputId Schema)
+genInput :: Gen Input
+genInput = do
+  genInputN =<< Gen.int (Range.linear 1 5)
+
+genInputSchemas :: Gen (Map InputId Schema)
 genInputSchemas =
   Map.fromList
-    <$> listOfN 1 5 ((,) <$> genInputId <*> genSchema)
+    <$> Gen.list (Range.linear 1 5) ((,) <$> genInputId <*> genSchema)
 
-genOutputId :: Jack OutputId
-genOutputId =
-  justOf . fmap parseOutputId $
-    (\ns n -> ns <> ":" <> n)
-      <$> elements cooking
-      <*> elements southpark
-
-genOutputColumn :: Int -> Jack Column
+genOutputColumn :: Int -> Gen Column
 genOutputColumn n_entities =
-  justOf $ do
+  Gen.just $ do
     schema <- genSchema
-    columns <- vectorOf n_entities (genColumn schema)
+    columns <- Gen.list (Range.singleton n_entities) (genColumn schema)
     pure . rightToMaybe . Striped.unsafeConcat $ Cons.unsafeFromList columns
 
-genOutputColumns :: Int -> Jack (Map OutputId Column)
+genOutputColumns :: Int -> Gen (Map OutputId Column)
 genOutputColumns n_entities =
   Map.fromList
-    <$> listOfN 1 5 ((,) <$> genOutputId <*> genOutputColumn n_entities)
+    <$> Gen.list (Range.linear 1 5) ((,) <$> genOutputId <*> genOutputColumn n_entities)
 
-genOutput :: Jack a -> Jack (Output a)
-genOutput genKey = do
-  keys <- Boxed.fromList <$> listOfN 1 5 genKey
+genOutputN :: Int -> Gen a -> Gen (Output a)
+genOutputN n genKey = do
+  keys <- Boxed.fromList <$> Gen.list (Range.singleton n) genKey
   Output keys
     <$> genOutputColumns (Boxed.length keys)
 
-genSnapshotKey :: Jack SnapshotKey
+genOutput :: Gen a -> Gen (Output a)
+genOutput genKey = do
+  n <- Gen.int (Range.linear 1 5)
+  genOutputN n genKey
+
+genSnapshotKey :: Gen SnapshotKey
 genSnapshotKey =
   SnapshotKey <$> genEntityKey
 
-genChordKey :: Jack ChordKey
+genChordKey :: Gen ChordKey
 genChordKey =
   ChordKey
     <$> genEntityKey
-    <*> elements weather
+    <*> Gen.element weather
