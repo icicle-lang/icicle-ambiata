@@ -18,6 +18,7 @@ import qualified Data.Text.Encoding as T
 import           Data.Time (getCurrentTime, diffUTCTime)
 
 import           Icicle.Command
+import           Icicle.Command.Compile
 import           Icicle.Data.Time (timeOfText)
 import           Icicle.Repl
 import           Icicle.Sea.Eval
@@ -30,13 +31,15 @@ import           System.IO (putStrLn, hSetBuffering, stdout, stderr)
 import           Text.Printf (printf)
 
 import           X.Control.Monad.Trans.Either
-import           X.Control.Monad.Trans.Either.Exit
+import           X.Control.Monad.Trans.Either.Exit (orDie)
 import           X.Options.Applicative
+import           X.Options.Applicative (Parser, Mod, CommandFields)
+import qualified X.Options.Applicative as Options
 
 
 data IcicleCommand =
-    IcicleRepl ReplOptions
-  | IcicleCompile FilePath FilePath InputFormat OutputFormat (Scope ()) CompilerFlags
+    IcicleRepl !ReplOptions
+  | IcicleCompile !Compile
   | IcicleQuery QueryOptions
     deriving (Eq, Ord, Show)
 
@@ -44,7 +47,7 @@ main :: IO ()
 main = do
   hSetBuffering stdout LineBuffering
   hSetBuffering stderr LineBuffering
-  cli "icicle" buildInfoVersion dependencyInfo parser (orDie renderIcicleError . runCommand)
+  cli "icicle" buildInfoVersion dependencyInfo parser runCommand
 
 parser :: Parser IcicleCommand
 parser =
@@ -55,20 +58,19 @@ commands = [
     command'
       "repl"
       "Interactively evaluate icicle expressions."
-      pRepl
+      (IcicleRepl <$> pRepl)
   , command'
       "compile"
       "Compile a dictionary to its C intermediate form."
-      pCompile
+      (IcicleCompile <$> pCompile)
   , command'
       "query"
       "Run an icicle query over some data."
       pQuery
   ]
 
-pRepl :: Parser IcicleCommand
+pRepl :: Parser ReplOptions
 pRepl =
-  fmap IcicleRepl $
   ReplOptions
     <$> pUseDotfiles
     <*> many pReplCommand
@@ -98,15 +100,40 @@ pReplTOML =
     metavar "DICTIONARY_TOML" <>
     help "Path to a TOML dictionary to load"
 
-pCompile :: Parser IcicleCommand
+pCompile :: Parser Compile
 pCompile =
-  IcicleCompile
-    <$> pDictionaryTomlPath
-    <*> pOutputCode
-    <*> pInputFormat
-    <*> pOutputFormat
-    <*> (pSnapshot <|> pChord)
-    <*> pCompilerFlags
+  Compile
+    <$> pure icicleFingerprint
+    <*> pMaximumQueriesPerKernel
+    <*> pInputDictionaryToml
+    <*> pOutputDictionarySea
+
+pMaximumQueriesPerKernel :: Parser MaximumQueriesPerKernel
+pMaximumQueriesPerKernel =
+  fmap MaximumQueriesPerKernel .
+  Options.option Options.auto $
+    Options.value 100 <>
+    Options.long "max-queries-per-kernel" <>
+    Options.metavar "QUERY_COUNT" <>
+    Options.help "The maximum number of queries to include in each compute kernel. (defaults to 100)"
+
+pInputDictionaryToml :: Parser InputDictionaryToml
+pInputDictionaryToml =
+  fmap InputDictionaryToml .
+  Options.option Options.str $
+    Options.short 'i' <>
+    Options.long "input-toml" <>
+    Options.metavar "DICTIONARY_TOML" <>
+    Options.help "Path to a dictionary to compile (in TOML format)"
+
+pOutputDictionarySea :: Parser OutputDictionarySea
+pOutputDictionarySea =
+  fmap OutputDictionarySea .
+  Options.option Options.str $
+    Options.short 'o' <>
+    Options.long "output-c" <>
+    Options.metavar "DICTIONARY_C" <>
+    Options.help "Path to write the compiled dictionary (as C source code)"
 
 pQuery :: Parser IcicleCommand
 pQuery =
@@ -150,63 +177,35 @@ pInputFile :: Parser InputFile
 pInputFile =
   pInputSparse <|> pInputDense <|> pInputZebra
 
-pInputFormat :: Parser InputFormat
-pInputFormat =
-  pInputSparseFormat <|> pInputDenseFormat <|> pInputZebraFormat
-
 pInputSparse :: Parser InputFile
 pInputSparse =
   fmap (InputFile InputSparsePsv) $
     strOption (long "input-sparse-psv" <> metavar "INPUT_PSV")
-
-pInputSparseFormat :: Parser InputFormat
-pInputSparseFormat =
-  flag' InputSparsePsv (long "input-sparse-psv")
 
 pInputDense :: Parser InputFile
 pInputDense =
   fmap (InputFile InputDensePsv) $
     strOption (long "input-dense-psv" <> metavar "INPUT_PSV")
 
-pInputDenseFormat :: Parser InputFormat
-pInputDenseFormat =
-  flag' InputDensePsv (long "input-dense-psv")
-
 pInputZebra :: Parser InputFile
 pInputZebra =
   fmap (InputFile InputZebra) $
     strOption (long "input-zebra" <> metavar "INPUT_ZEBRA")
 
-pInputZebraFormat :: Parser InputFormat
-pInputZebraFormat =
-  flag' InputZebra (long "input-zebra")
-
 pOutputFile :: Parser OutputFile
 pOutputFile =
   pOutputSparse <|> pOutputDense
-
-pOutputFormat :: Parser OutputFormat
-pOutputFormat =
-  pOutputSparseFormat <|> pOutputDenseFormat
 
 pOutputSparse :: Parser OutputFile
 pOutputSparse =
   fmap (\path -> OutputFile OutputSparsePsv path Nothing) $
     strOption (long "output-sparse-psv" <> metavar "OUTPUT_PSV")
 
-pOutputSparseFormat :: Parser OutputFormat
-pOutputSparseFormat =
-  flag' OutputSparsePsv (long "output-sparse-psv")
-
 pOutputDense :: Parser OutputFile
 pOutputDense =
   OutputFile OutputDensePsv
     <$> strOption (long "output-dense-psv" <> metavar "OUTPUT_PSV")
     <*> optional pOutputSchema
-
-pOutputDenseFormat :: Parser OutputFormat
-pOutputDenseFormat =
-  flag' OutputDensePsv (long "output-dense-psv")
 
 pOutputCode :: Parser FilePath
 pOutputCode =
@@ -230,10 +229,6 @@ pChordPath =
   fmap ScopeChord $
     strOption (long "chord" <> metavar "CHORD_DESCRIPTOR")
 
-pChord :: Parser (Scope ())
-pChord =
-  flag' (ScopeChord ()) (long "chord")
-
 pLimit :: Parser Int
 pLimit =
   flip option (long "facts-limit" <> value defaultPsvFactsLimit) $
@@ -254,12 +249,6 @@ pMaxMapSize =
   flip option (long "max-map-size" <> value defaultZebraMaxMapSize) $
     tryRead "--max-map-size NUMBER_ELEMENTS" readMaybe id
 
-pCompilerFlags :: Parser CompilerFlags
-pCompilerFlags = CompilerFlags <$> maximumQueries
- where
-  maximumQueries = flip option (long "fuse-maximum-per-kernel" <> value (compilerMaximumQueriesPerKernel defaultCompilerFlags)) $
-    tryRead "--fuse-maximum-per-kernel NUMBER_QUERIES" readMaybe id
-
 tryRead :: [Char] -> ([Char] -> Maybe a) -> (a -> b) -> ReadM b
 tryRead err f g =
   readerAsk >>= \s -> case f s of
@@ -273,42 +262,48 @@ icicleFingerprint =
   Fingerprint $
     "icicle-" <> T.pack buildInfoVersion
 
-runCommand :: IcicleCommand -> EitherT IcicleError IO ()
+runCommand :: IcicleCommand -> IO ()
 runCommand = \case
   IcicleRepl options ->
-    liftIO $ repl options
+    repl options
 
-  IcicleCompile tomlPath opath iformat oformat scope cflags -> do
-    start <- liftIO getCurrentTime
-    liftIO $ putStrLn "icicle: starting compilation"
+  IcicleCompile options ->
+    orDie renderCompileError $ do
+      start <- liftIO getCurrentTime
 
-    code <- compileDictionary icicleFingerprint tomlPath iformat oformat scope cflags
-    writeUtf8 opath code
+      liftIO $
+        putStrLn "icicle: starting compilation"
 
-    end <- liftIO getCurrentTime
-    let secs = realToFrac (end `diffUTCTime` start) :: Double
+      icicleCompile options
+      end <- liftIO getCurrentTime
 
-    liftIO (printf "icicle: compilation time = %.2fs\n" secs)
+      let
+        seconds =
+          realToFrac (end `diffUTCTime` start) :: Double
+
+      liftIO $
+        printf "icicle: compilation time = %.2fs\n" seconds
 
   IcicleQuery q -> do
-    liftIO . putStrLn $ "icicle: facts_limit = " <> show (optFactsLimit q)
-    liftIO $ putStrLn "icicle: starting compilation"
-    case inputFormat $ optInput q of
-      InputSparsePsv
-        -> bracketEitherT'
-             (createPsvQuery icicleFingerprint q)
-             (hoist liftIO . releaseQuery)
-             (hoist liftIO . runQuery runPsvQuery (optOutputCode q))
-      InputDensePsv
-        -> bracketEitherT'
-             (createPsvQuery icicleFingerprint q)
-             (hoist liftIO . releaseQuery)
-             (hoist liftIO . runQuery runPsvQuery (optOutputCode q))
-      InputZebra
-        -> bracketEitherT'
-             (createZebraQuery icicleFingerprint q)
-             (hoist liftIO . releaseQuery)
-             (hoist liftIO . runQuery runZebraQuery (optOutputCode q))
+    orDie renderIcicleError $ do
+      liftIO . putStrLn $ "icicle: facts_limit = " <> show (optFactsLimit q)
+      liftIO $ putStrLn "icicle: starting compilation"
+      case inputFormat $ optInput q of
+        InputSparsePsv
+          -> bracketEitherT'
+               (createPsvQuery icicleFingerprint q)
+               (hoist liftIO . releaseQuery)
+               (hoist liftIO . runQuery runPsvQuery (optOutputCode q))
+        InputDensePsv
+          -> bracketEitherT'
+               (createPsvQuery icicleFingerprint q)
+               (hoist liftIO . releaseQuery)
+               (hoist liftIO . runQuery runPsvQuery (optOutputCode q))
+        InputZebra
+          -> bracketEitherT'
+               (createZebraQuery icicleFingerprint q)
+               (hoist liftIO . releaseQuery)
+               (hoist liftIO . runQuery runZebraQuery (optOutputCode q))
 
 runQuery ::
       MonadIO m

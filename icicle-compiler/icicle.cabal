@@ -125,6 +125,7 @@ library
                        Icicle.Benchmark.Generator
 
                        Icicle.Command
+                       Icicle.Command.Compile
 
                        Icicle.Compiler
 

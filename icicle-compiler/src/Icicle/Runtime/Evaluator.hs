@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
@@ -12,27 +13,33 @@ module Icicle.Runtime.Evaluator (
 
   , Runtime(..)
   , KernelIO(..)
-  , RuntimeError(..)
 
   , compileAvalanche
   , compileSea
-  , snapshot
 
-  -- * Internal
-  , clusterSnapshot
+  , snapshot
+  , snapshotBlock
+  , snapshotCluster
+
+  , RuntimeError(..)
+  , renderRuntimeError
   ) where
 
 import qualified Anemone.Foreign.Mempool as Mempool
 
 import           Control.Exception.Lifted (bracket)
 import           Control.Monad.IO.Class (MonadIO(..))
+import           Control.Monad.Morph (hoist)
 import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Trans.State.Strict (StateT(..), evalStateT, get, put)
 
+import qualified Data.List as List
 import           Data.List.NonEmpty (NonEmpty(..))
 import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Set (Set)
+import           Data.String (String)
+import qualified Data.Text as Text
 import qualified Data.Vector as Boxed
 import qualified Data.Vector.Storable as Storable
 
@@ -48,6 +55,7 @@ import           Icicle.Common.Annot (Annot)
 import           Icicle.Common.Base ()
 import           Icicle.Data.Name
 import           Icicle.Internal.Pretty (Pretty)
+import qualified Icicle.Internal.Pretty as Pretty
 import           Icicle.Runtime.Data
 import qualified Icicle.Runtime.Data.Array as Array
 import           Icicle.Runtime.Data.Schema (SchemaError)
@@ -66,9 +74,14 @@ import           P hiding (Any)
 
 import           System.IO (IO)
 
+import           Text.Show.Pretty (ppShow)
+
 import           X.Control.Monad.Trans.Either (EitherT, hoistEither, left)
 import qualified X.Data.Vector.Cons as Cons
 import           X.Text.Show (gshowsPrec)
+
+import           Zebra.X.Stream (Stream, Of)
+import qualified Zebra.X.Stream as Stream
 
 
 data RuntimeError =
@@ -77,13 +90,69 @@ data RuntimeError =
   | RuntimeHeaderError !HeaderDecodeError
   | RuntimeSchemaError !SchemaError
   | RuntimeStripedError !StripedError
-  | RuntimeInputCountMismatch !Int !Int
-  | RuntimeInputSchemaMismatch !Schema !Schema
   | RuntimeClusterHadNoOutputs !ClusterId
   | RuntimeExpectedStructOutput !Schema
   | RuntimeInvalidOutputId !Text
+  | RuntimeInputCountMismatch !Int !Int
+  | RuntimeInputSchemaMismatch !Schema !Schema
   | RuntimeInputClusterMismatch !(Set InputId) !(Set InputId)
     deriving (Eq, Show)
+
+renderRuntimeError :: RuntimeError -> Text
+renderRuntimeError = \case
+  RuntimeSeaError x ->
+    Text.pack (show (Pretty.pretty x))
+
+  RuntimeJetskiError (Jetski.CompilerError options _src ccout) ->
+    "Failed to compile C code using options: " <> Text.pack (show options) <>
+    "\n" <>
+    "\n" <> ccout
+
+  RuntimeJetskiError x ->
+    Text.pack (show x)
+
+  RuntimeHeaderError x ->
+    renderHeaderDecodeError x
+
+  RuntimeSchemaError x ->
+    Schema.renderSchemaError x
+
+  RuntimeStripedError x ->
+    Striped.renderStripedError x
+
+  RuntimeClusterHadNoOutputs x ->
+    "Found a cluster with no outputs: " <> renderClusterId x
+
+  RuntimeExpectedStructOutput x ->
+    "Expected to find a struct containing the outputs, but found: " <> Text.pack (show x)
+
+  RuntimeInvalidOutputId x ->
+    "Failed to parse output-id: " <> x
+
+  RuntimeInputCountMismatch expected actual ->
+    "Expected <" <> Text.pack (show expected) <> "> inputs, but found <" <> Text.pack (show actual) <> ">"
+
+  RuntimeInputSchemaMismatch expected actual ->
+    "Input schema mismatch." <>
+    "\n" <>
+    "\n  expected =" <>
+    "\n" <> Text.pack (indent4 (ppShow expected)) <>
+    "\n" <>
+    "\n  actual =" <>
+    "\n" <> Text.pack (indent4 (ppShow actual))
+
+  RuntimeInputClusterMismatch missingInputs missingClusters ->
+    "Input mismatch." <>
+    "\n" <>
+    "\n  query clusters without a matching input =" <>
+    "\n" <> Text.pack (indent4 (ppShow missingInputs)) <>
+    "\n" <>
+    "\n  inputs without a matching query cluster =" <>
+    "\n" <> Text.pack (indent4 (ppShow missingClusters))
+
+indent4 :: String -> String
+indent4 =
+  List.unlines . fmap ("    " <>) . List.lines
 
 data AvalancheContext a n =
   AvalancheContext {
@@ -342,13 +411,13 @@ mkOutputColumns = \case
   x ->
     Left $ RuntimeExpectedStructOutput (Striped.schema x)
 
-clusterSnapshot ::
+snapshotCluster ::
      Cluster ClusterInfo KernelIO
   -> MaximumMapSize
   -> SnapshotTime
   -> InputColumn
   -> EitherT RuntimeError IO (Map OutputId Column)
-clusterSnapshot cluster maxMapSize stime input =
+snapshotCluster cluster maxMapSize stime input =
   let
     size =
       clusterStateSize $ clusterAnnotation cluster
@@ -425,8 +494,8 @@ clusterSnapshot cluster maxMapSize stime input =
             xss <- hoistEither . first RuntimeStripedError $ Striped.unsafeConcat xss0
             hoistEither $ mkOutputColumns xss
 
-snapshot :: Runtime -> MaximumMapSize -> SnapshotTime -> Input -> EitherT RuntimeError IO (Output SnapshotKey)
-snapshot runtime maxsize stime input =
+snapshotBlock :: Runtime -> MaximumMapSize -> SnapshotTime -> Input -> EitherT RuntimeError IO (Output SnapshotKey)
+snapshotBlock runtime maxsize stime input =
   let
     eids =
       inputKey input
@@ -453,4 +522,14 @@ snapshot runtime maxsize stime input =
       left $ RuntimeInputClusterMismatch (Map.keysSet missingInputs) (Map.keysSet missingClusters)
     else
       fmap (Output keys . Map.unions) . for (Map.elems both) $ \(cluster, column) ->
-        clusterSnapshot cluster maxsize stime column
+        snapshotCluster cluster maxsize stime column
+
+snapshot ::
+     MonadIO m
+  => Runtime
+  -> MaximumMapSize
+  -> SnapshotTime
+  -> Stream (Of Input) m r
+  -> Stream (Of (Output SnapshotKey)) (EitherT RuntimeError m) r
+snapshot runtime maxsize stime =
+  Stream.mapM (hoist liftIO . snapshotBlock runtime maxsize stime) . hoist lift

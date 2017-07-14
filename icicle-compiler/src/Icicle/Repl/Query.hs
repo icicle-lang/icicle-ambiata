@@ -552,7 +552,7 @@ evaluateZebra compiled path = do
 
             output0 <-
               firstT QueryRuntimeError . hoist liftIO $
-                Runtime.snapshot runtime mapSize time input
+                Runtime.snapshotBlock runtime mapSize time input
 
             output1 <- hoistEither $ fromOutput (compiledOutputId compiled) output0
 
