@@ -706,27 +706,27 @@ for_facts conv-2 : Time
       map_insert_acc_bs_index-flat-5
     if (eq# flat-109 True)
     {
-      let simpflat-361 =
+      let simpflat-366 =
         unsafe_Array_index#
           map_insert_loc_vals-flat-8-simpflat-69
           flat-110
-      let simpflat-363 =
+      let simpflat-368 =
         unsafe_Array_index#
           map_insert_loc_vals-flat-8-simpflat-70
           flat-110
-      let simpflat-365 =
+      let simpflat-370 =
         unsafe_Array_index#
           map_insert_loc_vals-flat-8-simpflat-71
           flat-110
-      let simpflat-372 =
-        Buf_push# simpflat-361 conv-1
-      let simpflat-375 =
+      let simpflat-377 =
+        Buf_push# simpflat-366 conv-1
+      let simpflat-380 =
         Buf_push#
-          simpflat-363
+          simpflat-368
           conv-0-simpflat-170
-      let simpflat-378 =
+      let simpflat-383 =
         Buf_push#
-          simpflat-365
+          simpflat-370
           conv-0-simpflat-171
       read map_insert_acc_vals-flat-4-simpflat-65 =
         map_insert_acc_vals-flat-4-simpflat-65
@@ -735,7 +735,7 @@ for_facts conv-2 : Time
         Array_put_immutable#
           map_insert_acc_vals-flat-4-simpflat-65
           flat-110
-          simpflat-372
+          simpflat-377
       read map_insert_acc_vals-flat-4-simpflat-66 =
         map_insert_acc_vals-flat-4-simpflat-66
       
@@ -744,7 +744,7 @@ for_facts conv-2 : Time
         Array_put_immutable#
           map_insert_acc_vals-flat-4-simpflat-66
           flat-110
-          simpflat-375
+          simpflat-380
       read map_insert_acc_vals-flat-4-simpflat-67 =
         map_insert_acc_vals-flat-4-simpflat-67
       
@@ -753,7 +753,7 @@ for_facts conv-2 : Time
         Array_put_immutable#
           map_insert_acc_vals-flat-4-simpflat-67
           flat-110
-          simpflat-378
+          simpflat-383
       
       
       
@@ -797,7 +797,7 @@ for_facts conv-2 : Time
       }
       else
       {
-        let simpflat-392 =
+        let simpflat-397 =
           unsafe_Array_index#
             copy_array-flat-32-simpflat-77
             0
@@ -805,8 +805,8 @@ for_facts conv-2 : Time
           Array_put_immutable#
             copy_array-flat-32-simpflat-77
             0
-            simpflat-392
-        let simpflat-404 =
+            simpflat-397
+        let simpflat-409 =
           unsafe_Array_index#
             copy_array-flat-32-simpflat-78
             0
@@ -814,8 +814,8 @@ for_facts conv-2 : Time
           Array_put_immutable#
             copy_array-flat-32-simpflat-78
             0
-            simpflat-404
-        let simpflat-416 =
+            simpflat-409
+        let simpflat-421 =
           unsafe_Array_index#
             copy_array-flat-32-simpflat-79
             0
@@ -823,7 +823,7 @@ for_facts conv-2 : Time
           Array_put_immutable#
             copy_array-flat-32-simpflat-79
             0
-            simpflat-416
+            simpflat-421
       }
       foreach (for_counter-flat-33 in map_insert_size-flat-12 .. flat-110)
       {
@@ -846,7 +846,7 @@ for_facts conv-2 : Time
           map_insert_acc_vals-flat-4-simpflat-66
         read update_acc-flat-35-simpflat-83 =
           map_insert_acc_vals-flat-4-simpflat-67
-        let simpflat-432 =
+        let simpflat-437 =
           unsafe_Array_index#
             map_insert_loc_vals-flat-8-simpflat-69
             simpflat-218
@@ -854,8 +854,8 @@ for_facts conv-2 : Time
           Array_put_mutable#
             update_acc-flat-35-simpflat-81
             for_counter-flat-33
-            simpflat-432
-        let simpflat-444 =
+            simpflat-437
+        let simpflat-449 =
           unsafe_Array_index#
             map_insert_loc_vals-flat-8-simpflat-70
             simpflat-218
@@ -863,8 +863,8 @@ for_facts conv-2 : Time
           Array_put_mutable#
             update_acc-flat-35-simpflat-82
             for_counter-flat-33
-            simpflat-444
-        let simpflat-456 =
+            simpflat-449
+        let simpflat-461 =
           unsafe_Array_index#
             map_insert_loc_vals-flat-8-simpflat-71
             simpflat-218
@@ -872,7 +872,7 @@ for_facts conv-2 : Time
           Array_put_mutable#
             update_acc-flat-35-simpflat-83
             for_counter-flat-33
-            simpflat-456
+            simpflat-461
       }
       read map_insert_acc_keys-flat-3 =
         map_insert_acc_keys-flat-3
@@ -883,21 +883,21 @@ for_facts conv-2 : Time
           flat-110
           conv-0-simpflat-172
       
-      let simpflat-582 =
+      let simpflat-587 =
         Buf_make# ()
-      let simpflat-471 =
-        Buf_push# simpflat-582 conv-1
-      let simpflat-583 =
+      let simpflat-476 =
+        Buf_push# simpflat-587 conv-1
+      let simpflat-588 =
         Buf_make# ()
-      let simpflat-474 =
+      let simpflat-479 =
         Buf_push#
-          simpflat-583
+          simpflat-588
           conv-0-simpflat-170
-      let simpflat-584 =
+      let simpflat-589 =
         Buf_make# ()
-      let simpflat-477 =
+      let simpflat-482 =
         Buf_push#
-          simpflat-584
+          simpflat-589
           conv-0-simpflat-171
       read map_insert_acc_vals-flat-4-simpflat-65 =
         map_insert_acc_vals-flat-4-simpflat-65
@@ -906,7 +906,7 @@ for_facts conv-2 : Time
         Array_put_mutable#
           map_insert_acc_vals-flat-4-simpflat-65
           flat-110
-          simpflat-471
+          simpflat-476
       read map_insert_acc_vals-flat-4-simpflat-66 =
         map_insert_acc_vals-flat-4-simpflat-66
       
@@ -915,7 +915,7 @@ for_facts conv-2 : Time
         Array_put_mutable#
           map_insert_acc_vals-flat-4-simpflat-66
           flat-110
-          simpflat-474
+          simpflat-479
       read map_insert_acc_vals-flat-4-simpflat-67 =
         map_insert_acc_vals-flat-4-simpflat-67
       
@@ -924,7 +924,7 @@ for_facts conv-2 : Time
         Array_put_mutable#
           map_insert_acc_vals-flat-4-simpflat-67
           flat-110
-          simpflat-477
+          simpflat-482
       
       
       
@@ -1042,12 +1042,12 @@ if (eq#
   foreach (flat-42 in 0 .. Array_length#
                              acc-conv-37-flat-40-simpflat-113)
   {
-    let simpflat-512 =
+    let simpflat-517 =
       unsafe_Array_index#
         acc-conv-37-flat-40-simpflat-113
         flat-42
     let flat-43 =
-      Buf_read# simpflat-512
+      Buf_read# simpflat-517
     foreach (flat-44 in 0 .. Array_length#
                                flat-43)
     {
@@ -1095,15 +1095,15 @@ if (eq#
       flat-55-simpflat-127
     read flat-55-simpflat-131 =
       flat-55-simpflat-128
-    let simpflat-534 =
+    let simpflat-539 =
       unsafe_Array_index#
         conv-37-simpflat-118
         for_counter-flat-56
-    let simpflat-538 =
+    let simpflat-543 =
       unsafe_Array_index#
         conv-37-simpflat-120
         for_counter-flat-56
-    let simpflat-540 =
+    let simpflat-545 =
       unsafe_Array_index#
         conv-37-simpflat-121
         for_counter-flat-56
@@ -1117,35 +1117,35 @@ if (eq#
           flat-55-simpflat-129
           ExceptNotAnError)
     {
-      let simpflat-556 =
-        Buf_read# simpflat-538
-      let simpflat-558 =
-        Buf_read# simpflat-540
+      let simpflat-561 =
+        Buf_read# simpflat-543
+      let simpflat-563 =
+        Buf_read# simpflat-545
       init flat-62-simpflat-135 : Error =
         ExceptNotAnError
       init flat-62-simpflat-136 : Int =
         0
       foreach (for_counter-flat-101 in 0 .. Array_length#
-                                              simpflat-556)
+                                              simpflat-561)
       {
         read flat-62-simpflat-137 =
           flat-62-simpflat-135
         read flat-62-simpflat-138 =
           flat-62-simpflat-136
-        let simpflat-563 =
+        let simpflat-568 =
           unsafe_Array_index#
-            simpflat-556
+            simpflat-561
             for_counter-flat-101
-        let simpflat-565 =
+        let simpflat-570 =
           unsafe_Array_index#
-            simpflat-558
+            simpflat-563
             for_counter-flat-101
         init flat-103-simpflat-139 : Error =
           ExceptNotAnError
         init flat-103-simpflat-140 : Int =
           0
         if (eq#
-              simpflat-563
+              simpflat-568
               ExceptNotAnError)
         {
           init flat-106-simpflat-141 : Error =
@@ -1160,7 +1160,7 @@ if (eq#
               ExceptNotAnError
             write flat-106-simpflat-142 =
               add#
-                simpflat-565
+                simpflat-570
                 flat-62-simpflat-138
           }
           else
@@ -1182,7 +1182,7 @@ if (eq#
         else
         {
           write flat-103-simpflat-139 =
-            simpflat-563
+            simpflat-568
           write flat-103-simpflat-140 =
             0
         }
@@ -1252,16 +1252,16 @@ if (eq#
           }
           else
           {
-            let simpflat-312 =
+            let simpflat-316 =
               add#
                 bs_loc_low-flat-86
                 bs_loc_high-flat-87
-            let simpflat-313 =
-              doubleOfInt# simpflat-312
-            let simpflat-314 =
-              div# simpflat-313 2.0
+            let simpflat-317 =
+              doubleOfInt# simpflat-316
+            let simpflat-318 =
+              div# simpflat-317 2.0
             write bs_acc_mid-flat-80 =
-              floor# simpflat-314
+              floor# simpflat-318
             read bs_loc_mid-flat-84 =
               bs_acc_mid-flat-80
             let bs_loc_x-flat-85 =
@@ -1270,7 +1270,7 @@ if (eq#
                 bs_loc_mid-flat-84
             if (eq#
                   bs_loc_x-flat-85
-                  simpflat-534)
+                  simpflat-539)
             {
               write bs_acc_end-flat-90 =
                 True
@@ -1281,7 +1281,7 @@ if (eq#
             {
               if (lt#
                     bs_loc_x-flat-85
-                    simpflat-534)
+                    simpflat-539)
               {
                 write bs_acc_low-flat-88 =
                   add# bs_loc_mid-flat-84 1
@@ -1336,16 +1336,16 @@ if (eq#
         {
           read copy_array-flat-93 =
             map_insert_acc_keys-flat-66
-          let simpflat-315 =
+          let simpflat-319 =
             Array_length#
               copy_array-flat-93
-          if (eq# simpflat-315 0)
+          if (eq# simpflat-319 0)
           {
             
           }
           else
           {
-            let simpflat-316 =
+            let simpflat-320 =
               unsafe_Array_index#
                 copy_array-flat-93
                 0
@@ -1353,20 +1353,20 @@ if (eq#
               Array_put_immutable#
                 copy_array-flat-93
                 0
-                simpflat-316
+                simpflat-320
           }
           read copy_array-flat-94 =
             map_insert_acc_vals-flat-67
-          let simpflat-317 =
+          let simpflat-321 =
             Array_length#
               copy_array-flat-94
-          if (eq# simpflat-317 0)
+          if (eq# simpflat-321 0)
           {
             
           }
           else
           {
-            let simpflat-318 =
+            let simpflat-322 =
               unsafe_Array_index#
                 copy_array-flat-94
                 0
@@ -1374,34 +1374,34 @@ if (eq#
               Array_put_immutable#
                 copy_array-flat-94
                 0
-                simpflat-318
+                simpflat-322
           }
           foreach (for_counter-flat-95 in map_insert_size-flat-75 .. flat-116)
           {
             read update_acc-flat-96 =
               map_insert_acc_keys-flat-66
-            let simpflat-319 =
+            let simpflat-323 =
               sub# for_counter-flat-95 1
-            let simpflat-320 =
+            let simpflat-324 =
               unsafe_Array_index#
                 map_insert_loc_keys-flat-70
-                simpflat-319
+                simpflat-323
             write map_insert_acc_keys-flat-66 =
               Array_put_mutable#
                 update_acc-flat-96
                 for_counter-flat-95
-                simpflat-320
+                simpflat-324
             read update_acc-flat-97 =
               map_insert_acc_vals-flat-67
-            let simpflat-322 =
+            let simpflat-326 =
               unsafe_Array_index#
                 map_insert_loc_vals-flat-71
-                simpflat-319
+                simpflat-323
             write map_insert_acc_vals-flat-67 =
               Array_put_mutable#
                 update_acc-flat-97
                 for_counter-flat-95
-                simpflat-322
+                simpflat-326
           }
           read map_insert_acc_keys-flat-66 =
             map_insert_acc_keys-flat-66
@@ -1410,7 +1410,7 @@ if (eq#
             Array_put_mutable#
               map_insert_acc_keys-flat-66
               flat-116
-              simpflat-534
+              simpflat-539
           
           read map_insert_acc_vals-flat-67 =
             map_insert_acc_vals-flat-67
@@ -1432,9 +1432,9 @@ if (eq#
           unsafe_Array_create# 0
         init flat-100-simpflat-154 : Array Int =
           unsafe_Array_create# 0
-        let simpflat-324 =
+        let simpflat-328 =
           Array_length# flat-117
-        if (lt# simpflat-324 conv-4)
+        if (lt# simpflat-328 conv-4)
         {
           write flat-100-simpflat-152 =
             ExceptNotAnError
@@ -1716,27 +1716,27 @@ for_facts conv-2 : Time
       map_insert_acc_bs_index-flat-5
     if (eq# flat-109 True)
     {
-      let simpflat-361 =
+      let simpflat-366 =
         unsafe_Array_index#
           map_insert_loc_vals-flat-8-simpflat-69
           flat-110
-      let simpflat-363 =
+      let simpflat-368 =
         unsafe_Array_index#
           map_insert_loc_vals-flat-8-simpflat-70
           flat-110
-      let simpflat-365 =
+      let simpflat-370 =
         unsafe_Array_index#
           map_insert_loc_vals-flat-8-simpflat-71
           flat-110
-      let simpflat-372 =
-        Buf_push# simpflat-361 conv-1
-      let simpflat-375 =
+      let simpflat-377 =
+        Buf_push# simpflat-366 conv-1
+      let simpflat-380 =
         Buf_push#
-          simpflat-363
+          simpflat-368
           conv-0-simpflat-170
-      let simpflat-378 =
+      let simpflat-383 =
         Buf_push#
-          simpflat-365
+          simpflat-370
           conv-0-simpflat-171
       read map_insert_acc_vals-flat-4-simpflat-65 =
         map_insert_acc_vals-flat-4-simpflat-65
@@ -1745,7 +1745,7 @@ for_facts conv-2 : Time
         Array_put_immutable#
           map_insert_acc_vals-flat-4-simpflat-65
           flat-110
-          simpflat-372
+          simpflat-377
       read map_insert_acc_vals-flat-4-simpflat-66 =
         map_insert_acc_vals-flat-4-simpflat-66
       
@@ -1754,7 +1754,7 @@ for_facts conv-2 : Time
         Array_put_immutable#
           map_insert_acc_vals-flat-4-simpflat-66
           flat-110
-          simpflat-375
+          simpflat-380
       read map_insert_acc_vals-flat-4-simpflat-67 =
         map_insert_acc_vals-flat-4-simpflat-67
       
@@ -1763,7 +1763,7 @@ for_facts conv-2 : Time
         Array_put_immutable#
           map_insert_acc_vals-flat-4-simpflat-67
           flat-110
-          simpflat-378
+          simpflat-383
       
       
       
@@ -1807,7 +1807,7 @@ for_facts conv-2 : Time
       }
       else
       {
-        let simpflat-392 =
+        let simpflat-397 =
           unsafe_Array_index#
             copy_array-flat-32-simpflat-77
             0
@@ -1815,8 +1815,8 @@ for_facts conv-2 : Time
           Array_put_immutable#
             copy_array-flat-32-simpflat-77
             0
-            simpflat-392
-        let simpflat-404 =
+            simpflat-397
+        let simpflat-409 =
           unsafe_Array_index#
             copy_array-flat-32-simpflat-78
             0
@@ -1824,8 +1824,8 @@ for_facts conv-2 : Time
           Array_put_immutable#
             copy_array-flat-32-simpflat-78
             0
-            simpflat-404
-        let simpflat-416 =
+            simpflat-409
+        let simpflat-421 =
           unsafe_Array_index#
             copy_array-flat-32-simpflat-79
             0
@@ -1833,7 +1833,7 @@ for_facts conv-2 : Time
           Array_put_immutable#
             copy_array-flat-32-simpflat-79
             0
-            simpflat-416
+            simpflat-421
       }
       foreach (for_counter-flat-33 in map_insert_size-flat-12 .. flat-110)
       {
@@ -1856,7 +1856,7 @@ for_facts conv-2 : Time
           map_insert_acc_vals-flat-4-simpflat-66
         read update_acc-flat-35-simpflat-83 =
           map_insert_acc_vals-flat-4-simpflat-67
-        let simpflat-432 =
+        let simpflat-437 =
           unsafe_Array_index#
             map_insert_loc_vals-flat-8-simpflat-69
             simpflat-218
@@ -1864,8 +1864,8 @@ for_facts conv-2 : Time
           Array_put_mutable#
             update_acc-flat-35-simpflat-81
             for_counter-flat-33
-            simpflat-432
-        let simpflat-444 =
+            simpflat-437
+        let simpflat-449 =
           unsafe_Array_index#
             map_insert_loc_vals-flat-8-simpflat-70
             simpflat-218
@@ -1873,8 +1873,8 @@ for_facts conv-2 : Time
           Array_put_mutable#
             update_acc-flat-35-simpflat-82
             for_counter-flat-33
-            simpflat-444
-        let simpflat-456 =
+            simpflat-449
+        let simpflat-461 =
           unsafe_Array_index#
             map_insert_loc_vals-flat-8-simpflat-71
             simpflat-218
@@ -1882,7 +1882,7 @@ for_facts conv-2 : Time
           Array_put_mutable#
             update_acc-flat-35-simpflat-83
             for_counter-flat-33
-            simpflat-456
+            simpflat-461
       }
       read map_insert_acc_keys-flat-3 =
         map_insert_acc_keys-flat-3
@@ -1893,21 +1893,21 @@ for_facts conv-2 : Time
           flat-110
           conv-0-simpflat-172
       
-      let simpflat-582 =
+      let simpflat-587 =
         Buf_make# ()
-      let simpflat-471 =
-        Buf_push# simpflat-582 conv-1
-      let simpflat-583 =
+      let simpflat-476 =
+        Buf_push# simpflat-587 conv-1
+      let simpflat-588 =
         Buf_make# ()
-      let simpflat-474 =
+      let simpflat-479 =
         Buf_push#
-          simpflat-583
+          simpflat-588
           conv-0-simpflat-170
-      let simpflat-584 =
+      let simpflat-589 =
         Buf_make# ()
-      let simpflat-477 =
+      let simpflat-482 =
         Buf_push#
-          simpflat-584
+          simpflat-589
           conv-0-simpflat-171
       read map_insert_acc_vals-flat-4-simpflat-65 =
         map_insert_acc_vals-flat-4-simpflat-65
@@ -1916,7 +1916,7 @@ for_facts conv-2 : Time
         Array_put_mutable#
           map_insert_acc_vals-flat-4-simpflat-65
           flat-110
-          simpflat-471
+          simpflat-476
       read map_insert_acc_vals-flat-4-simpflat-66 =
         map_insert_acc_vals-flat-4-simpflat-66
       
@@ -1925,7 +1925,7 @@ for_facts conv-2 : Time
         Array_put_mutable#
           map_insert_acc_vals-flat-4-simpflat-66
           flat-110
-          simpflat-474
+          simpflat-479
       read map_insert_acc_vals-flat-4-simpflat-67 =
         map_insert_acc_vals-flat-4-simpflat-67
       
@@ -1934,7 +1934,7 @@ for_facts conv-2 : Time
         Array_put_mutable#
           map_insert_acc_vals-flat-4-simpflat-67
           flat-110
-          simpflat-477
+          simpflat-482
       
       
       
@@ -2052,12 +2052,12 @@ if (eq#
   foreach (flat-42 in 0 .. Array_length#
                              acc-conv-37-flat-40-simpflat-113)
   {
-    let simpflat-512 =
+    let simpflat-517 =
       unsafe_Array_index#
         acc-conv-37-flat-40-simpflat-113
         flat-42
     let flat-43 =
-      Buf_read# simpflat-512
+      Buf_read# simpflat-517
     foreach (flat-44 in 0 .. Array_length#
                                flat-43)
     {
@@ -2105,15 +2105,15 @@ if (eq#
       flat-55-simpflat-127
     read flat-55-simpflat-131 =
       flat-55-simpflat-128
-    let simpflat-534 =
+    let simpflat-539 =
       unsafe_Array_index#
         conv-37-simpflat-118
         for_counter-flat-56
-    let simpflat-538 =
+    let simpflat-543 =
       unsafe_Array_index#
         conv-37-simpflat-120
         for_counter-flat-56
-    let simpflat-540 =
+    let simpflat-545 =
       unsafe_Array_index#
         conv-37-simpflat-121
         for_counter-flat-56
@@ -2127,35 +2127,35 @@ if (eq#
           flat-55-simpflat-129
           ExceptNotAnError)
     {
-      let simpflat-556 =
-        Buf_read# simpflat-538
-      let simpflat-558 =
-        Buf_read# simpflat-540
+      let simpflat-561 =
+        Buf_read# simpflat-543
+      let simpflat-563 =
+        Buf_read# simpflat-545
       init flat-62-simpflat-135 : Error =
         ExceptNotAnError
       init flat-62-simpflat-136 : Int =
         0
       foreach (for_counter-flat-101 in 0 .. Array_length#
-                                              simpflat-556)
+                                              simpflat-561)
       {
         read flat-62-simpflat-137 =
           flat-62-simpflat-135
         read flat-62-simpflat-138 =
           flat-62-simpflat-136
-        let simpflat-563 =
+        let simpflat-568 =
           unsafe_Array_index#
-            simpflat-556
+            simpflat-561
             for_counter-flat-101
-        let simpflat-565 =
+        let simpflat-570 =
           unsafe_Array_index#
-            simpflat-558
+            simpflat-563
             for_counter-flat-101
         init flat-103-simpflat-139 : Error =
           ExceptNotAnError
         init flat-103-simpflat-140 : Int =
           0
         if (eq#
-              simpflat-563
+              simpflat-568
               ExceptNotAnError)
         {
           init flat-106-simpflat-141 : Error =
@@ -2170,7 +2170,7 @@ if (eq#
               ExceptNotAnError
             write flat-106-simpflat-142 =
               add#
-                simpflat-565
+                simpflat-570
                 flat-62-simpflat-138
           }
           else
@@ -2192,7 +2192,7 @@ if (eq#
         else
         {
           write flat-103-simpflat-139 =
-            simpflat-563
+            simpflat-568
           write flat-103-simpflat-140 =
             0
         }
@@ -2262,16 +2262,16 @@ if (eq#
           }
           else
           {
-            let simpflat-312 =
+            let simpflat-316 =
               add#
                 bs_loc_low-flat-86
                 bs_loc_high-flat-87
-            let simpflat-313 =
-              doubleOfInt# simpflat-312
-            let simpflat-314 =
-              div# simpflat-313 2.0
+            let simpflat-317 =
+              doubleOfInt# simpflat-316
+            let simpflat-318 =
+              div# simpflat-317 2.0
             write bs_acc_mid-flat-80 =
-              floor# simpflat-314
+              floor# simpflat-318
             read bs_loc_mid-flat-84 =
               bs_acc_mid-flat-80
             let bs_loc_x-flat-85 =
@@ -2280,7 +2280,7 @@ if (eq#
                 bs_loc_mid-flat-84
             if (eq#
                   bs_loc_x-flat-85
-                  simpflat-534)
+                  simpflat-539)
             {
               write bs_acc_end-flat-90 =
                 True
@@ -2291,7 +2291,7 @@ if (eq#
             {
               if (lt#
                     bs_loc_x-flat-85
-                    simpflat-534)
+                    simpflat-539)
               {
                 write bs_acc_low-flat-88 =
                   add# bs_loc_mid-flat-84 1
@@ -2346,16 +2346,16 @@ if (eq#
         {
           read copy_array-flat-93 =
             map_insert_acc_keys-flat-66
-          let simpflat-315 =
+          let simpflat-319 =
             Array_length#
               copy_array-flat-93
-          if (eq# simpflat-315 0)
+          if (eq# simpflat-319 0)
           {
             
           }
           else
           {
-            let simpflat-316 =
+            let simpflat-320 =
               unsafe_Array_index#
                 copy_array-flat-93
                 0
@@ -2363,20 +2363,20 @@ if (eq#
               Array_put_immutable#
                 copy_array-flat-93
                 0
-                simpflat-316
+                simpflat-320
           }
           read copy_array-flat-94 =
             map_insert_acc_vals-flat-67
-          let simpflat-317 =
+          let simpflat-321 =
             Array_length#
               copy_array-flat-94
-          if (eq# simpflat-317 0)
+          if (eq# simpflat-321 0)
           {
             
           }
           else
           {
-            let simpflat-318 =
+            let simpflat-322 =
               unsafe_Array_index#
                 copy_array-flat-94
                 0
@@ -2384,34 +2384,34 @@ if (eq#
               Array_put_immutable#
                 copy_array-flat-94
                 0
-                simpflat-318
+                simpflat-322
           }
           foreach (for_counter-flat-95 in map_insert_size-flat-75 .. flat-116)
           {
             read update_acc-flat-96 =
               map_insert_acc_keys-flat-66
-            let simpflat-319 =
+            let simpflat-323 =
               sub# for_counter-flat-95 1
-            let simpflat-320 =
+            let simpflat-324 =
               unsafe_Array_index#
                 map_insert_loc_keys-flat-70
-                simpflat-319
+                simpflat-323
             write map_insert_acc_keys-flat-66 =
               Array_put_mutable#
                 update_acc-flat-96
                 for_counter-flat-95
-                simpflat-320
+                simpflat-324
             read update_acc-flat-97 =
               map_insert_acc_vals-flat-67
-            let simpflat-322 =
+            let simpflat-326 =
               unsafe_Array_index#
                 map_insert_loc_vals-flat-71
-                simpflat-319
+                simpflat-323
             write map_insert_acc_vals-flat-67 =
               Array_put_mutable#
                 update_acc-flat-97
                 for_counter-flat-95
-                simpflat-322
+                simpflat-326
           }
           read map_insert_acc_keys-flat-66 =
             map_insert_acc_keys-flat-66
@@ -2420,7 +2420,7 @@ if (eq#
             Array_put_mutable#
               map_insert_acc_keys-flat-66
               flat-116
-              simpflat-534
+              simpflat-539
           
           read map_insert_acc_vals-flat-67 =
             map_insert_acc_vals-flat-67
@@ -2442,9 +2442,9 @@ if (eq#
           unsafe_Array_create# 0
         init flat-100-simpflat-154 : Array Int =
           unsafe_Array_create# 0
-        let simpflat-324 =
+        let simpflat-328 =
           Array_length# flat-117
-        if (lt# simpflat-324 conv-4)
+        if (lt# simpflat-328 conv-4)
         {
           write flat-100-simpflat-152 =
             ExceptNotAnError
