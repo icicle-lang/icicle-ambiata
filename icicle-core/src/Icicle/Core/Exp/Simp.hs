@@ -31,15 +31,14 @@ import           Data.Functor.Identity
 --   * constant folding for some primitives
 --   * ...something exciting???
 --
-simp :: (Hashable n, Eq n) => a -> (C.Exp a n -> Bool) -> C.Exp a n -> Fresh n (C.Exp a n)
-simp a_fresh isValue = anormal a_fresh . deadX . runIdentity . fixpoint (simpX a_fresh isValue)
+simp :: (Hashable n, Eq n) => a -> C.Exp a n -> Fresh n (C.Exp a n)
+simp a_fresh = anormal a_fresh . deadX . runIdentity . fixpoint (simpX a_fresh)
 
 
 simpX :: (Monad m, Hashable n, Eq n)
-      => a -> (C.Exp a n -> Bool) -> C.Exp a n -> FixT m (C.Exp a n)
-simpX a_fresh isValue = go . beta
+      => a -> C.Exp a n -> FixT m (C.Exp a n)
+simpX a_fresh = go . B.beta
   where
-    beta  = B.beta isValue
     -- * constant folding for some primitives
     go xx = case xx of
       XApp a p q

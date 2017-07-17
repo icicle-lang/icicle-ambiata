@@ -293,7 +293,7 @@ convertQuery q
 
   -- Perform beta reduction, just to simplify the output a tiny bit.
   beta = Beta.betaToLets ()
-       . Beta.beta Beta.isSimpleValue
+       . Beta.beta
 
   convertValType' = convertValType (annAnnot $ annotOfQuery q)
 

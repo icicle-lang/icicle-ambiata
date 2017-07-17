@@ -15,8 +15,8 @@ import P
 import Data.Hashable (Hashable)
 
 -- | Beta and let reduction
-beta :: (Hashable n, Eq n) => (Exp a n p -> Bool) -> Exp a n p -> Exp a n p
-beta isValue toplevel
+beta :: (Hashable n, Eq n) => Exp a n p -> Exp a n p
+beta toplevel
  = go toplevel
  where
   go xx
@@ -24,7 +24,7 @@ beta isValue toplevel
       XApp _ p q
        | XLam _ n _ x <- go p
        , v <- go q
-       , isValue v
+       , isSimpleValue v
        , Just x' <- substMaybe n v x
        -> go x'
 
@@ -34,8 +34,13 @@ beta isValue toplevel
       XLam a n t x
        -> XLam a n t $ go x
 
+      XLet _ n v (XVar a' n')
+       -> if   n == n'
+          then go v
+          else XVar a' n'
+
       XLet _ n v x
-       | isValue v
+       | isSimpleValue v
        , Just x' <- substMaybe n v x
        -> go x'
 

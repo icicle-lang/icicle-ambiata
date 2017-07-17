@@ -508,7 +508,7 @@ convertFold q
 
   -- Perform beta reduction, just to simplify the output a tiny bit.
   beta = Beta.betaToLets ()
-       . Beta.beta Beta.isSimpleValue
+       . Beta.beta
 
   -- Construct an identity function
   idFun tt = lift fresh >>= \n -> return (CE.xLam n tt (CE.xVar n))
