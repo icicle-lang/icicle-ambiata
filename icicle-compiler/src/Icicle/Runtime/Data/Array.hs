@@ -76,7 +76,7 @@ import qualified Data.Vector.Storable.Mutable as MStorable
 import           Data.Void (Void)
 import           Data.Word (Word8)
 
-import           Foreign.C.Types (CSize(..))
+import           Foreign.C.Types (CInt(..), CSize(..))
 import           Foreign.C.String (CString)
 import           Foreign.ForeignPtr (newForeignPtr_, withForeignPtr)
 import           Foreign.Ptr (Ptr, plusPtr, castPtr)
@@ -297,9 +297,24 @@ grow pool arrayOld@(Array ptrOld) lengthNew = do
     !capacityNew =
       calculateCapacity lengthNew
 
-  if capacityOld >= capacityNew then do
+  if lengthOld > lengthNew then do
+    let
+      deadSize =
+        (lengthOld - lengthNew) * elementSize
+
+      deadPtr =
+        unsafeElementPtr arrayOld `plusPtr`
+        fromIntegral (lengthNew * elementSize)
+
+    c_memset deadPtr 0 (fromIntegral deadSize)
+    unsafeWriteLength arrayOld lengthNew
+
+    pure arrayOld
+
+  else if capacityOld >= capacityNew then do
     unsafeWriteLength arrayOld lengthNew
     pure arrayOld
+
   else do
     let
       !bytesOld =
@@ -547,6 +562,9 @@ toArraySegments pool srcArrayArray = do
 
 foreign import ccall unsafe "string.h memcpy"
   c_memcpy :: Ptr a -> Ptr a -> CSize -> IO ()
+
+foreign import ccall unsafe "string.h memset"
+  c_memset :: Ptr a -> CInt -> CSize -> IO ()
 
 foreign import ccall unsafe "string.h strlen"
   c_strlen :: CString -> IO CSize
