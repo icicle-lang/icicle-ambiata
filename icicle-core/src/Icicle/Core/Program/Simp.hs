@@ -5,7 +5,6 @@ module Icicle.Core.Program.Simp
 
 
 import           Icicle.Common.Fresh
-import qualified Icicle.Common.Exp.Simp.Beta as B
 import           Icicle.Core.Program.Program
 import           Icicle.Core.Stream.Stream
 import qualified Icicle.Core.Exp.Simp as S

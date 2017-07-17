@@ -21,9 +21,13 @@ beta toplevel
  where
   go xx
    = case xx of
-      XApp _ p q
-       | XLam _ n _ x <- go p
-       , v <- go q
+      XApp _ (XLam _ n _ (XVar a' n')) q
+       -> if   n == n'
+          then go q
+          else XVar a' n'
+
+      XApp _ (XLam _ n _ x) q
+       | v <- go q
        , isSimpleValue v
        , Just x' <- substMaybe n v x
        -> go x'
