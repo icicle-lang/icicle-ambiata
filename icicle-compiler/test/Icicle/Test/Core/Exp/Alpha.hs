@@ -20,25 +20,25 @@ import           Test.QuickCheck
 
 -- Anything is alpha equivalent to itself
 -- =====================
-prop_alpha_self x =
+prop_alpha_self = forAll genExpNoType $ \x ->
  x `alphaEquality` x
 
 
 -- Any CLOSED expression is alpha equivalent to itself after prefixing
 -- =====================
-prop_alpha_self_prefix_closed x =
+prop_alpha_self_prefix_closed = forAll genExpNoType $ \x ->
  Set.null (freevars x) ==>
-     x `alphaEquality` renameExp (modName 0) x
+     x `alphaEquality` renameExp (modName $ Var "" 0) x
 
 -- We can rename anything that isn't free
 -- =====================
-prop_alpha_self_prefix x =
+prop_alpha_self_prefix = forAll genExpNoType $ \x ->
 
  let fv    = freevars x
 
      ren n = if   Set.member n fv
              then n
-             else modName 0 n
+             else modName (Var "" 0) n
 
      x'    = renameExp ren x
 
@@ -47,16 +47,11 @@ prop_alpha_self_prefix x =
 
 -- If two things evaluate to a different value, they can't be alpha equivalent
 -- =====================
-prop_different_value__not_alpha x y =
- not (eval0 evalPrim x `equalExceptFunctionsE` eval0 evalPrim y)
- ==> not (x `alphaEquality` y)
-
-
--- Conversely, if two things are alpha equivalent they must have same value
--- =====================
-prop_alpha__same_value x y =
- x `alphaEquality` y
- ==> eval0 evalPrim x `equalExceptFunctionsE` eval0 evalPrim y
+prop_different_value__not_alpha
+ = forAll genExpNoType $ \x ->
+   forAll genExpNoType $ \y ->
+     not (eval0 evalPrim x `equalExceptFunctionsE` eval0 evalPrim y)
+     ==> not (x `alphaEquality` y)
 
 
 -- It should follow from the above, but why not something about types

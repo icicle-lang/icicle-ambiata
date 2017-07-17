@@ -8,6 +8,9 @@ module Icicle.Test.Source.MaxMapSize where
 import           Icicle.Test.Arbitrary.SourceWithCore
 import           Icicle.Test.Arbitrary.Corpus
 import           Icicle.Test.Arbitrary
+import           Icicle.Test.Gen.Psv
+import           Icicle.Test.Gen.WellTyped
+import qualified Test.QuickCheck.Hedgehog as Qc
 import qualified Icicle.Core.Eval.Program   as PV
 
 import           Icicle.Common.Eval
@@ -42,8 +45,8 @@ prop_maxsize ts =
 
 prop_maxsize_corpus :: Property
 prop_maxsize_corpus
- = testAllCorpus $ \_cid wt ->
-   forAll (getPositive <$> arbitrary) $ \maxMapSize ->
+ | dup <- AllowDupTime
+ = testAllCorpus dup (Qc.hedgehog . genPsvConstants) $ \wt psv ->
      let
        props =
          fmap (checkMaxMapSize maxMapSize) .
@@ -126,5 +129,4 @@ checkMaxMapSize maxMapSize = go
 
 return []
 tests :: IO Bool
-tests =
-  $checkAllWith TestRunNormal (checkArgsSized 100)
+tests = $checkAllWith TestRunNormal checkArgs

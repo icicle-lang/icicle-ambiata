@@ -6,6 +6,9 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Avalanche.MeltPrim where
 
+import qualified Icicle.Test.Gen.Core.Prim as CoreGenPrim
+import qualified Test.QuickCheck.Hedgehog as Qc
+
 import           Icicle.Test.Arbitrary
 
 import qualified Icicle.Avalanche.Annot               as AA
@@ -39,7 +42,7 @@ import Data.List (zip)
 
 -- TODO: add more?
 genPrim :: Gen Flat.Prim
-genPrim = Flat.PrimMinimal <$> arbitrary
+genPrim = Flat.PrimMinimal <$> Qc.hedgehog CoreGenPrim.genPrimMinimal
 
 genPrimApps :: Gen (Flat.Prim, [(ValType, BaseValue)])
 genPrimApps = do
@@ -102,4 +105,4 @@ evalOut ss
 
 return []
 tests :: IO Bool
-tests = $checkAllWith TestRunMore (checkArgsSized 10)
+tests = $checkAllWith TestRunMore checkArgs

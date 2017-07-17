@@ -50,13 +50,7 @@ prop_progress_values t =
      $ isRight     (checkProgram p) ==> isRight ev
 
 
--- Also, try the inverse: if it has a runtime error, it can't be type safe.
--- Most randomly generated programs will have runtime errors, and won't type check
-prop_progress_inverse x =
- isLeft      (PV.eval evalContext [] x)
- ==> isLeft  (checkProgram x)
-
 
 return []
 tests :: IO Bool
-tests = $checkAllWith TestRunNormal (checkArgsSized 10)
+tests = $checkAllWith TestRunNormal checkArgs

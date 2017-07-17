@@ -10,6 +10,8 @@ module Icicle.Test.Arbitrary.Data (
   , module Run
   ) where
 
+import qualified Icicle.Internal.Pretty as PP
+
 import           Icicle.Common.Base hiding (StructField)
 import           Icicle.Data
 import           Icicle.Data.Time
@@ -23,6 +25,8 @@ import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 
 import           P
+
+import qualified Data.Maybe as Maybe
 
 import           GHC.Generics
 
@@ -48,6 +52,22 @@ instance IsString Var where
 -- (assuming that the generated program doesn't mention it)
 fresh :: Int -> Name Var
 fresh = nameOf . NameBase . Var "_fresh"
+
+-- Sometimes it's nice to be able to pretty print our generated programs
+instance PP.Pretty Var where
+ pretty (Var t i) = PP.text (T.unpack t) <> PP.text (show i)
+
+-- Generate totally arbitrary, totally random variables
+instance Arbitrary Var where
+  arbitrary =
+   sized $ \size ->
+    Var <$> elements viruses <*> choose (0, size)
+
+instance (Hashable n, Arbitrary n) => Arbitrary (Name n) where
+  arbitrary =
+    nameOf . NameBase <$> arbitrary
+
+
 
 --------------------------------------------------------------------------------
 
@@ -81,19 +101,14 @@ instance Arbitrary UnresolvedInputId where
 instance Arbitrary OutputName where
   arbitrary = do
     -- fail violently if not the case
-    Just n <- parseOutputName <$> elements muppets
-    pure n
+    Maybe.fromJust <$> ((parseOutputName <$> elements muppets) `suchThat` isJust)
 
 instance Arbitrary OutputId where
   arbitrary =
     OutputId <$> arbitrary <*> arbitrary
 
 instance Arbitrary Time where
-  arbitrary = do
-    potential <- timeOfYMD <$> oneof_vals [2000..2050] <*> oneof_vals [1..12] <*> oneof_vals [1..31]
-    case potential of
-      Just a  -> pure a
-      Nothing -> discard
+  arbitrary = Maybe.fromJust <$> ((timeOfYMD <$> choose (2000, 2050) <*> choose (1, 12) <*> choose (1,31)) `suchThat` isJust)
 
 instance Arbitrary Fact' where
   arbitrary =

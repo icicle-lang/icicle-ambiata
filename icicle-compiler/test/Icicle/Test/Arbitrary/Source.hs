@@ -38,6 +38,8 @@ import           Icicle.Compiler.Source
 
 import           Icicle.Test.Arbitrary.Base
 import           Icicle.Test.Arbitrary.Core (testFresh)
+import qualified Icicle.Test.Gen.Core.Type as CoreGen
+import qualified Test.QuickCheck.Hedgehog as Qc
 
 import           Disorder.Corpus
 
@@ -151,7 +153,7 @@ genQueryWithFeatureTypedGen tableflipPercent
       -- This was causing issues with conversion from Source, because
       -- part of the resulting Core was using the ValType with Bufs, and
       -- part was using the Source-converted type with Arrays.
-      Just t <- (valTypeOfType . typeOfValType) <$> arbitrary
+      Just t <- (valTypeOfType . typeOfValType) <$> Qc.hedgehog CoreGen.genValType
       k      <- genQueryKey t
       return $ QueryWithFeature q (Just now) o t nm iid tm k
 
@@ -168,7 +170,7 @@ genQueryWithFeatureArbitrary
       q   <- arbitrary
       o   <- arbitrary
       -- See "Note: Convert to Source type and back in generator" above
-      Just t <- (valTypeOfType . typeOfValType) <$> arbitrary
+      Just t <- (valTypeOfType . typeOfValType) <$> Qc.hedgehog CoreGen.genValType
       k      <- genQueryKey t
       return $ QueryWithFeature q (Just now) o t nm iid tm k
 
