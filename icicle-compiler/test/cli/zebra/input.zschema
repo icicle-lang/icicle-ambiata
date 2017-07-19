@@ -19,13 +19,15 @@
             { "name": "default:injury",
               "schema": {
                 "map": {
+                  "default": { "allow": {} },
                   "key": {
                     "struct": {
                       "fields": [
                         {
                           "name": "time",
                           "schema": {
-                            "int": {}}},
+                            "int": {
+                              "encoding": { "date": {}}}}},
                         {
                           "name": "factset_id",
                           "schema": {
@@ -47,6 +49,7 @@
                             { "name": "action"
                             , "schema": {
                                 "enum": {
+                                  "default": { "allow": {} },
                                   "variants": [
                                   {
                                     "name": "none",

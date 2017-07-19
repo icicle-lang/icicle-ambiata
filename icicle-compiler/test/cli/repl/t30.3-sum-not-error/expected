@@ -39,21 +39,13 @@ typedef struct {
     /* inputs */
     input_defaultZCsalary_t input;
 
-    /*** kernel 0:0 ***/
-
-    /* outputs */
+    /* kernel 0:0 outputs */
     ierror_t         replZCoutputzsixzs0;
     ibool_t          replZCoutputzsixzs1;
     iint_t           replZCoutputzsixzs2;
     idouble_t        replZCoutputzsixzs3;
 
-    /* resumables: values */
-    iint_t           res_0_0_acczmperhapszmconvzm5zmsimpflatzm7;
-    ibool_t          res_0_0_acczmperhapszmconvzm5zmsimpflatzm6;
-    ierror_t         res_0_0_acczmperhapszmconvzm5zmsimpflatzm5;
-    idouble_t        res_0_0_acczmperhapszmconvzm5zmsimpflatzm8;
-
-    /* resumables: has flags */
+    /* kernel 0:0 flags */
     ibool_t          has_flags_start_0_0;
     ibool_t          has_0_0_acczmperhapszmconvzm5zmsimpflatzm7;
     ibool_t          has_0_0_acczmperhapszmconvzm5zmsimpflatzm6;
@@ -61,7 +53,11 @@ typedef struct {
     ibool_t          has_0_0_acczmperhapszmconvzm5zmsimpflatzm8;
     ibool_t          has_flags_end_0_0;
 
-
+    /* kernel 0:0 resumables */
+    iint_t           res_0_0_acczmperhapszmconvzm5zmsimpflatzm7;
+    ibool_t          res_0_0_acczmperhapszmconvzm5zmsimpflatzm6;
+    ierror_t         res_0_0_acczmperhapszmconvzm5zmsimpflatzm5;
+    idouble_t        res_0_0_acczmperhapszmconvzm5zmsimpflatzm8;
 } icluster_0_t;
 
 iint_t size_of_icluster_0 ()

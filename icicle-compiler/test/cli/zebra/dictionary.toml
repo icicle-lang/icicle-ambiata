@@ -12,13 +12,13 @@ tombstone = "foo"
   encoding="(location:string,severity:double,action:string*)"
 
 [feature.latest_four]
-   expression = "feature injury ~> latest 4 ~> action"
+   expression = "feature injury ~> filter is_some action ~> latest 4 ~> action"
 
 [feature.newest]
    expression = "feature injury ~> newest action"
 
 [feature.test_map]
-   expression = "feature injury ~> group location ~> latest 2 ~> action"
+   expression = "feature injury ~> group location ~> filter is_some action ~> latest 2 ~> action"
 
 [feature.test_map_delete]
    expression = "feature injury ~> fold x = map_create : case map_lookup (Some location) x | None -> map_insert (Some location) (Some severity) x | Some _ -> map_delete (Some location) x end ~> x"

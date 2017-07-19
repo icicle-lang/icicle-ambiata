@@ -20,6 +20,7 @@ Selected psv file as input: test/cli/repl/data.psv
 Loaded 38 functions from prelude.icicle
 Selected zebra binary file as input: data/example/sample.zbin
 λ Queries will be evaluated using the C evaluator.
+λ Snapshot mode activated with a snapshot date of 2016-02-01.
 λ λ C evaluation
 ------------
 
