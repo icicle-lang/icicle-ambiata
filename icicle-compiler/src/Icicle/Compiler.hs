@@ -108,7 +108,7 @@ import qualified Data.List                                as List
 import qualified Data.Map                                 as M
 import qualified Data.Text                                as Text
 
-import           Control.Parallel.Strategies              (withStrategy, parTraversable, rparWith, rseq)
+import           Control.Parallel.Strategies              (withStrategy, parTraversable, rparWith, rdeepseq)
 
 import qualified Text.ParserCombinators.Parsec            as Parsec
 
@@ -153,9 +153,9 @@ data ErrorCompile var
  | ErrorAvalanche   !(Avalanche.ProgramError  Source.AnnotUnit var         Flat.Prim)
  deriving (Show, Generic)
 
--- deepseq stops here, we don't really care about sequencing the error
--- just need this to make sure the return type (with an AST) is sequenced.
-instance NFData (ErrorCompile a) where rnf _ = ()
+-- FIXME We can't implement NFData properly for this type because Parsec.SourcePos is
+-- FIXME not NFData, we really should define our own type for source positions.
+instance NFData (ErrorCompile a) where rnf x = seq x ()
 
 
 annotOfError :: ErrorCompile a -> Maybe Parsec.SourcePos
@@ -314,7 +314,7 @@ avalancheOfDictionary opts dict = do
 
   core      <- parTraverse (coreOfSource opts dict)   queries
   fused     <- parTraverse (fuseCore fusionOpts)     (M.unionsWith (<>) core)
-  avalanche <- parTraverse (traverse avalancheOfCore) fused
+  avalanche <- parTraverse (parTraverse avalancheOfCore) fused
 
   return avalanche
 
@@ -501,7 +501,10 @@ freshNamer :: IsString v => v -> Fresh.NameState v
 freshNamer prefix
  = Fresh.counterPrefixNameState (fromString . show) prefix
 
-parTraverse  :: Traversable t => (a -> Either e b) -> t a -> Either e (t b)
-parTraverse f = sequenceA . parallel . fmap f
- where
-  parallel = withStrategy (parTraversable (rparWith rseq))
+parTraverse  :: (NFData x, NFData b, Traversable t) => (a -> Either x b) -> t a -> Either x (t b)
+parTraverse f xs =
+  let
+    parallel =
+      withStrategy (parTraversable (rparWith rdeepseq))
+  in
+    sequenceA (parallel (fmap f xs))

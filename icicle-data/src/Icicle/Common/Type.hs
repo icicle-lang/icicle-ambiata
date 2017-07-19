@@ -7,6 +7,7 @@
 -- so not putting any polymorphism in the primitives should make typechecking
 -- and everything simpler.
 --
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Common.Type (
@@ -35,14 +36,16 @@ module Icicle.Common.Type (
     , valueMatchesType
     ) where
 
-import              Icicle.Internal.Pretty
-import              Icicle.Common.Base
-import              Icicle.Data.Time (timeOfDays)
+import qualified Data.Map as Map
+import qualified Data.Text as T
 
-import              P
+import           GHC.Generics (Generic)
 
-import qualified    Data.Map as Map
-import qualified    Data.Text as T
+import           Icicle.Internal.Pretty
+import           Icicle.Common.Base
+import           Icicle.Data.Time (timeOfDays)
+
+import           P
 
 
 -- | Real values.
@@ -65,16 +68,16 @@ data ValType
  | SumT    !ValType    !ValType
  | StructT !StructType
  | BufT    !Int        !ValType
- deriving (Eq,Ord,Show)
+ deriving (Eq, Ord, Show, Generic)
 
-instance NFData ValType where rnf x = seq x ()
+instance NFData ValType
 
 data ArithType
  = ArithIntT
  | ArithDoubleT
- deriving (Eq,Ord,Show)
+ deriving (Eq, Ord, Show, Generic)
 
-instance NFData ArithType where rnf x = seq x ()
+instance NFData ArithType
 
 valTypeOfArithType :: ArithType -> ValType
 valTypeOfArithType ArithIntT    = IntT
@@ -111,9 +114,9 @@ defaultOfType typ
 newtype StructType
  = StructType
  { getStructType :: Map.Map StructField ValType }
- deriving (Eq, Ord)
+ deriving (Eq, Ord, Generic)
 
-instance NFData StructType where rnf x = seq x ()
+instance NFData StructType
 
 instance Show StructType where
  showsPrec p (StructType x)
@@ -138,9 +141,9 @@ instance Show StructType where
 --
 data FunType =
  FunT ![FunType] !ValType
- deriving (Eq,Ord,Show)
+ deriving (Eq, Ord, Show, Generic)
 
-instance NFData FunType where rnf x = seq x ()
+instance NFData FunType
 
 -- | The top-level type of an expression can be a function type.
 type Type = FunType

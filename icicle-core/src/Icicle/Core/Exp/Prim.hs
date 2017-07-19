@@ -1,4 +1,5 @@
 -- | Primitive functions, constant values and so on
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Core.Exp.Prim (
@@ -10,12 +11,14 @@ module Icicle.Core.Exp.Prim (
     , typeOfPrim
     ) where
 
-import              Icicle.Internal.Pretty
-import              Icicle.Common.Base
-import              Icicle.Common.Type
-import qualified    Icicle.Common.Exp.Prim.Minimal as Min
+import           GHC.Generics (Generic)
 
-import              P
+import           Icicle.Internal.Pretty
+import           Icicle.Common.Base
+import           Icicle.Common.Type
+import qualified Icicle.Common.Exp.Prim.Minimal as Min
+
+import           P
 
 
 -- | Top-level primitive for Core expressions
@@ -32,7 +35,7 @@ data Prim
  -- | Circular buffer for latest
  | PrimLatest   !PrimLatest
  | PrimWindow   !WindowUnit !(Maybe WindowUnit)
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 
 -- | Folds and destructing things
@@ -42,13 +45,13 @@ data PrimFold
  | PrimFoldOption !ValType
  | PrimFoldSum    !ValType !ValType
  | PrimFoldMap    !ValType !ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 
 -- | Array primitives
 data PrimArray
  = PrimArrayMap !ValType !ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 
 -- | Map primitives
@@ -57,20 +60,20 @@ data PrimMap
  | PrimMapDelete         !ValType !ValType
  | PrimMapMapValues      !ValType !ValType !ValType
  | PrimMapLookup         !ValType !ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 
 -- | Latest buffer primitives
 data PrimLatest
  = PrimLatestPush !Int !ValType
  | PrimLatestRead !Int !ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
-instance NFData Prim       where rnf x = seq x ()
-instance NFData PrimFold   where rnf x = seq x ()
-instance NFData PrimArray  where rnf x = seq x ()
-instance NFData PrimMap    where rnf x = seq x ()
-instance NFData PrimLatest where rnf x = seq x ()
+instance NFData Prim
+instance NFData PrimFold
+instance NFData PrimArray
+instance NFData PrimMap
+instance NFData PrimLatest
 
 
 -- | A primitive always has a well-defined type

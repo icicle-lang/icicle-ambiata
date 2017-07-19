@@ -147,6 +147,13 @@ data OutputId =
     , outputName :: !OutputName
     } deriving (Eq, Ord, Data, Generic)
 
+instance NFData Namespace
+instance NFData InputName
+instance NFData InputId
+instance NFData UnresolvedInputId
+instance NFData OutputName
+instance NFData OutputId
+
 instance Show Namespace where
   showsPrec =
     gshowsPrec

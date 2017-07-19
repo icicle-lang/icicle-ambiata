@@ -1,4 +1,5 @@
 -- | Top-level queries
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
@@ -22,16 +23,18 @@ module Icicle.Source.Query.Query (
   , allvarsX, allvarsC, allvarsQ
   ) where
 
-import                  Icicle.Common.Base
-import                  Icicle.Data.Name
-import                  Icicle.Internal.Pretty
-import                  Icicle.Source.Query.Constructor
-import                  Icicle.Source.Query.Context
-import                  Icicle.Source.Query.Exp
+import qualified Data.Set                as Set
 
-import qualified        Data.Set                as Set
+import           GHC.Generics (Generic)
 
-import                  P
+import           Icicle.Common.Base
+import           Icicle.Data.Name
+import           Icicle.Internal.Pretty
+import           Icicle.Source.Query.Constructor
+import           Icicle.Source.Query.Context
+import           Icicle.Source.Query.Exp
+
+import           P
 
 
 data QueryTop a n
@@ -39,13 +42,17 @@ data QueryTop a n
  { queryInput :: UnresolvedInputId
  , queryName  :: OutputId
  , query      :: Query a n }
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance (NFData a, NFData n) => NFData (QueryTop a n)
 
 data Query a n
  = Query
  { contexts :: [Context a n]
  , final    :: Exp a n }
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance (NFData a, NFData n) => NFData (Query a n)
 
 -- | "Tie the knot" so expressions can have nested queries.
 -- See Exp.

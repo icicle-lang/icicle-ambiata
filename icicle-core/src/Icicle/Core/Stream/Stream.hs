@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -9,23 +10,25 @@ module Icicle.Core.Stream.Stream (
     , isPredicateWindowed
     ) where
 
-import              Icicle.Internal.Pretty
-import              Icicle.Common.Base
-import              Icicle.Common.Type
-import              Icicle.Common.Exp.Compounds
-import              Icicle.Core.Exp
-import              Icicle.Common.Exp.Exp (renameExp)
+import           GHC.Generics (Generic)
 
-import              P
+import           Icicle.Internal.Pretty
+import           Icicle.Common.Base
+import           Icicle.Common.Type
+import           Icicle.Common.Exp.Compounds
+import           Icicle.Core.Exp
+import           Icicle.Common.Exp.Exp (renameExp)
+
+import           P
 
 
 data Stream a n
  = SFold    !(Name n)  !ValType !(Exp a n) !(Exp a n)
  | SFilter  !(Exp a n) ![Stream a n]
  -- SWindow !ValType !WindowUnit !(Maybe WindowUnit) !(Name n)
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
-instance NFData (Stream a n) where rnf x = seq x ()
+instance (NFData a, NFData n) => NFData (Stream a n)
 
 renameStream :: (Name n -> Name n') -> Stream a n -> Stream a n'
 renameStream f (SFold n t x y)        = SFold (f n) t (renameExp f x) (renameExp f y)

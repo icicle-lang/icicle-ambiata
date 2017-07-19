@@ -1,9 +1,12 @@
 -- | Avalanche programs
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Avalanche.Program (
     Program         (..)
   , renameProgram
   ) where
+
+import              GHC.Generics (Generic)
 
 import              Icicle.Avalanche.Statement.Statement
 import              Icicle.Common.Base
@@ -23,9 +26,9 @@ data Program a n p =
   , maxMapSize  :: !(Name n)
   , statements  :: !(Statement a n p)
   }
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
-instance NFData (Program a n p) where rnf x = seq x ()
+instance (NFData a, NFData n, NFData p) => NFData (Program a n p)
 
 instance TransformX Program where
  transformX names exps p

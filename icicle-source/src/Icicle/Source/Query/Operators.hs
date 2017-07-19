@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Source.Query.Operators (
@@ -21,9 +22,12 @@ module Icicle.Source.Query.Operators (
   , precedenceNeverParens
   ) where
 
-import                  Icicle.Internal.Pretty
+import           GHC.Generics (Generic)
 
-import                  P
+import           Icicle.Internal.Pretty
+
+import           P
+
 
 data Op
  = ArithUnary    ArithUnary
@@ -35,22 +39,30 @@ data Op
  | TimeBinary    TimeBinary
 
  | TupleComma
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance NFData Op
 
 data ArithUnary
  = Negate
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance NFData ArithUnary
 
 data ArithBinary
  = Mul
  | Add
  | Sub
  | Pow
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance NFData ArithBinary
 
 data ArithDouble
  = Div
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance NFData ArithDouble
 
 data Relation
  = Lt
@@ -59,16 +71,22 @@ data Relation
  | Ge
  | Eq
  | Ne
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance NFData Relation
 
 data LogicalUnary
  = Not
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance NFData LogicalUnary
 
 data LogicalBinary
  = And
  | Or
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance NFData LogicalBinary
 
 data TimeBinary
  = DaysBefore
@@ -77,21 +95,28 @@ data TimeBinary
  | WeeksAfter
  | MonthsBefore
  | MonthsAfter
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance NFData TimeBinary
 
 data Fixity
  = FInfix  Infixity
  | FPrefix
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance NFData Fixity
 
 data Infixity
  = Infix Assoc Int
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance NFData Infixity
 
 data Assoc
  = AssocLeft | AssocRight
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
 
+instance NFData Assoc
 
 fixity :: Op -> Fixity
 fixity o
@@ -132,7 +157,7 @@ data OpsOfSymbol
  = OpsOfSymbol
  { opInfix  :: Maybe Op
  , opPrefix :: Maybe Op }
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
 
 
 symbol :: Text -> OpsOfSymbol

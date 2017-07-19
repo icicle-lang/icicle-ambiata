@@ -1,4 +1,5 @@
 -- | Constructors, like Some, None, tuples etc
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -11,13 +12,15 @@ module Icicle.Source.Query.Constructor (
   , arityOfConstructor
   ) where
 
-import                  Icicle.Common.Base
-import                  Icicle.Internal.Pretty
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 
-import                  P
+import           GHC.Generics (Generic)
 
-import qualified        Data.Map as Map
-import qualified        Data.Set as Set
+import           Icicle.Common.Base
+import           Icicle.Internal.Pretty
+
+import           P
 
 data Constructor
  -- Option
@@ -37,13 +40,17 @@ data Constructor
 
  -- Error
  | ConError ExceptionInfo
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
+
+instance NFData Constructor
 
 data Pattern n
  = PatCon Constructor [Pattern n]
  | PatDefault
  | PatVariable (Name n)
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance NFData n => NFData (Pattern n)
 
 boundOfPattern :: Eq n => Pattern n -> Set.Set (Name n)
 boundOfPattern p = case p of

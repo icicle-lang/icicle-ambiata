@@ -1,11 +1,14 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Common.Exp.Prim.Builtin where
 
-import            Icicle.Internal.Pretty
-import            Icicle.Common.Type
+import           GHC.Generics (Generic)
 
-import            P
+import           Icicle.Common.Type
+import           Icicle.Internal.Pretty
+
+import           P
 
 -- | Built-in functions. These are available in all language fragments and
 --   supported in C directly.
@@ -14,7 +17,7 @@ data PrimBuiltinFun
   = PrimBuiltinMath   !PrimBuiltinMath
   | PrimBuiltinMap    !PrimBuiltinMap
   | PrimBuiltinArray  !PrimBuiltinArray
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 -- | Built-in math functions
 data PrimBuiltinMath
@@ -28,24 +31,24 @@ data PrimBuiltinMath
  | PrimBuiltinExp
  | PrimBuiltinSqrt
  | PrimBuiltinDoubleIsValid
- deriving (Eq, Ord, Show, Enum, Bounded)
+ deriving (Eq, Ord, Show, Enum, Bounded, Generic)
 
 -- | Built-in map functions
 data PrimBuiltinMap
  = PrimBuiltinKeys   !ValType !ValType -- ^ Get the keys in a map
  | PrimBuiltinVals   !ValType !ValType -- ^ Get the values in a map
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 data PrimBuiltinArray
  = PrimBuiltinSort   !ValType
  | PrimBuiltinLength !ValType
  | PrimBuiltinIndex  !ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
-instance NFData PrimBuiltinFun   where rnf x = seq x ()
-instance NFData PrimBuiltinMath  where rnf x = seq x ()
-instance NFData PrimBuiltinMap   where rnf x = seq x ()
-instance NFData PrimBuiltinArray where rnf x = seq x ()
+instance NFData PrimBuiltinFun
+instance NFData PrimBuiltinMath
+instance NFData PrimBuiltinMap
+instance NFData PrimBuiltinArray
 
 --------------------------------------------------------------------------------
 

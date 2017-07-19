@@ -1,17 +1,20 @@
 -- | Typechecking errors for a core program
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Program.Error (
       ProgramError (..)
     ) where
 
-import              Icicle.Internal.Pretty
-import              Icicle.Common.Base
-import              Icicle.Common.Type
-import              Icicle.Core.Exp
-import              Icicle.Core.Stream
+import           GHC.Generics (Generic)
 
-import              P
+import           Icicle.Internal.Pretty
+import           Icicle.Common.Base
+import           Icicle.Common.Type
+import           Icicle.Core.Exp
+import           Icicle.Core.Stream
+
+import           P
 
 
 -- | Possible errors, mainly deferred to component
@@ -22,7 +25,9 @@ data ProgramError a n
  | ProgramErrorReturn   (ExpError    a n Prim)
  | ProgramErrorNameNotUnique (Name n)
  | ProgramErrorReturnNotValueType Type
- deriving Show
+ deriving (Show, Generic)
+
+instance (NFData a, NFData n) => NFData (ProgramError a n)
 
 
 instance (Pretty n) => Pretty (ProgramError a n) where

@@ -2,6 +2,7 @@
 -- In Source, we need to infer which stage of the computation,
 -- so each type is tagged with a universe describing the stage.
 --
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -17,14 +18,17 @@ module Icicle.Source.Type.Base (
   , prettyFun
   ) where
 
-import                  Icicle.Common.Base
-import qualified        Icicle.Common.Type as CT
+import qualified Data.Map as Map
 
-import                  Icicle.Internal.Pretty
+import           GHC.Generics (Generic)
 
-import                  P
+import           Icicle.Common.Base
+import qualified Icicle.Common.Type as CT
 
-import qualified        Data.Map as Map
+import           Icicle.Internal.Pretty
+
+import           P
+
 
 data Type n
  = BoolT
@@ -52,7 +56,9 @@ data Type n
  | PossibilityDefinitely
 
  | TypeVar             (Name n)
- deriving (Eq,Ord,Show)
+ deriving (Eq, Ord, Show, Generic)
+
+instance NFData n => NFData (Type n)
 
 typeOfValType :: CT.ValType -> Type n
 typeOfValType vt
@@ -120,8 +126,9 @@ data Constraint n
  | CDataOfLatest (Type n) (Type n) (Type n) (Type n)
  | CPossibilityOfLatest (Type n) (Type n) (Type n)
  | CPossibilityJoin (Type n) (Type n) (Type n)
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
+instance NFData n => NFData (Constraint n)
 
 data FunctionType n
  = FunctionType
@@ -130,8 +137,9 @@ data FunctionType n
  , functionArguments    :: [Type n]
  , functionReturn       :: Type n
  }
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
+instance NFData n => NFData (FunctionType n)
 
 data Annot a n
  = Annot
@@ -139,7 +147,9 @@ data Annot a n
  , annResult        :: Type n
  , annConstraints   :: [(a, Constraint n)]
  }
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
+
+instance (NFData a, NFData n) => NFData (Annot a n)
 
 
 annotDiscardConstraints :: Annot a n -> (a, Type n)

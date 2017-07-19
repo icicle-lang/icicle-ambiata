@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Common.Exp.Prim.Minimal (
@@ -19,13 +20,15 @@ module Icicle.Common.Exp.Prim.Minimal (
     , typeOfPrim
     ) where
 
-import              Icicle.Internal.Pretty
-import              Icicle.Common.Type
-import              Icicle.Common.Exp.Prim.Builtin
+import qualified Data.Map as Map
 
-import              P
+import           GHC.Generics (Generic)
 
-import qualified    Data.Map as Map
+import           Icicle.Internal.Pretty
+import           Icicle.Common.Type
+import           Icicle.Common.Exp.Prim.Builtin
+
+import           P
 
 
 -- | Common primitives in all language fragements.
@@ -41,14 +44,14 @@ data Prim
  | PrimStruct      !PrimStruct                  -- ^ Struct projections
  | PrimTime        !PrimTime                    -- ^ Time/date primitives
  | PrimBuiltinFun  !PrimBuiltinFun
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 -- | Unary arithmetic primitives common to all numeric types.
 --   Must be closed under the set of the input.
 data PrimArithUnary
  = PrimArithNegate
  | PrimArithAbsolute
- deriving (Eq, Ord, Show, Enum, Bounded)
+ deriving (Eq, Ord, Show, Enum, Bounded, Generic)
 
 -- | Binary arithmetic primitives common to all numeric types.
 --   Must be closed under the set of the input.
@@ -57,12 +60,12 @@ data PrimArithBinary
  | PrimArithMinus
  | PrimArithMul
  | PrimArithPow
- deriving (Eq, Ord, Show, Enum, Bounded)
+ deriving (Eq, Ord, Show, Enum, Bounded, Generic)
 
 data PrimToString
  = PrimToStringFromInt
  | PrimToStringFromDouble
- deriving (Eq, Ord, Show, Enum, Bounded)
+ deriving (Eq, Ord, Show, Enum, Bounded, Generic)
 
 -- | Predicates like >=
 data PrimRelation
@@ -72,14 +75,14 @@ data PrimRelation
  | PrimRelationLe
  | PrimRelationEq
  | PrimRelationNe
- deriving (Eq, Ord, Show, Enum, Bounded)
+ deriving (Eq, Ord, Show, Enum, Bounded, Generic)
 
 -- | Logical relations like &&, not
 data PrimLogical
  = PrimLogicalNot
  | PrimLogicalAnd
  | PrimLogicalOr
- deriving (Eq, Ord, Show, Enum, Bounded)
+ deriving (Eq, Ord, Show, Enum, Bounded, Generic)
 
 -- | Constructors
 data PrimConst
@@ -87,7 +90,7 @@ data PrimConst
  | PrimConstSome  !ValType
  | PrimConstLeft  !ValType !ValType
  | PrimConstRight !ValType !ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 -- | Time primitives
 data PrimTime
@@ -101,28 +104,28 @@ data PrimTime
  | PrimTimeProjectDay
  | PrimTimeProjectMonth
  | PrimTimeProjectYear
- deriving (Eq, Ord, Show, Enum, Bounded)
+ deriving (Eq, Ord, Show, Enum, Bounded, Generic)
 
 -- | Pair primitives
 data PrimPair
  = PrimPairFst !ValType !ValType
  | PrimPairSnd !ValType !ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
 data PrimStruct
  = PrimStructGet !StructField !ValType !StructType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
-instance NFData PrimPair        where rnf x = seq x ()
-instance NFData PrimArithUnary  where rnf x = seq x ()
-instance NFData PrimArithBinary where rnf x = seq x ()
-instance NFData PrimToString    where rnf x = seq x ()
-instance NFData PrimRelation    where rnf x = seq x ()
-instance NFData PrimLogical     where rnf x = seq x ()
-instance NFData PrimConst       where rnf x = seq x ()
-instance NFData PrimTime        where rnf x = seq x ()
-instance NFData PrimStruct      where rnf x = seq x ()
-instance NFData Prim            where rnf x = seq x ()
+instance NFData PrimPair
+instance NFData PrimArithUnary
+instance NFData PrimArithBinary
+instance NFData PrimToString
+instance NFData PrimRelation
+instance NFData PrimLogical
+instance NFData PrimConst
+instance NFData PrimTime
+instance NFData PrimStruct
+instance NFData Prim
 
 --------------------------------------------------------------------------------
 

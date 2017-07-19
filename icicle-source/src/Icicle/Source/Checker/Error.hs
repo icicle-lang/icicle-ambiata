@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -12,6 +13,8 @@ module Icicle.Source.Checker.Error (
   , errorInFunction
   , errorInFunctionEither
   ) where
+
+import           GHC.Generics (Generic)
 
 import           Icicle.Source.Query
 import           Icicle.Source.Type
@@ -30,7 +33,9 @@ import           Data.Hashable (Hashable)
 
 data CheckError a n
  = CheckError (ErrorInfo a n) [ErrorSuggestion a n]
- deriving (Show, Eq)
+ deriving (Show, Eq, Generic)
+
+instance (NFData a, NFData n) => NFData (CheckError a n)
 
 data ErrorInfo a n
  = ErrorNoSuchVariable a (Name n)
@@ -46,7 +51,9 @@ data ErrorInfo a n
  | ErrorCaseBadPattern a (Pattern n)
  | ErrorResumableFoldNotAllowedHere a (Query a n)
  | ErrorInFunctionCall a (Name n) (ErrorInfo a n)
- deriving (Show, Eq)
+ deriving (Show, Eq, Generic)
+
+instance (NFData a, NFData n) => NFData (ErrorInfo a n)
 
 annotOfError :: CheckError a n -> Maybe a
 annotOfError (CheckError e _)
@@ -83,7 +90,9 @@ data ErrorSuggestion a n
  = AvailableFeatures UnresolvedInputId [(InputId, Type n)]
  | AvailableBindings (Name n) [(Name n, FunctionType n)]
  | Suggest String
- deriving (Show, Eq)
+ deriving (Show, Eq, Generic)
+
+instance (NFData a, NFData n) => NFData (ErrorSuggestion a n)
 
 
 -- Helpers ------------

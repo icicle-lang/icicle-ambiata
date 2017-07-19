@@ -1,12 +1,13 @@
-{-# LANGUAGE DeriveFunctor     #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PatternSynonyms   #-}
-{-# LANGUAGE PatternGuards     #-}
-{-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
-{-# LANGUAGE DeriveFoldable    #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE TupleSections #-}
 module Icicle.Source.Transform.Desugar
   ( DesugarError(..)
   , annotOfError
@@ -16,16 +17,19 @@ module Icicle.Source.Transform.Desugar
   , desugarFun
   ) where
 
+import           Control.Monad.Trans.Class
+
+import           Data.Hashable (Hashable)
+import           Data.Functor.Identity
+
+import           GHC.Generics (Generic)
+
 import           Icicle.Common.Base
 import           Icicle.Common.Fresh
 
 import           Icicle.Source.Query
 import           Icicle.Source.Transform.Simp
 import           Icicle.Internal.Pretty
-
-import           Data.Hashable (Hashable)
-import           Data.Functor.Identity
-import           Control.Monad.Trans.Class
 
 import           P
 
@@ -38,7 +42,9 @@ data DesugarError a n
  | DesugarErrorImpossible a                -- ^ just impossible, the world has ended.
  | DesugarOverlappingPattern a (Pattern n) -- ^ duh
  | DesugarIllTypedPatterns   a [Pattern n] -- ^ patterns use constructors from different types
- deriving (Eq, Show)
+ deriving (Eq, Show, Generic)
+
+instance (NFData a, NFData n) => NFData (DesugarError a n)
 
 instance (Pretty a, Pretty n) => Pretty (DesugarError a n) where
   pretty (DesugarErrorNoAlternative a n) = "Missing alternative:" <+> pretty n <+> "at" <+> pretty a
