@@ -19,8 +19,12 @@ module Icicle.Compiler (
 
   , Result(..)
 
+  , CompilationStatus(..)
+  , CompilationPhase(..)
+
     -- * From dictionaires and libraries
   , avalancheOfDictionary
+  , avalancheOfDictionaryM
   , coreOfDictionary
 
     -- * Works on Source programs
@@ -57,68 +61,68 @@ module Icicle.Compiler (
   , parTraverse
   ) where
 
-import qualified Icicle.Avalanche.Annot                   as Avalanche
-import qualified Icicle.Avalanche.Check                   as Avalanche
-import qualified Icicle.Avalanche.FromCore                as Avalanche
-import qualified Icicle.Avalanche.Program                 as Avalanche
-import qualified Icicle.Avalanche.Simp                    as Avalanche
-import qualified Icicle.Avalanche.Statement.Flatten       as Avalanche
-import qualified Icicle.Avalanche.Prim.Flat               as Flat
+import           Control.Monad.Trans.Class (lift)
+import           Control.Parallel.Strategies (withStrategy, parTraversable, rparWith, rdeepseq)
 
-import qualified Icicle.Common.Annot                      as Common
-import qualified Icicle.Common.Base                       as Common
-import qualified Icicle.Common.Eval                       as Common
-import qualified Icicle.Common.Fresh                      as Fresh
-import qualified Icicle.Common.Type                       as Common
+import           Data.Functor.Identity (runIdentity)
+import           Data.Hashable (Hashable)
+import qualified Data.List as List
+import           Data.List.NonEmpty (NonEmpty(..))
+import           Data.Map (Map)
+import qualified Data.Map as Map
+import           Data.String (IsString(..))
+import qualified Data.Text as Text
 
-import qualified Icicle.Core.Exp.Prim                     as Core
-import qualified Icicle.Core.Program.Check                as Core
-import qualified Icicle.Core.Program.Condense             as Core
-import qualified Icicle.Core.Program.Error                as Core
-import qualified Icicle.Core.Program.Fusion               as Core
-import qualified Icicle.Core.Program.Program              as Core
-import qualified Icicle.Core.Program.Simp                 as Core
+import           GHC.Generics (Generic)
+
+import qualified Icicle.Avalanche.Annot as Avalanche
+import qualified Icicle.Avalanche.Check as Avalanche
+import qualified Icicle.Avalanche.FromCore as Avalanche
+import qualified Icicle.Avalanche.Program as Avalanche
+import qualified Icicle.Avalanche.Simp as Avalanche
+import qualified Icicle.Avalanche.Statement.Flatten as Avalanche
+import qualified Icicle.Avalanche.Prim.Flat as Flat
+
+import qualified Icicle.Common.Annot as Common
+import qualified Icicle.Common.Base as Common
+import qualified Icicle.Common.Eval as Common
+import qualified Icicle.Common.Fresh as Fresh
+import qualified Icicle.Common.Type as Common
+
+import qualified Icicle.Core.Exp.Prim as Core
+import qualified Icicle.Core.Program.Check as Core
+import qualified Icicle.Core.Program.Condense as Core
+import qualified Icicle.Core.Program.Error as Core
+import qualified Icicle.Core.Program.Fusion as Core
+import qualified Icicle.Core.Program.Program as Core
+import qualified Icicle.Core.Program.Simp as Core
 
 import           Icicle.Data
 
-import           Icicle.Dictionary                        (Dictionary)
-import qualified Icicle.Dictionary                        as Dict
+import           Icicle.Dictionary (Dictionary)
+import qualified Icicle.Dictionary as Dict
 
 import           Icicle.Internal.Pretty
 import           Icicle.Internal.Rename
 
-import qualified Icicle.Source.Parser                     as Source
-import qualified Icicle.Source.Query                      as Query
-import qualified Icicle.Source.ToCore.Base                as ToCore
-import qualified Icicle.Source.ToCore.ToCore              as ToCore
+import qualified Icicle.Source.Parser as Source
+import qualified Icicle.Source.Query as Query
+import qualified Icicle.Source.ToCore.Base as ToCore
+import qualified Icicle.Source.ToCore.ToCore as ToCore
 
-import           Icicle.Sea.Eval                          (SeaError, seaEvalAvalanche)
+import           Icicle.Sea.Eval (SeaError, seaEvalAvalanche)
 
-import qualified Icicle.Simulator                         as Sim
+import qualified Icicle.Simulator as Sim
 
-import qualified Icicle.Compiler.Source                   as Source
-
-
-import           Data.Hashable                            (Hashable)
-import           Data.List.NonEmpty ( NonEmpty(..) )
-import           Data.Map                                 (Map)
-import           Data.Monoid
-import           Data.String
-import qualified Data.List                                as List
-import qualified Data.Map                                 as M
-import qualified Data.Text                                as Text
-
-import           Control.Parallel.Strategies              (withStrategy, parTraversable, rparWith, rdeepseq)
-
-import qualified Text.ParserCombinators.Parsec            as Parsec
-
-import           GHC.Generics                             (Generic)
+import qualified Icicle.Compiler.Source as Source
 
 import           P
 
-import           System.IO                                (IO)
+import           System.IO (IO)
 
-import           X.Control.Monad.Trans.Either
+import qualified Text.ParserCombinators.Parsec as Parsec
+
+import           X.Control.Monad.Trans.Either (EitherT, runEitherT, hoistEither)
 
 
 --------------------------------------------------------------------------------
@@ -224,11 +228,11 @@ coreOfDictionary :: Source.IcicleCompileOptions
                  -> Dictionary
                  -> Either Error (Map InputId (NonEmpty (Source.CoreProgramUntyped Source.Var)))
 coreOfDictionary opts dict = do
-  let queries    = fmap Dict.outputQuery . M.elems $ Dict.dictionaryOutputs dict
+  let queries    = fmap Dict.outputQuery . Map.elems $ Dict.dictionaryOutputs dict
   let fusionOpts = Source.icicleFusionOptions opts
 
   core  <- parTraverse (coreOfSource opts dict) queries
-  fused <- parTraverse (fuseCore fusionOpts)   (M.unionsWith (<>) core)
+  fused <- parTraverse (fuseCore fusionOpts)   (Map.unionsWith (<>) core)
 
   return fused
 
@@ -270,7 +274,7 @@ sourceInputId query d =
       Query.queryInput query
   in
     maybeToRight (ErrorSource (Source.ErrorSourceResolveError iid)) $
-      resolveInputId iid (M.keys $ Dict.dictionaryInputs d)
+      resolveInputId iid (Map.keys $ Dict.dictionaryInputs d)
 
 coreOfSource :: Source.IcicleCompileOptions
              -> Dictionary
@@ -279,7 +283,7 @@ coreOfSource :: Source.IcicleCompileOptions
 coreOfSource opt dict query = do
   core <- coreOfSource1 opt dict query
   iid <- sourceInputId query dict
-  pure (M.singleton iid [core])
+  pure (Map.singleton iid [core])
 
 coreOfSource1 :: Source.IcicleCompileOptions
              -> Dictionary
@@ -305,16 +309,43 @@ checkCore prog
 ----------------------------------------
 -- * avalanche
 
-avalancheOfDictionary :: Source.IcicleCompileOptions
-                      -> Dictionary
-                      -> Either Error (Map InputId (NonEmpty (AvalProgramTyped Source.Var Flat.Prim)))
-avalancheOfDictionary opts dict = do
-  let queries    = fmap Dict.outputQuery . M.elems $ Dict.dictionaryOutputs dict
+data CompilationPhase =
+    PhaseSourceToCore
+  | PhaseFuseCore
+  | PhaseCoreToAvalanche
+
+data CompilationStatus =
+    CompileBegin CompilationPhase
+  | CompileEnd CompilationPhase
+
+avalancheOfDictionary ::
+     Source.IcicleCompileOptions
+  -> Dictionary
+  -> Either Error (Map InputId (NonEmpty (AvalProgramTyped Source.Var Flat.Prim)))
+avalancheOfDictionary options dictionary =
+  runIdentity . runEitherT $ avalancheOfDictionaryM (const $ pure ()) options dictionary
+
+avalancheOfDictionaryM ::
+     Monad m
+  => (CompilationStatus -> m ())
+  -> Source.IcicleCompileOptions
+  -> Dictionary
+  -> EitherT Error m (Map InputId (NonEmpty (AvalProgramTyped Source.Var Flat.Prim)))
+avalancheOfDictionaryM updateUI opts dict = do
+  let queries    = fmap Dict.outputQuery . Map.elems $ Dict.dictionaryOutputs dict
   let fusionOpts = Source.icicleFusionOptions opts
 
-  core      <- parTraverse (coreOfSource opts dict)   queries
-  fused     <- parTraverse (fuseCore fusionOpts)     (M.unionsWith (<>) core)
-  avalanche <- parTraverse (parTraverse avalancheOfCore) fused
+  lift . updateUI $ CompileBegin PhaseSourceToCore
+  core <- hoistEither $ parTraverse (coreOfSource opts dict) queries
+  lift . updateUI $ CompileEnd PhaseSourceToCore
+
+  lift . updateUI $ CompileBegin PhaseFuseCore
+  fused <- hoistEither $ parTraverse (fuseCore fusionOpts) (Map.unionsWith (<>) core)
+  lift . updateUI $ CompileEnd PhaseFuseCore
+
+  lift . updateUI $ CompileBegin PhaseCoreToAvalanche
+  avalanche <- hoistEither $ parTraverse (parTraverse avalancheOfCore) fused
+  lift . updateUI $ CompileEnd PhaseCoreToAvalanche
 
   return avalanche
 

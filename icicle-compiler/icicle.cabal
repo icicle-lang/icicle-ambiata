@@ -129,6 +129,7 @@ library
 
                        Icicle.Command.Compile
                        Icicle.Command.Query
+                       Icicle.Command.Timer
 
                        Icicle.Compiler
 

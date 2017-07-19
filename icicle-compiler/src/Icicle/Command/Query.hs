@@ -39,8 +39,8 @@ import qualified Data.ByteString as ByteString
 import           Data.ByteString.Builder (Builder)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
-import           Data.Time (getCurrentTime, diffUTCTime)
 
+import           Icicle.Command.Timer
 import           Icicle.Data.Time
 import           Icicle.Runtime.Data (MaximumMapSize(..), SnapshotTime(..), SnapshotKey(..))
 import qualified Icicle.Runtime.Data as Runtime
@@ -54,10 +54,8 @@ import           P
 
 import qualified Prelude as Savage
 
-import           System.IO (IO, FilePath, putStrLn)
+import           System.IO (IO, FilePath)
 import           System.IO.Error (IOError)
-
-import           Text.Printf (printf)
 
 import           X.Control.Monad.Trans.Either (EitherT, firstJoin, hoistEither)
 
@@ -276,32 +274,13 @@ execute query runtime =
 
 icicleQuery :: Query -> EitherT QueryError IO ()
 icicleQuery query = do
-  startTime <- liftIO getCurrentTime
-  liftIO $
-    putStrLn "icicle: starting compilation: C -> x86_64"
-
+  finishCompile <- startTimer "Compiling C -> x86_64"
   runtime <- compile query
+  finishCompile
 
-  endCompileTime <- liftIO getCurrentTime
-
-  let
-    compileSeconds =
-      realToFrac (endCompileTime `diffUTCTime` startTime) :: Double
-
-  liftIO $ do
-    printf "icicle: compilation time = %.2fs\n" compileSeconds
-    putStrLn "icicle: starting query"
-
+  finishQuery <- startTimer "Executing Query"
   execute query runtime
-
-  endTime <- liftIO getCurrentTime
-
-  let
-    querySeconds =
-      realToFrac (endTime `diffUTCTime` endCompileTime) :: Double
-
-  liftIO $
-    printf "icicle: query time = %.2fs\n" querySeconds
+  finishQuery
 
 -- FIXME add back these statistics:
 --  liftIO (printf "icicle: query time      = %.2fs\n" secs)

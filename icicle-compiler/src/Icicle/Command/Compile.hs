@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -16,17 +17,18 @@ module Icicle.Command.Compile (
   , renderCompileError
   ) where
 
-import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.IO.Class (MonadIO(..))
 
 import qualified Data.ByteString as ByteString
+import qualified Data.IORef as IORef
 import           Data.List.NonEmpty (NonEmpty)
 import           Data.Map (Map)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
-import           Data.Time (getCurrentTime, diffUTCTime)
 
 import qualified Icicle.Avalanche.Prim.Flat as Avalanche
 import qualified Icicle.Avalanche.Program as Avalanche
+import           Icicle.Command.Timer
 import           Icicle.Common.Annot (Annot)
 import qualified Icicle.Compiler as Compiler
 import qualified Icicle.Compiler.Source as Source
@@ -39,9 +41,7 @@ import qualified Icicle.Storage.Dictionary.Toml as Toml
 
 import           P
 
-import           System.IO (IO, FilePath, putStrLn)
-
-import           Text.Printf (printf)
+import           System.IO (IO, FilePath)
 
 import           X.Control.Monad.Trans.Either (EitherT, hoistEither)
 
@@ -90,10 +90,12 @@ loadDictionary (InputDictionaryToml path) = do
     Toml.loadDictionary Source.defaultCheckOptions Toml.ImplicitPrelude path
 
 compileDictionary ::
-     Dictionary
+     Monad m
+  => (Compiler.CompilationStatus -> m ())
+  -> Dictionary
   -> MaximumQueriesPerKernel
-  -> Either CompileError (Map InputId (NonEmpty (Avalanche.Program (Annot Source.AnnotUnit) Source.Var Avalanche.Prim)))
-compileDictionary dictionary maxQueries =
+  -> EitherT CompileError m (Map InputId (NonEmpty (Avalanche.Program (Annot Source.AnnotUnit) Source.Var Avalanche.Prim)))
+compileDictionary updateUI dictionary maxQueries =
   let
     fusion =
       Source.FusionOptions {
@@ -107,8 +109,8 @@ compileDictionary dictionary maxQueries =
             fusion
         }
   in
-    first CompileDictionaryError $
-      Compiler.avalancheOfDictionary options dictionary
+    firstT CompileDictionaryError $
+      Compiler.avalancheOfDictionaryM updateUI options dictionary
 
 writeSeaDictionary :: OutputDictionarySea -> Runtime.SeaContext -> IO ()
 writeSeaDictionary (OutputDictionarySea path) context =
@@ -117,29 +119,34 @@ writeSeaDictionary (OutputDictionarySea path) context =
 
 icicleCompile :: Compile -> EitherT CompileError IO ()
 icicleCompile compile = do
-  startTime <- liftIO getCurrentTime
+  finishAll <- startTimer "Compiling TOML -> C"
 
-  liftIO $
-    putStrLn "icicle: starting compilation: Icicle -> C"
+  finishDictionary <- startTimer "Parsing TOML"
+  dictionary <- loadDictionary (compileInputDictionary compile)
+  finishDictionary
 
-  dictionary <-
-    loadDictionary (compileInputDictionary compile)
+  ref <- liftIO . IORef.newIORef $ pure ()
 
-  avalanche <-
-    hoistEither $
-      compileDictionary dictionary (compileMaximumQueriesPerKernel compile)
+  let
+    updateUI = \case
+      Compiler.CompileBegin Compiler.PhaseSourceToCore ->
+        liftIO . IORef.writeIORef ref =<< startTimer "Compiling Source -> Core"
+      Compiler.CompileBegin Compiler.PhaseFuseCore ->
+        liftIO . IORef.writeIORef ref =<< startTimer "Fusing Compute Kernels"
+      Compiler.CompileBegin Compiler.PhaseCoreToAvalanche ->
+        liftIO . IORef.writeIORef ref =<< startTimer "Compiling Core -> Avalanche"
+      Compiler.CompileEnd _ -> do
+        end <- liftIO $ IORef.readIORef ref
+        end
 
+  avalanche <- compileDictionary updateUI dictionary (compileMaximumQueriesPerKernel compile)
+
+  finishSea <- startTimer "Compiling Avalanche -> C"
   sea <-
     hoistEither . first CompileAvalancheError . Runtime.compileAvalanche $
       Runtime.AvalancheContext (compileFingerprint compile) avalanche
+  finishSea
 
   liftIO $ writeSeaDictionary (compileOutputDictionary compile) sea
 
-  endTime <- liftIO getCurrentTime
-
-  let
-    seconds =
-      realToFrac (endTime `diffUTCTime` startTime) :: Double
-
-  liftIO $
-    printf "icicle: compilation time = %.2fs\n" seconds
+  finishAll
