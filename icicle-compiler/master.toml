@@ -1,7 +1,7 @@
 [master]
-  runner = "s3://ambiata-dispensary-v2/dist/master/master-haskell/linux/x86_64/20170613033625-fddfe03/master-haskell-20170613033625-fddfe03"
+  runner = "s3://ambiata-dispensary-v2/dist/master/master-haskell/linux/x86_64/20170724213527-c4b2de4/master-haskell-20170724213527-c4b2de4"
   version = 1
-  sha1 = "0a9e91a8c3373a402c5f2c4fc8d9aabb210c03b3"
+  sha1 = "09aa2a97367596116e8d12112bf68464919d4815"
 
 [global]
   CACHE = "true"
