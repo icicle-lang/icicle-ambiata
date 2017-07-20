@@ -76,7 +76,7 @@ renderAnyError = \case
 valueSize :: Num a => a
 valueSize =
   8
-{-# INLINE valueSize #-}
+{-# INLINABLE valueSize #-}
 
 checkValueSize :: Storable a => a -> Either AnyError ()
 checkValueSize x = do
@@ -84,38 +84,38 @@ checkValueSize x = do
    Left $ Any64MustBeWordSize (sizeOf x)
  else
    pure ()
-{-# INLINE checkValueSize #-}
+{-# INLINABLE checkValueSize #-}
 
 unsafeFrom :: Storable a => a -> Any64
 unsafeFrom !x =
   Any64 $! unsafePerformIO $! alloca $ \ptr -> do
     poke (castPtr ptr) x
     peek ptr
-{-# INLINE unsafeFrom #-}
+{-# INLINABLE unsafeFrom #-}
 
 from :: forall a. Storable a => a -> Either AnyError Any64
 from !x = do
   checkValueSize (Savage.undefined :: a)
   pure $! unsafeFrom x
-{-# INLINE from #-}
+{-# INLINABLE from #-}
 
 unsafeRead :: Storable a => Any64 -> a
 unsafeRead (Any64 any) =
   unsafePerformIO $! alloca $ \ptr -> do
     poke ptr any
     peek (castPtr ptr)
-{-# INLINE unsafeRead #-}
+{-# INLINABLE unsafeRead #-}
 
 read :: forall a. Storable a => Any64 -> Either AnyError a
 read !any = do
   checkValueSize (Savage.undefined :: a)
   pure $! unsafeRead any
-{-# INLINE read #-}
+{-# INLINABLE read #-}
 
 nullString :: Any64
 nullString =
   Any64 0x0
-{-# INLINE nullString #-}
+{-# INLINABLE nullString #-}
 
 toString :: Any64 -> IO ByteString
 toString any =
@@ -129,7 +129,7 @@ toString any =
       Savage.error "Runtime.Data.Any.toString"
     else
       liftIO $! ByteString.packCString ptr
-{-# INLINE toString #-}
+{-# INLINABLE toString #-}
 
 fromString :: Mempool -> ByteString -> IO Any64
 fromString pool (PS fp off len) =
@@ -144,17 +144,17 @@ fromString pool (PS fp off len) =
     pokeByteOff dst len (0 :: Word8)
 
     pure $! unsafeFrom dst
-{-# INLINE fromString #-}
+{-# INLINABLE fromString #-}
 
 toArray :: Any64 -> Array
 toArray any =
   unsafeRead any
-{-# INLINE toArray #-}
+{-# INLINABLE toArray #-}
 
 fromArray :: Array -> Any64
 fromArray any =
   unsafeFrom any
-{-# INLINE fromArray #-}
+{-# INLINABLE fromArray #-}
 
 foreign import ccall unsafe "string.h memcpy"
   c_memcpy :: Ptr a -> Ptr a -> CSize -> IO ()

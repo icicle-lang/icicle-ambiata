@@ -175,12 +175,12 @@ instance Show ArrayFootprint where
 headerSize :: Num a => a
 headerSize =
   8
-{-# INLINE headerSize #-}
+{-# INLINABLE headerSize #-}
 
 elementSize :: Num a => a
 elementSize =
   8
-{-# INLINE elementSize #-}
+{-# INLINABLE elementSize #-}
 
 -- | Calculate an array's capacity, from its current element count.
 --
@@ -194,33 +194,33 @@ calculateCapacity (ArrayLength len) =
         64 - countLeadingZeros (len - 1)
     in
       ArrayCapacity (1 `shiftL` bits)
-{-# INLINE calculateCapacity #-}
+{-# INLINABLE calculateCapacity #-}
 
 calculateFootprint :: ArrayCapacity -> ArrayFootprint
 calculateFootprint (ArrayCapacity capacity) =
   ArrayFootprint $
     headerSize + elementSize * capacity
-{-# INLINE calculateFootprint #-}
+{-# INLINABLE calculateFootprint #-}
 
 unsafeWriteLength :: Array -> ArrayLength -> IO ()
 unsafeWriteLength (Array ptr) (ArrayLength len) =
   pokeByteOff ptr 0 len
-{-# INLINE unsafeWriteLength #-}
+{-# INLINABLE unsafeWriteLength #-}
 
 unsafeLengthPtr :: Array -> Ptr Int64
 unsafeLengthPtr (Array ptr) =
   castPtr ptr
-{-# INLINE unsafeLengthPtr #-}
+{-# INLINABLE unsafeLengthPtr #-}
 
 unsafeElementPtr :: Array -> Ptr a
 unsafeElementPtr (Array ptr) =
   ptr `plusPtr` headerSize
-{-# INLINE unsafeElementPtr #-}
+{-# INLINABLE unsafeElementPtr #-}
 
 unsafeAllocate :: Mempool -> ArrayFootprint -> IO Array
 unsafeAllocate pool bytes =
   Array <$> Mempool.callocBytes pool (fromIntegral bytes) 1
-{-# INLINE unsafeAllocate #-}
+{-# INLINABLE unsafeAllocate #-}
 
 -- | Allocate an initialised array of the specified length.
 --
@@ -239,12 +239,12 @@ new pool len = do
 null :: Array
 null =
   Array nullPtr
-{-# INLINE null #-}
+{-# INLINABLE null #-}
 
 isNull :: Array -> Bool
 isNull (Array ptr) =
   ptr == nullPtr
-{-# INLINE isNull #-}
+{-# INLINABLE isNull #-}
 
 length :: Array -> IO ArrayLength
 length array =
@@ -252,7 +252,7 @@ length array =
     pure 0
   else
     fmap ArrayLength . peek $ unsafeLengthPtr array
-{-# INLINE length #-}
+{-# INLINABLE length #-}
 
 checkElementSize :: Storable a => a -> EitherT ArrayError IO ()
 checkElementSize x = do
@@ -260,7 +260,7 @@ checkElementSize x = do
    left $ ArrayElementsMustBeWordSize (sizeOf x)
  else
    pure ()
-{-# INLINE checkElementSize #-}
+{-# INLINABLE checkElementSize #-}
 
 checkBounds :: Array -> ArrayIndex -> EitherT ArrayError IO ()
 checkBounds array (ArrayIndex ix) = do
@@ -269,7 +269,7 @@ checkBounds array (ArrayIndex ix) = do
     pure ()
   else
     left $ ArrayIndexOutOfBounds (ArrayIndex ix) (ArrayLength n)
-{-# INLINE checkBounds #-}
+{-# INLINABLE checkBounds #-}
 
 checkSegmentDescriptor :: Storable.Vector ArrayLength -> ArrayLength -> EitherT ArrayError IO ()
 checkSegmentDescriptor ns m =
@@ -281,7 +281,7 @@ checkSegmentDescriptor ns m =
       pure ()
     else
       left $ ArraySegmentDescriptorMismatch m n
-{-# INLINE checkSegmentDescriptor #-}
+{-# INLINABLE checkSegmentDescriptor #-}
 
 checkStringNull :: ByteString -> EitherT ArrayError IO ()
 checkStringNull bs =
@@ -295,31 +295,31 @@ checkStringNull bs =
           ByteString.drop (ix - 5) bs
       in
         left $ ArrayStringContainsNull sample
-{-# INLINE checkStringNull #-}
+{-# INLINABLE checkStringNull #-}
 
 unsafeRead :: Storable a => Array -> ArrayIndex -> IO a
 unsafeRead array (ArrayIndex ix) =
   peekByteOff (unsafeElementPtr array) (fromIntegral (elementSize * ix))
-{-# INLINE unsafeRead #-}
+{-# INLINABLE unsafeRead #-}
 
 read :: forall a. Storable a => Array -> ArrayIndex -> EitherT ArrayError IO a
 read array ix = do
   checkElementSize (Savage.undefined :: a)
   checkBounds array ix
   liftIO $ unsafeRead array ix
-{-# INLINE read #-}
+{-# INLINABLE read #-}
 
 unsafeWrite :: Storable a => Array -> ArrayIndex -> a -> IO ()
 unsafeWrite array (ArrayIndex ix) x = do
   pokeByteOff (unsafeElementPtr array) (fromIntegral (elementSize * ix)) x
-{-# INLINE unsafeWrite #-}
+{-# INLINABLE unsafeWrite #-}
 
 write :: forall a. Storable a => Array -> ArrayIndex -> a -> EitherT ArrayError IO ()
 write array ix x = do
   checkElementSize x
   checkBounds array ix
   liftIO $ unsafeWrite array ix x
-{-# INLINE write #-}
+{-# INLINABLE write #-}
 
 grow :: Mempool -> Array -> ArrayLength -> IO Array
 grow pool arrayOld@(Array ptrOld) lengthNew =
@@ -389,19 +389,19 @@ unsafeViewMVector array = do
   !n <- length array
   !fp <- newForeignPtr_ (unsafeElementPtr array)
   pure $! MStorable.unsafeFromForeignPtr0 fp (fromIntegral n)
-{-# INLINE unsafeViewMVector #-}
+{-# INLINABLE unsafeViewMVector #-}
 
 unsafeViewVector :: Storable a => Array -> IO (Storable.Vector a)
 unsafeViewVector array =
   Storable.unsafeFreeze =<<! unsafeViewMVector array
-{-# INLINE unsafeViewVector #-}
+{-# INLINABLE unsafeViewVector #-}
 
 toVector :: forall a. Storable a => Array -> EitherT ArrayError IO (Storable.Vector a)
 toVector array = do
   checkElementSize (Savage.undefined :: a)
   liftIO $!
     Storable.freeze =<<! unsafeViewMVector array
-{-# INLINE toVector #-}
+{-# INLINABLE toVector #-}
 
 seqList :: [a] -> b -> b
 seqList xs0 o =
@@ -410,19 +410,19 @@ seqList xs0 o =
       o
     x : xs ->
       x `seq` xs `seqList` o
-{-# INLINE seqList #-}
+{-# INLINABLE seqList #-}
 
 unsafeToList :: Storable a => Array -> IO [a]
 unsafeToList array = do
   xs <- Storable.toList <$> unsafeViewVector array
   xs `seqList` pure xs
-{-# INLINE unsafeToList #-}
+{-# INLINABLE unsafeToList #-}
 
 toList :: forall a. Storable a => Array -> EitherT ArrayError IO [a]
 toList array = do
   checkElementSize (Savage.undefined :: a)
   liftIO $! unsafeToList array
-{-# INLINE toList #-}
+{-# INLINABLE toList #-}
 
 unsafeFromMVector :: Storable a => Mempool -> MStorable.MVector (PrimState IO) a -> IO Array
 unsafeFromMVector pool vector = do
@@ -445,28 +445,28 @@ unsafeFromMVector pool vector = do
 unsafeFromVector :: Storable a => Mempool -> Storable.Vector a -> IO Array
 unsafeFromVector pool vector =
   unsafeFromMVector pool =<<! Storable.unsafeThaw vector
-{-# INLINE unsafeFromVector #-}
+{-# INLINABLE unsafeFromVector #-}
 
 fromVector :: forall a. (Storable a, Show a) => Mempool -> Storable.Vector a -> EitherT ArrayError IO Array
 fromVector pool vector = do
   checkElementSize (Savage.undefined :: a)
   liftIO $! unsafeFromVector pool vector
-{-# INLINE fromVector #-}
+{-# INLINABLE fromVector #-}
 
 fromList :: (Storable a, Show a) => Mempool -> [a] -> EitherT ArrayError IO Array
 fromList pool xs =
   fromVector pool $! Storable.fromList xs
-{-# INLINE fromList #-}
+{-# INLINABLE fromList #-}
 
 makeDescriptor :: Storable.Vector Int64 -> Storable.Vector ArrayLength
 makeDescriptor =
   Storable.unsafeCast
-{-# INLINE makeDescriptor #-}
+{-# INLINABLE makeDescriptor #-}
 
 takeDescriptor :: Storable.Vector ArrayLength -> Storable.Vector Int64
 takeDescriptor =
   Storable.unsafeCast
-{-# INLINE takeDescriptor #-}
+{-# INLINABLE takeDescriptor #-}
 
 unsafeFromStringSegments :: Mempool -> Storable.Vector ArrayLength -> ByteString -> IO Array
 unsafeFromStringSegments pool ns (PS fp off0 _) =
@@ -505,7 +505,7 @@ fromStringSegments pool ns bs = do
   checkSegmentDescriptor ns . fromIntegral $ ByteString.length bs
   checkStringNull bs
   liftIO $! unsafeFromStringSegments pool ns bs
-{-# INLINE fromStringSegments #-}
+{-# INLINABLE fromStringSegments #-}
 
 unsafeViewCString :: CString -> IO ByteString
 unsafeViewCString ptr =
@@ -515,7 +515,7 @@ unsafeViewCString ptr =
     !n <- c_strlen ptr
     !fp <- newForeignPtr_ (castPtr ptr)
     pure $! PS fp 0 (fromIntegral n)
-{-# INLINE unsafeViewCString #-}
+{-# INLINABLE unsafeViewCString #-}
 
 toStringSegments :: Array -> IO (Storable.Vector ArrayLength, ByteString)
 toStringSegments array = do
@@ -543,7 +543,7 @@ toStringSegments array = do
         Boxed.foldM'_ loop 0 bss
 
   pure (ns, bs)
-{-# INLINE toStringSegments #-}
+{-# INLINABLE toStringSegments #-}
 
 unsafeFromArraySegments :: Mempool -> Storable.Vector ArrayLength -> Array -> IO Array
 unsafeFromArraySegments pool ns srcArray = do
@@ -583,7 +583,7 @@ fromArraySegments pool ns array = do
   m <- liftIO $ length array
   checkSegmentDescriptor ns m
   liftIO $! unsafeFromArraySegments pool ns array
-{-# INLINE fromArraySegments #-}
+{-# INLINABLE fromArraySegments #-}
 
 toArraySegments :: Mempool -> Array -> IO (Storable.Vector ArrayLength, Array)
 toArraySegments pool srcArrayArray = do
@@ -613,7 +613,7 @@ toArraySegments pool srcArrayArray = do
   Storable.foldM_ loop 0 srcArrays
 
   pure (ns, dstArray)
-{-# INLINE toArraySegments #-}
+{-# INLINABLE toArraySegments #-}
 
 foreign import ccall unsafe "string.h memcpy"
   c_memcpy :: Ptr a -> Ptr a -> CSize -> IO ()

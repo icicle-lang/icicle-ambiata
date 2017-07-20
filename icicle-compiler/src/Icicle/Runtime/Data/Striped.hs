@@ -243,7 +243,7 @@ empty = \case
 (+!) :: Int -> Int -> Int
 (+!) !x !y =
   x + y
-{-# INLINE (+!) #-}
+{-# INLINABLE (+!) #-}
 
 meltedCount :: Schema -> Int
 meltedCount = \case
