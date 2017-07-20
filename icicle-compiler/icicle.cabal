@@ -360,33 +360,3 @@ test-suite test-cli
   build-depends:
                        base                            >= 3          && < 5
                      , ambiata-disorder-core
-
-
-benchmark bench
-  type:                exitcode-stdio-1.0
-
-  main-is:             bench.hs
-
-  ghc-options:         -Wall -threaded -O2
-
-  hs-source-dirs:
-                       bench
-
-  build-depends:
-                       base                            >= 3          && < 5
-                     , icicle-data
-                     , icicle-source
-                     , icicle-core
-                     , icicle
-                     , ambiata-p
-                     , ambiata-x-eithert
-                     , containers                      == 0.5.*
-                     , criterion                       == 1.1.*
-                     , directory                       == 1.2.*
-                     , filepath                        == 1.4.*
-                     , mmorph                          == 1.0.*
-                     , process                         >= 1.2.3      && < 1.5
-                     , resourcet                       >= 1.1        && < 2
-                     , temporary                       == 1.2.*
-                     , text                            == 1.2.*
-                     , transformers                    >= 0.3        && < 0.6
