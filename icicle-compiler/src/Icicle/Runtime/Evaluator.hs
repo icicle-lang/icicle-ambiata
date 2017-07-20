@@ -318,7 +318,7 @@ compileAvalanche context =
       Map.toList $ avalanchePrograms context
   in
     fmap SeaContext . first RuntimeSeaError $
-      Sea.codeOfPrograms fingerprint Sea.NoInput [] programs
+      Sea.codeOfPrograms fingerprint Sea.NoInput programs
 
 fromUseJetskiCache :: UseJetskiCache -> Jetski.CacheLibrary
 fromUseJetskiCache = \case

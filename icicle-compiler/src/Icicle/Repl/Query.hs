@@ -433,7 +433,7 @@ compileSea compiled =
             putSection "C" x
 
       whenSet FlagSeaAssembly $ do
-        result <- liftIO . runEitherT $ Sea.assemblyOfPrograms "icicle-repl" Sea.NoInput [iid] [(iid, flatList)]
+        result <- liftIO . runEitherT $ Sea.assemblyOfPrograms "icicle-repl" Sea.NoInput [(iid, flatList)]
         case result of
           Left err ->
             putSection "C assembly error" err
@@ -441,7 +441,7 @@ compileSea compiled =
             putSection "C assembly" x
 
       whenSet FlagSeaLLVM $ do
-        result <- liftIO . runEitherT $ Sea.irOfPrograms "icicle-repl" Sea.NoInput [iid] [(iid, flatList)]
+        result <- liftIO . runEitherT $ Sea.irOfPrograms "icicle-repl" Sea.NoInput [(iid, flatList)]
         case result of
           Left err ->
             putSection "C LLVM IR error" err

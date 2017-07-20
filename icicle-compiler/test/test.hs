@@ -44,7 +44,6 @@ import qualified Icicle.Test.Sea.Psv.Corpus
 import qualified Icicle.Test.Sea.Psv.Success
 import qualified Icicle.Test.Sea.Psv.Failure
 import qualified Icicle.Test.Sea.PsvFission
-import qualified Icicle.Test.Sea.Zebra
 import qualified Icicle.Test.Sea.Seaworthy
 import qualified Icicle.Test.Sea.Text
 
@@ -95,7 +94,6 @@ sea =
     , Icicle.Test.Sea.PsvFission.tests
     , Icicle.Test.Sea.Seaworthy.tests
     , Icicle.Test.Sea.Text.tests
-    , Icicle.Test.Sea.Zebra.tests
     ]
 
 sundry :: TestSuite

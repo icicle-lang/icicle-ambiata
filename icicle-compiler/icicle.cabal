@@ -186,7 +186,6 @@ library
                        Icicle.Sea.IO.Psv
                        Icicle.Sea.IO.Psv.Input
                        Icicle.Sea.IO.Psv.Output
-                       Icicle.Sea.IO.Zebra
                        Icicle.Sea.Name
                        Icicle.Sea.Preamble
 

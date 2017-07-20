@@ -37,7 +37,7 @@ prop_seaworthy
  = forAll (validated tryCountInputType genWellTypedCluster) $ \wt -> testIO
  $ do let a = [inputid|default:eval|]
       let seaProgram = Map.singleton a (wtAvalancheFlat wt :| [])
-      x <- runEitherT $ go [a] seaProgram
+      x <- runEitherT $ go seaProgram
       return $ case x of
        Right _
         -> property succeeded
@@ -47,8 +47,8 @@ prop_seaworthy
         $  counterexample (show $ pretty (wtAvalancheFlat wt))
         $  failed
  where
-  go a p =
-    bracketEitherT' (S.seaCompile "Icicle.Test.Sea.Seaworthy.prop_seaworthy" S.SkipJetskiCache S.NoInput a p Nothing) S.seaRelease (const $ return ())
+  go p =
+    bracketEitherT' (S.seaCompile "Icicle.Test.Sea.Seaworthy.prop_seaworthy" S.SkipJetskiCache S.NoInput p Nothing) S.seaRelease (const $ return ())
 
 
 return []
