@@ -5,7 +5,6 @@ module Icicle.Core.Program.Simp
 
 
 import           Icicle.Common.Fresh
-import qualified Icicle.Common.Exp.Simp.Beta as B
 import           Icicle.Core.Program.Program
 import           Icicle.Core.Stream.Stream
 import qualified Icicle.Core.Exp.Simp as S
@@ -17,7 +16,7 @@ import           Data.Hashable (Hashable)
 
 
 simp :: (Hashable n, Eq n) => a -> C.Exp a n -> Fresh n (C.Exp a n)
-simp a_fresh = S.simp a_fresh B.isSimpleValue
+simp a_fresh = S.simp a_fresh
 
 -- | Simplifies individual exps in the Core prorgam.
 --

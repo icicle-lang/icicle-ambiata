@@ -19,8 +19,7 @@ simp :: (Hashable n, Eq n)
      => a -> Exp a n p -> Fresh n (Exp a n p)
 simp a_fresh xx
  = anormal a_fresh
- $ beta isSimpleValue
-   xx
+ $ beta xx
 
 simpKeepAnn
   :: (Hashable n, Eq n)
@@ -29,7 +28,7 @@ simpKeepAnn
   -> Fresh n (Exp (Ann a n) n p)
 simpKeepAnn a_fresh xx
   = anormalAllVars a_fresh
-  $ beta isSimpleValue xx
+  $ beta xx
 
 simpAnn
   :: (Hashable n, Eq n)
@@ -38,5 +37,5 @@ simpAnn
   -> Fresh n (Exp (Ann a n) n p)
 simpAnn a_fresh xx
   = anormalAllVars a_fresh
-  $ beta isSimpleValue
+  $ beta 
   $ allvarsExp xx

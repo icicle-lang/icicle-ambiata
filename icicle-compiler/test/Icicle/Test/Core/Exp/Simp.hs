@@ -29,7 +29,7 @@ import           Test.QuickCheck
 prop_beta_evaluation
  = withTypedExp
  $ \x _
- -> let x' = Beta.beta Beta.isSimpleValue x
+ -> let x' = Beta.beta x
     in  counterexample (show $ pretty x)
       $ counterexample (show $ pretty x')
        (eval0 evalPrim x === eval0 evalPrim x')
@@ -39,17 +39,7 @@ prop_beta_type
  = withTypedExp
  $ \x _
  -> typeExp0 coreFragment x == typeExp0 coreFragment
-   ( Beta.beta Beta.isSimpleValue x)
-
--- Reduce regardless of whether it's a value
-prop_beta_always_evaluation
- = withTypedExp
- $ \x _
- -> let x' = Beta.beta (const True) x
-    in  counterexample (show $ pretty x)
-      $ counterexample (show $ pretty x')
-       (eval0 evalPrim x === eval0 evalPrim x')
-
+   ( Beta.beta x)
 
 -- Converting all beta reductions to lets
 prop_betaToLets_evaluation
@@ -97,7 +87,7 @@ prop_core_simp_type
   = withTypedExp
   $ \x _
   -> let simple = snd
-                $ Fresh.runFresh (CoreSimp.simp () Beta.isSimpleValue x)
+                $ Fresh.runFresh (CoreSimp.simp () x)
                                  (Fresh.counterNameState (NameBase . Var "anf") 0)
      in  counterexample (show . pretty $ x)
        $ counterexample (show . pretty $ simple)
@@ -109,7 +99,7 @@ prop_core_simp_eval
  $ \x _
  -> eval0 evalPrim x === eval0 evalPrim
    ( snd
-   $ Fresh.runFresh (CoreSimp.simp () Beta.isSimpleValue x)
+   $ Fresh.runFresh (CoreSimp.simp () x)
                     (Fresh.counterNameState (NameBase . Var "anf") 0))
 
 

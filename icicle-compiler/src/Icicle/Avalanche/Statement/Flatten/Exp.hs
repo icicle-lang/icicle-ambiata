@@ -65,7 +65,7 @@ flatX a_fresh xx stm
   -- Unapplied lambdas aren't really able to be converted, since
   -- we're lifting some expressions to statements, and there is no statement-level
   -- lambda, only expression-level lambda.
-  x' = beta isSimpleValue
+  x' = beta
      $ betaToLets a_fresh xx
 
   -- Annotation plumbing
