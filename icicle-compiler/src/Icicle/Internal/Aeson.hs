@@ -8,6 +8,7 @@ module Icicle.Internal.Aeson (
   , decodeJson
   , encodePrettyJson
   , encodeCompactJson
+  , encodeCompactJson'
 
   , prettyConfig
   , compactConfig
@@ -35,6 +36,8 @@ module Icicle.Internal.Aeson (
   , ppMap
   ) where
 
+import qualified Anemone.Pretty as Anemone
+
 import           Data.Aeson ((.=), (.:))
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Encode.Pretty as Aeson
@@ -48,9 +51,14 @@ import qualified Data.List as List
 import           Data.List.NonEmpty (NonEmpty(..))
 import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
+import           Data.Scientific (Scientific)
+import qualified Data.Scientific as Scientific
 import           Data.String (String)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
+import           Data.Text.Lazy.Builder (Builder)
+import qualified Data.Text.Lazy.Builder as Builder
+import qualified Data.Text.Lazy.Builder.Int as Builder
 import qualified Data.Vector as Boxed
 
 import           P
@@ -77,7 +85,11 @@ encodePrettyJson keyOrder =
 
 encodeCompactJson :: [Text] -> Aeson.Value -> Text
 encodeCompactJson keyOrder =
-  Text.decodeUtf8 . Lazy.toStrict . Aeson.encodePretty' (compactConfig keyOrder)
+  Text.decodeUtf8 . Lazy.toStrict . encodeCompactJson' keyOrder
+
+encodeCompactJson' :: [Text] -> Aeson.Value -> Lazy.ByteString
+encodeCompactJson' keyOrder =
+  Aeson.encodePretty' (compactConfig keyOrder)
 
 prettyConfig :: [Text] -> Aeson.Config
 prettyConfig keyOrder =
@@ -86,6 +98,8 @@ prettyConfig keyOrder =
         Aeson.Spaces 2
     , Aeson.confCompare =
         Aeson.keyOrder keyOrder
+    , Aeson.confNumFormat =
+        Aeson.Custom encodeNumber
     }
 
 compactConfig :: [Text] -> Aeson.Config
@@ -93,7 +107,17 @@ compactConfig keyOrder =
   (prettyConfig keyOrder) {
       Aeson.confIndent =
         Aeson.Spaces 0
+    , Aeson.confNumFormat =
+        Aeson.Custom encodeNumber
     }
+
+encodeNumber :: Scientific -> Builder
+encodeNumber x0 =
+  case Scientific.floatingOrInteger x0 of
+    Left x ->
+      Builder.fromText . Text.decodeUtf8 $ Anemone.renderDouble x
+    Right x ->
+      Builder.decimal (x :: Int64)
 
 pText :: Aeson.Value -> Aeson.Parser Text
 pText =

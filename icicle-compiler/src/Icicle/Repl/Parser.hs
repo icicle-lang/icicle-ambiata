@@ -26,7 +26,7 @@ import qualified Data.List as List
 import qualified Data.Map as Map
 import           Data.String (String)
 
-import           Icicle.Data.Time
+import           Icicle.Data.Time (Date, dateOfYMD)
 import           Icicle.Repl.Data
 import           Icicle.Repl.Flag
 

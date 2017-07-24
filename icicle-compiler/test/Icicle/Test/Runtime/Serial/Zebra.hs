@@ -2,21 +2,18 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Icicle.Test.Runtime.Serial.Zebra where
 
-import           Disorder.Jack
+import           Hedgehog
 
 import           Icicle.Runtime.Serial.Zebra
-import           Icicle.Test.Arbitrary.Run
 import           Icicle.Test.Gen.Runtime.Data
 
 import           P
 
 import           System.IO (IO)
 
-import           Text.Show.Pretty (ppShow)
 
-
-trippingBoth :: (Monad m, Show (m a), Show (m b), Eq (m a)) => (a -> m b) -> (b -> m a) -> a -> Property
-trippingBoth to from x =
+trippingBoth :: (MonadTest m, Monad f, Show (f a), Show (f b), Eq (f a)) => a -> (a -> f b) -> (b -> f a) -> m ()
+trippingBoth x to from =
   let
     original =
       pure x
@@ -27,46 +24,50 @@ trippingBoth to from x =
     roundtrip =
       from =<< intermediate
   in
-    counterexample "" .
-    counterexample "Roundtrip failed." .
-    counterexample "" .
-    counterexample "=== Intermediate ===" .
-    counterexample (ppShow intermediate) .
-    counterexample "" $
-      property (original === roundtrip)
+    if original == roundtrip then
+      success
+    else do
+      annotateShow intermediate
+      original === roundtrip
 
 prop_roundtrip_zebra_input_schema :: Property
 prop_roundtrip_zebra_input_schema =
-  gamble genInputSchemas $
-    trippingBoth encodeInputSchemas decodeInputSchemas
+  property $ do
+    x <- forAll genInputSchemas
+    trippingBoth x encodeInputSchemas decodeInputSchemas
 
 prop_roundtrip_zebra_column_schema :: Property
 prop_roundtrip_zebra_column_schema =
-  gamble genSchema $
-    trippingBoth (pure . encodeColumnSchema) decodeColumnSchema
+  property $ do
+    x <- forAll genSchema
+    trippingBoth x (pure . encodeColumnSchema) decodeColumnSchema
 
 prop_roundtrip_zebra_column :: Property
 prop_roundtrip_zebra_column =
-  gamble genSchema $ \schema ->
-  gamble (genColumn schema) $
-    trippingBoth encodeColumn decodeColumn
+  property $ do
+    schema <- forAll genSchema
+    x <- forAll (genColumn schema)
+    trippingBoth x encodeColumn decodeColumn
 
 prop_roundtrip_zebra_input :: Property
 prop_roundtrip_zebra_input =
-  gamble genInput $
-    trippingBoth encodeInput decodeInput
+  property $ do
+    x <- forAll genInput
+    trippingBoth x encodeInput decodeInput
 
 prop_roundtrip_zebra_snapshot_output :: Property
 prop_roundtrip_zebra_snapshot_output =
-  gamble (genOutput genSnapshotKey) $
-    trippingBoth encodeSnapshotOutput decodeSnapshotOutput
+  property $ do
+    x <- forAll (genOutput genSnapshotKey)
+    trippingBoth x encodeSnapshotOutput decodeSnapshotOutput
 
 prop_roundtrip_zebra_chord_output :: Property
 prop_roundtrip_zebra_chord_output =
-  gamble (genOutput genChordKey) $
-    trippingBoth encodeChordOutput decodeChordOutput
+  property $ do
+    x <- forAll (genOutput genChordKey)
+    trippingBoth x encodeChordOutput decodeChordOutput
 
 return []
 tests :: IO Bool
 tests =
-  $checkAllWith TestRunNormal checkArgs
+  checkParallel $$(discover)

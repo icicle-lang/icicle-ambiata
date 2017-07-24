@@ -63,8 +63,8 @@ modName :: Hashable n => n -> Name n -> Name n
 modName prefix = nameOf . NameMod prefix . nameBase
 
 
-instance NFData (NameBase n) where rnf x = seq x ()
-instance NFData (Name n)     where rnf x = seq x ()
+instance NFData n => NFData (NameBase n)
+instance NFData n => NFData (Name n)
 
 --------------------------------------------------------------------------------
 
@@ -74,7 +74,7 @@ data WindowUnit
  | Weeks  !Int
  deriving (Show, Eq, Ord, Generic)
 
-instance NFData WindowUnit where rnf x = seq x ()
+instance NFData WindowUnit
 
 -- | Base values - real values that can be serialised and whatnot
 -- These are used in the expressions, but actual values can be
@@ -100,7 +100,7 @@ data BaseValue
  | VFactIdentifier !FactIdentifier
  deriving (Show, Ord, Eq, Generic)
 
-instance NFData BaseValue where rnf x = seq x ()
+instance NFData BaseValue
 
 -- | Fact identifiers are represented as indices into the input stream for
 -- Core and Avalanche evaluators, but for a real streaming model such as C
@@ -111,7 +111,7 @@ newtype FactIdentifier
  { getFactIdentifierIndex :: Int }
  deriving (Eq, Ord, Show, Generic)
 
-instance NFData FactIdentifier where rnf x = seq x ()
+instance NFData FactIdentifier
 
 -- | Called "exceptions"
 -- because they aren't really errors,
@@ -124,7 +124,7 @@ data ExceptionInfo
  | ExceptCannotCompute
  deriving (Show, Ord, Eq, Generic)
 
-instance NFData ExceptionInfo where rnf x = seq x ()
+instance NFData ExceptionInfo
 
 newtype StructField
  = StructField
@@ -132,7 +132,7 @@ newtype StructField
  }
  deriving (Ord, Eq, Generic)
 
-instance NFData StructField where rnf x = seq x ()
+instance NFData StructField
 
 instance Show StructField where
  showsPrec p (StructField x)

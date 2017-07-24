@@ -265,7 +265,7 @@ compileTwoAsOne (TestOpts _ inputFormat allowDupTime) evalContext theAttribute p
        , "}"
        ]
 
-   code <- hoistEither $ Sea.codeOfPrograms "Icicle.Test.Sea.PsvFission.compileTwoAsOne" theInput [theAttribute] [theProgram]
+   code <- hoistEither $ Sea.codeOfPrograms "Icicle.Test.Sea.PsvFission.compileTwoAsOne" theInput [theProgram]
    Sea.seaCreateFleet options (Sea.fromUseJetskiCache Sea.UseJetskiCache) theInput Nothing (code <> piano)
 
 

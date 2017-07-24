@@ -9,10 +9,6 @@ module Icicle.Sea.Eval (
     module Icicle.Sea.Eval.Base
   , module Icicle.Sea.IO
   , FlagUseDrop (..)
-  , ZebraState
-  , ZebraStats (..)
-  , seaZebraSnapshotFd
-  , seaZebraSnapshotFilePath
   , PsvState
   , PsvStats (..)
   , seaPsvSnapshotFilePath
@@ -24,7 +20,7 @@ import           Control.Monad.IO.Class (MonadIO(..))
 import qualified Data.Text as T
 import           Data.Typeable
 
-import           Foreign.C.String (peekCString, newCString)
+import           Foreign.C.String (peekCString)
 import           Foreign.Marshal (free)
 import           Foreign.Ptr (nullPtr)
 
@@ -45,14 +41,6 @@ import           X.Control.Monad.Trans.Either (left)
 data FlagUseDrop = FlagUseDropFile | FlagNoUseDropFile
   deriving (Eq, Ord, Show)
 
-data ZebraState
-  deriving (Typeable)
-
-data ZebraStats = ZebraStats {
-    zebraFactsRead    :: Int64
-  , zebraEntitiesRead :: Int64
-  } deriving (Eq, Ord, Show)
-
 data PsvState
   deriving (Typeable)
 
@@ -60,59 +48,6 @@ data PsvStats = PsvStats {
     psvFactsRead    :: Int64
   , psvEntitiesRead :: Int64
   } deriving (Eq, Ord, Show)
-
-
-seaZebraSnapshotFilePath :: SeaFleet ZebraState
-                         -> FilePath
-                         -> FilePath
-                         -> FilePath
-                         -> Maybe FilePath
-                         -> ZebraConfig
-                         -> EitherT SeaError IO ZebraStats
-seaZebraSnapshotFilePath fleet input output drop_path mchords conf = do
-  bracketEitherT' (liftIO $ Posix.createFile output (Posix.CMode 0O644))
-                  (liftIO . Posix.closeFd) $ \ofd -> do
-  bracketEitherT' (liftIO $ Posix.createFile drop_path (Posix.CMode 0O644))
-                  (liftIO . Posix.closeFd) $ \dfd -> do
-  bracketEitherT' (liftIO $ maybeOpen mchords)
-                  (liftIO . maybeClose) $ \mcfd -> do
-  seaZebraSnapshotFd fleet input ofd dfd mcfd conf
-
-
-seaZebraSnapshotFd :: SeaFleet ZebraState
-                   -> FilePath
-                   -> Posix.Fd
-                   -> Posix.Fd
-                   -> Maybe Posix.Fd
-                   -> ZebraConfig
-                   -> EitherT SeaError IO ZebraStats
-seaZebraSnapshotFd fleet inputPath outputFd dropFd mchords conf =
-  withWords zebraConfigCount $ \config -> do
-  input_path <- liftIO $ newCString inputPath
-  pokeWordOff config zebraConfigInputPath input_path
-  pokeWordOff config zebraConfigOutputFd outputFd
-  pokeWordOff config zebraConfigChordFd (fromMaybe 0 mchords)
-  pokeWordOff config zebraConfigDropFd dropFd
-  pokeWordOff config zebraConfigOutputBufferSize (defaultPsvOutputBufferSize)
-  pokeWordOff config zebraConfigMaxMapSize (zebraMaxMapSize $ conf)
-
-  sfSnapshot fleet config
-
-  liftIO $ free input_path
-
-  pError       <- peekWordOff config zebraConfigError
-  factsRead    <- peekWordOff config zebraConfigFactCount
-  entitiesRead <- peekWordOff config zebraConfigEntityCount
-
-  when (pError /= nullPtr) $ do
-    msg <- liftIO (peekCString pError)
-    liftIO (free pError)
-    left (SeaZebraError (T.pack msg))
-
-  return ZebraStats {
-      zebraFactsRead = factsRead
-    , zebraEntitiesRead = entitiesRead
-    }
 
 
 seaPsvSnapshotFilePath :: SeaFleet PsvState

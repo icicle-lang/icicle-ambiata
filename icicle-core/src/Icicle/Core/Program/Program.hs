@@ -1,4 +1,5 @@
 -- | An entire core program
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -7,15 +8,17 @@ module Icicle.Core.Program.Program (
      , renameProgram
      ) where
 
-import              Icicle.Common.Base
-import              Icicle.Common.Exp.Exp (renameExp)
-import              Icicle.Common.Type
-import              Icicle.Core.Exp
-import              Icicle.Core.Stream.Stream
-import              Icicle.Data.Name
-import              Icicle.Internal.Pretty
+import           GHC.Generics (Generic)
 
-import              P
+import           Icicle.Common.Base
+import           Icicle.Common.Exp.Exp (renameExp)
+import           Icicle.Common.Type
+import           Icicle.Core.Exp
+import           Icicle.Core.Stream.Stream
+import           Icicle.Data.Name
+import           Icicle.Internal.Pretty
+
+import           P
 
 
 -- | Core program composed of different stages of bindings
@@ -41,9 +44,9 @@ data Program a n =
  -- | The return values
  , returns      :: ![(OutputId, Exp a n)]
  }
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
 
-instance NFData (Program a n) where rnf x = seq x ()
+instance (NFData a, NFData n) => NFData (Program a n)
 
 renameProgram :: (Name n -> Name n') -> Program a n -> Program a n'
 renameProgram f p

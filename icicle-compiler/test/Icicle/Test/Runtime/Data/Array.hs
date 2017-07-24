@@ -203,14 +203,62 @@ prop_roundtrip_array_segments1 =
 ------------------------------------------------------------------------
 -- State
 
+data StateArray =
+    StateNull
+  | StateArray [Int64]
+    deriving (Eq, Show)
+
 data State v =
   State {
-      stateArrays :: Map (Var Array v) [Int64]
+      stateArrays :: Map (Var Array v) StateArray
     }
 
 initialState :: State v
 initialState =
   State Map.empty
+
+stateLength :: StateArray -> Int
+stateLength = \case
+  StateNull ->
+    0
+  StateArray xs ->
+    List.length xs
+
+stateList :: StateArray -> [Int64]
+stateList = \case
+  StateNull ->
+    []
+  StateArray xs ->
+    xs
+
+------------------------------------------------------------------------
+-- NullArray
+
+data NullArray (v :: * -> *) =
+  NullArray
+  deriving (Eq, Show)
+
+instance HTraversable NullArray where
+  htraverse _ NullArray =
+    pure NullArray
+
+nullArray :: (MonadGen n, MonadReader Mempool m) => Command n m State
+nullArray =
+  let
+    gen _s =
+      Just $
+        pure NullArray
+
+    execute NullArray =
+      pure $ Array.null
+  in
+    Command gen execute [
+        Update $ \s NullArray o ->
+          s {
+            stateArrays =
+              Map.insert o StateNull (stateArrays s)
+          }
+      ]
 
 ------------------------------------------------------------------------
 -- NewArray
@@ -238,7 +286,7 @@ newArray =
         Update $ \s (NewArray len) o ->
           s {
             stateArrays =
-              Map.insert o (List.replicate (fromIntegral len) 0) (stateArrays s)
+              Map.insert o (StateArray $ List.replicate (fromIntegral len) 0) (stateArrays s)
           }
       ]
 
@@ -253,11 +301,13 @@ instance HTraversable ReadArray where
   htraverse f (ReadArray ix xs) =
     ReadArray ix <$> htraverse f xs
 
-readList :: ArrayIndex -> Maybe [a] -> Maybe a
+readList :: ArrayIndex -> Maybe StateArray -> Maybe Int64
 readList ix = \case
   Nothing ->
     Nothing
-  Just xs ->
+  Just StateNull ->
+    Nothing
+  Just (StateArray xs) ->
     if fromIntegral ix < List.length xs then
       Just (xs List.!! fromIntegral ix)
     else
@@ -274,7 +324,7 @@ readArray =
           Just $ do
             (array, vs) <- Gen.element xs
             ReadArray
-              <$> (ArrayIndex <$> Gen.int64 (Range.linear 0 . fromIntegral $ List.length vs))
+              <$> (ArrayIndex <$> Gen.int64 (Range.linear 0 . fromIntegral $ stateLength vs))
               <*> pure array
 
     execute (ReadArray ix (Var (Concrete array))) = do
@@ -282,7 +332,7 @@ readArray =
   in
     Command gen execute [
         Require $ \s (ReadArray ix array) ->
-          Just (fromIntegral ix) < fmap List.length (Map.lookup array $ stateArrays s)
+          Just (fromIntegral ix) < fmap stateLength (Map.lookup array $ stateArrays s)
 
       , Ensure $ \_before after (ReadArray ix array) o ->
           readList ix (Map.lookup array $ stateArrays after) === Just o
@@ -299,19 +349,23 @@ instance HTraversable WriteArray where
   htraverse f (WriteArray ix x array) =
     WriteArray ix x <$> htraverse f array
 
-writeList :: ArrayIndex -> a -> [a] -> [a]
-writeList ix0 x xs =
-  let
-    ix =
-      fromIntegral ix0
+writeList :: ArrayIndex -> Int64 -> StateArray -> StateArray
+writeList ix0 x = \case
+  StateNull ->
+    StateNull
 
-    (xs1, xs2) =
-      List.splitAt ix xs
-  in
-    if ix < 0 || ix >= List.length xs then
-      xs
-    else
-      xs1 <> [x] <> List.drop 1 xs2
+  StateArray xs ->
+    let
+      ix =
+        fromIntegral ix0
+
+      (xs1, xs2) =
+        List.splitAt ix xs
+    in
+      if ix < 0 || ix >= List.length xs then
+        StateArray xs
+      else
+        StateArray $ xs1 <> [x] <> List.drop 1 xs2
 
 writeArray :: (MonadGen n, MonadTest m, MonadIO m) => Command n m State
 writeArray =
@@ -324,7 +378,7 @@ writeArray =
           Just $ do
             (array, vs) <- Gen.element xs
             WriteArray
-              <$> (ArrayIndex <$> Gen.int64 (Range.linear 0 . fromIntegral $ List.length vs))
+              <$> (ArrayIndex <$> Gen.int64 (Range.linear 0 . fromIntegral $ stateLength vs))
               <*> Gen.int64 Range.linearBounded
               <*> pure array
 
@@ -333,7 +387,7 @@ writeArray =
   in
     Command gen execute [
         Require $ \s (WriteArray ix _ array) ->
-          Just (fromIntegral ix) < fmap List.length (Map.lookup array $ stateArrays s)
+          Just (fromIntegral ix) < fmap stateLength (Map.lookup array $ stateArrays s)
 
       , Update $ \s (WriteArray ix x array) _o ->
           s {
@@ -356,14 +410,18 @@ instance HTraversable GrowArray where
   htraverse f (GrowArray len array) =
     GrowArray len <$> htraverse f array
 
-growList :: ArrayLength -> [Int64] -> [Int64]
-growList len xs =
-  let
-    diff =
-      max 0 (fromIntegral len - length xs)
-  in
-    List.take (fromIntegral len) $
-      xs <> List.replicate diff 0
+growList :: ArrayLength -> StateArray -> StateArray
+growList len = \case
+  StateNull ->
+    StateArray $ List.replicate (fromIntegral len) 0
+
+  StateArray xs ->
+    let
+      diff =
+        max 0 (fromIntegral len - length xs)
+    in
+      StateArray . List.take (fromIntegral len) $
+        xs <> List.replicate diff 0
 
 growArray :: (MonadGen n, MonadReader Mempool m, MonadIO m) => Command n m State
 growArray =
@@ -390,7 +448,11 @@ growArray =
               case Map.lookup array0 (stateArrays s) of
                 Nothing ->
                   stateArrays s
-                Just xs ->
+
+                Just StateNull ->
+                  Map.insert array (growList len StateNull) (stateArrays s)
+
+                Just xs@(StateArray _) ->
                   Map.insert array (growList len xs) $
                   Map.delete array0 (stateArrays s)
           }
@@ -400,14 +462,16 @@ growArray =
             ref =
               Var (Concrete array)
 
-          old <- evalEither . maybeToRight () $ Map.lookup array0 (stateArrays before)
-          new <- evalEither . maybeToRight () $ Map.lookup ref (stateArrays after)
+          old <- evalEither . maybeToRight (show array0 <> ": did not exist in model") $
+            Map.lookup array0 (stateArrays before)
+          new <- evalEither . maybeToRight (show ref <> ": did not exist in model") $
+            Map.lookup ref (stateArrays after)
 
-          fromIntegral len === List.length new
+          fromIntegral len === stateLength new
 
           assert $
-            old `List.isPrefixOf` new ||
-            new `List.isPrefixOf` old
+            stateList old `List.isPrefixOf` stateList new ||
+            stateList new `List.isPrefixOf` stateList old
       ]
 
 ------------------------------------------------------------------------
@@ -417,7 +481,8 @@ prop_array_state_machine =
   withTests 1000 . property $ do
     actions <- forAll $
       Gen.sequential (Range.linear 1 100) initialState [
-          newArray
+          nullArray
+        , newArray
         , readArray
         , writeArray
         , growArray

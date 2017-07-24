@@ -1,6 +1,7 @@
 -- Load a zebra file
 :load data/example/sample.zbin
 :set +c-eval
+:set snapshot 2016-02-01
 
 feature injury ~> latest 4 ~> action
 

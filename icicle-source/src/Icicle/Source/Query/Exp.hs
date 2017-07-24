@@ -3,6 +3,7 @@
 -- in the same file just gets too confusing.
 -- To break the cycle, we make Exp' take a recursive parameter for the query,
 -- and "tie the knot" in Query.
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -28,16 +29,18 @@ module Icicle.Source.Query.Exp (
   , listOfBuiltinFuns
   ) where
 
-import                  Icicle.Source.Query.Builtin
-import                  Icicle.Source.Query.Constructor
-import                  Icicle.Source.Query.Operators
-import                  Icicle.Data.Time
-import                  Icicle.Internal.Pretty
-import                  Icicle.Common.Base
+import           Data.Text (unpack)
 
-import                  P
+import           GHC.Generics (Generic)
 
-import                  Data.Text (unpack)
+import           Icicle.Source.Query.Builtin
+import           Icicle.Source.Query.Constructor
+import           Icicle.Source.Query.Operators
+import           Icicle.Data.Time
+import           Icicle.Internal.Pretty
+import           Icicle.Common.Base
+
+import           P
 
 
 data Exp' q a n
@@ -46,7 +49,9 @@ data Exp' q a n
  | App  a (Exp' q a n) (Exp' q a n)
  | Prim a Prim
  | Case a (Exp' q a n) [(Pattern n, Exp' q a n)]
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance (NFData q, NFData a, NFData n) => NFData (Exp' q a n)
 
 
 takeApps :: Exp' q a n -> (Exp' q a n, [Exp' q a n])
@@ -84,14 +89,18 @@ data Prim
  | Lit Lit
  | Fun Fun
  | PrimCon Constructor
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance NFData Prim
 
 data Lit
  = LitInt Int
  | LitDouble Double
  | LitString Text
  | LitTime Time
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance NFData Lit
 
 -- | Built-in Source functions
 type Fun = BuiltinFun

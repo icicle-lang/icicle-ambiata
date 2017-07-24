@@ -134,12 +134,12 @@ data ErrorSource var
  = ErrorSourceParse       !Parsec.ParseError
  | ErrorSourceDesugar     !(Desugar.DesugarError Parsec.SourcePos var)
  | ErrorSourceCheck       !(Check.CheckError     Parsec.SourcePos var)
- | ErrorSourceResolveError UnresolvedInputId
+ | ErrorSourceResolveError !UnresolvedInputId
  deriving (Show, Generic)
 
--- deepseq stops here, we don't really care about sequencing the error
--- just need this to make sure the return type (with an AST) is sequenced.
-instance NFData (ErrorSource a) where rnf _ = ()
+-- FIXME We can't implement NFData properly for this type because Parsec.SourcePos is
+-- FIXME not NFData, we really should define our own type for source positions.
+instance NFData (ErrorSource a) where rnf x = seq x ()
 
 annotOfError :: ErrorSource a -> Maybe Parsec.SourcePos
 annotOfError e

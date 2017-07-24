@@ -13,6 +13,7 @@ module Icicle.Runtime.Data.Any (
   , read
   , unsafeFrom
   , unsafeRead
+  , nullString
   , toString
   , toArray
   , fromString
@@ -35,7 +36,7 @@ import           Data.Word (Word8, Word64)
 import           Foreign.C.Types (CSize(..))
 import           Foreign.ForeignPtr (withForeignPtr)
 import           Foreign.Marshal.Alloc (alloca)
-import           Foreign.Ptr (Ptr, castPtr, plusPtr)
+import           Foreign.Ptr (Ptr, castPtr, plusPtr, nullPtr, ptrToWordPtr)
 import           Foreign.Storable (Storable(..))
 
 import           GHC.Generics (Generic)
@@ -75,7 +76,7 @@ renderAnyError = \case
 valueSize :: Num a => a
 valueSize =
   8
-{-# INLINE valueSize #-}
+{-# INLINABLE valueSize #-}
 
 checkValueSize :: Storable a => a -> Either AnyError ()
 checkValueSize x = do
@@ -83,38 +84,52 @@ checkValueSize x = do
    Left $ Any64MustBeWordSize (sizeOf x)
  else
    pure ()
-{-# INLINE checkValueSize #-}
+{-# INLINABLE checkValueSize #-}
 
 unsafeFrom :: Storable a => a -> Any64
 unsafeFrom !x =
   Any64 $! unsafePerformIO $! alloca $ \ptr -> do
     poke (castPtr ptr) x
     peek ptr
-{-# INLINE unsafeFrom #-}
+{-# INLINABLE unsafeFrom #-}
 
 from :: forall a. Storable a => a -> Either AnyError Any64
 from !x = do
   checkValueSize (Savage.undefined :: a)
   pure $! unsafeFrom x
-{-# INLINE from #-}
+{-# INLINABLE from #-}
 
 unsafeRead :: Storable a => Any64 -> a
 unsafeRead (Any64 any) =
   unsafePerformIO $! alloca $ \ptr -> do
     poke ptr any
     peek (castPtr ptr)
-{-# INLINE unsafeRead #-}
+{-# INLINABLE unsafeRead #-}
 
 read :: forall a. Storable a => Any64 -> Either AnyError a
 read !any = do
   checkValueSize (Savage.undefined :: a)
   pure $! unsafeRead any
-{-# INLINE read #-}
+{-# INLINABLE read #-}
+
+nullString :: Any64
+nullString =
+  Any64 0x0
+{-# INLINABLE nullString #-}
 
 toString :: Any64 -> IO ByteString
-toString any = do
-  liftIO $! ByteString.packCString $! unsafeRead any
-{-# INLINE toString #-}
+toString any =
+  let
+    !ptr =
+      unsafeRead any
+  in
+    if ptr == nullPtr then
+      pure ByteString.empty
+    else if ptrToWordPtr ptr < 10000 then
+      Savage.error "Runtime.Data.Any.toString"
+    else
+      liftIO $! ByteString.packCString ptr
+{-# INLINABLE toString #-}
 
 fromString :: Mempool -> ByteString -> IO Any64
 fromString pool (PS fp off len) =
@@ -129,17 +144,17 @@ fromString pool (PS fp off len) =
     pokeByteOff dst len (0 :: Word8)
 
     pure $! unsafeFrom dst
-{-# INLINE fromString #-}
+{-# INLINABLE fromString #-}
 
 toArray :: Any64 -> Array
 toArray any =
   unsafeRead any
-{-# INLINE toArray #-}
+{-# INLINABLE toArray #-}
 
 fromArray :: Array -> Any64
 fromArray any =
   unsafeFrom any
-{-# INLINE fromArray #-}
+{-# INLINABLE fromArray #-}
 
 foreign import ccall unsafe "string.h memcpy"
   c_memcpy :: Ptr a -> Ptr a -> CSize -> IO ()

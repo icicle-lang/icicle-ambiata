@@ -1,5 +1,6 @@
 -- | Statements and mutable accumulators (variables) for Avalanche
 
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -16,15 +17,17 @@ module Icicle.Avalanche.Statement.Statement (
   , factBindsAll
   ) where
 
-import              Icicle.Common.Base
-import              Icicle.Common.Type
-import              Icicle.Common.Exp
+import           GHC.Generics (Generic)
 
-import              Icicle.Data.Name
+import           Icicle.Common.Base
+import           Icicle.Common.Type
+import           Icicle.Common.Exp
 
-import              Icicle.Internal.Pretty
+import           Icicle.Data.Name
 
-import              P
+import           Icicle.Internal.Pretty
+
+import           P
 
 
 -- | Part of a loop
@@ -74,9 +77,9 @@ data Statement a n p
 
  -- | Save an accumulator to history. Must be after all fact loops.
  | SaveResumable !(Name n) !ValType
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
-instance NFData (Statement a n p) where rnf x = seq x ()
+instance (NFData a, NFData n, NFData p) => NFData (Statement a n p)
 
 instance Monoid (Statement a n p) where
  mempty = Block []
@@ -98,9 +101,9 @@ data FactBinds n
   , factBindId      :: !(Name n)
   , factBindValue   :: ![(Name n, ValType)]
  }
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
-instance NFData (FactBinds n) where rnf x = seq x ()
+instance NFData n => NFData (FactBinds n)
 
 factBindsAll :: FactBinds n -> [(Name n, ValType)]
 factBindsAll (FactBinds ntime nid nvalue)
@@ -113,9 +116,9 @@ data Accumulator a n p
  , accValType   :: !ValType
  , accInit      :: !(Exp a n p)
  }
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
-instance NFData (Accumulator a n p) where rnf x = seq x ()
+instance (NFData a, NFData n, NFData p) => NFData (Accumulator a n p)
 
 
 -- | When executing the feature, we also keep track of what data
@@ -141,19 +144,23 @@ data FactLoopType
  = FactLoopHistory
  -- | Loop over newly added facts since the last snapshot
  | FactLoopNew
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
-instance NFData FactLoopType where rnf x = seq x ()
+instance NFData FactLoopType
 
 data ForeachType
  = ForeachStepUp
  | ForeachStepDown
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
+
+instance NFData ForeachType
 
 data WhileType
  = WhileEq
  | WhileNe
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
+
+instance NFData WhileType
 
 -- Transforming -------------
 

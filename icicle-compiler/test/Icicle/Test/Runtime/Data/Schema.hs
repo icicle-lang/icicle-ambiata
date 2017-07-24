@@ -5,11 +5,10 @@ module Icicle.Test.Runtime.Data.Schema where
 
 import qualified Data.List.NonEmpty as NonEmpty
 
-import           Disorder.Jack
+import           Hedgehog
 
 import           Icicle.Runtime.Data
 import qualified Icicle.Runtime.Data.Schema as Schema
-import           Icicle.Test.Arbitrary.Run
 import           Icicle.Test.Gen.Runtime.Data
 
 import           P
@@ -59,10 +58,11 @@ uniqueSortedFields = \case
 
 prop_roundtrip_schema :: Property
 prop_roundtrip_schema =
-  gamble genSchema $
-    tripping Schema.toValType Schema.fromValType . uniqueSortedFields
+  property $ do
+    schema <- forAll (uniqueSortedFields <$> genSchema)
+    tripping schema Schema.toValType Schema.fromValType
 
 return []
 tests :: IO Bool
 tests =
-  $checkAllWith TestRunMore checkArgs
+  checkParallel $$(discover)

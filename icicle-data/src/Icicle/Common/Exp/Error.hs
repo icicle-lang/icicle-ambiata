@@ -1,15 +1,18 @@
 -- | Errors that can occur when typechecking an expression
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Common.Exp.Error (
       ExpError (..)
     ) where
 
-import              Icicle.Internal.Pretty
-import              Icicle.Common.Base
-import              Icicle.Common.Type
-import              Icicle.Common.Exp.Exp
+import           GHC.Generics (Generic)
 
-import              P
+import           Icicle.Internal.Pretty
+import           Icicle.Common.Base
+import           Icicle.Common.Type
+import           Icicle.Common.Exp.Exp
+
+import           P
 
 
 data ExpError a n p
@@ -31,9 +34,9 @@ data ExpError a n p
 
  -- Value not of type
  | ExpErrorValueNotOfType !BaseValue !ValType
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
 
-instance NFData (ExpError a n p) where rnf x = seq x ()
+instance (NFData a, NFData n, NFData p) => NFData (ExpError a n p)
 
 instance (Pretty n, Pretty p) => Pretty (ExpError a n p) where
  pretty e

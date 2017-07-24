@@ -5,6 +5,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Runtime.Serial.Zebra.Striped (
     ZebraStripedError(..)
+  , renderZebraStripedError
 
   , decodeInput
   , encodeInput
@@ -17,12 +18,16 @@ module Icicle.Runtime.Serial.Zebra.Striped (
 
   , decodeColumn
   , encodeColumn
+
+  , shiftTable
+  , shiftColumn
   ) where
 
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
 import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
+import qualified Data.Text as Text
 import qualified Data.Vector as Boxed
 import qualified Data.Vector.Generic as Generic
 import qualified Data.Vector.Storable as Storable
@@ -68,6 +73,43 @@ data ZebraStripedError =
   | ZebraStripedNoOutputs
     deriving (Eq, Show)
 
+renderZebraStripedError :: ZebraStripedError -> Text
+renderZebraStripedError = \case
+  ZebraStripedSchemaError x ->
+    Schema.renderSchemaError x
+  ZebraStripedTimeError x ->
+    Zebra.renderTimeError x
+  ZebraStripedUnexpectedBinaryEncoding x ->
+    "Unexpected binary encoding: " <> Text.pack (show x)
+  ZebraStripedUnexpectedIntEncoding x ->
+    "Unexpected int encoding: " <> Text.pack (show x)
+  ZebraStripedUnexpectedReversed x ->
+    "Unexpected reversed column: " <> Text.pack (show x)
+  ZebraStripedEntityIdSegmentDescriptorMismatch x ->
+    "Segment descriptor mismatch when decoding entity-id: " <> Segment.renderSegmentError x
+  ZebraStripedTimeKeySegmentDescriptorMismatch x ->
+    "Segment descriptor mismatch when decoding time key: " <> Segment.renderSegmentError x
+  ZebraStripedExpectedEntityKey xs ->
+    "Expected entity key columns, but found: " <> Text.pack (show xs)
+  ZebraStripedExpectedChordKey xs ->
+    "Expected chord key columns, but found: " <> Text.pack (show xs)
+  ZebraStripedExpectedTimeKey xs ->
+    "Expected time key columns, but found: " <> Text.pack (show xs)
+  ZebraStripedUnknownEnum xs ->
+    "Could not convert unknown enum: " <> Text.pack (show xs)
+  ZebraStripedUnknownOptionTag x ->
+    "Found unknown option tag: " <> Text.pack (show x)
+  ZebraStripedUnknownResultTag x ->
+    "Found unknown result tag: " <> Text.pack (show x)
+  ZebraStripedUnknownError64 x ->
+    "Found unknown error tag: " <> Text.pack (show x)
+  ZebraStripedInvalidInputId x ->
+    "Found invalid input-id: " <> x
+  ZebraStripedNoInputs ->
+    "Could not encode data in zebra as it had no inputs."
+  ZebraStripedNoOutputs ->
+    "Could not encode data in zebra as it had no outputs."
+
 ------------------------------------------------------------------------
 
 -- FIXME x-vector
@@ -93,6 +135,94 @@ takeOption x0 = do
       pure (def, tags, x)
     _ ->
       Left . Schema.SchemaExpectedOption $ fmap (fmap Zebra.schemaColumn) vs
+
+------------------------------------------------------------------------
+-- Temporal Shift: Zebra -> Zebra
+--
+-- Translate all date and time encodings to time in seconds.
+--
+--                            Emergency temporal shift!
+--                            /
+--                       ___
+--               D>=G==='   '.
+--                     |======|
+--                     |======|
+--                 )--/]IIIIII]
+--                    |_______|
+--                    C O O O D
+--                   C O  O  O D
+--                  C  O  O  O  D
+--                  C__O__O__O__D
+--                 [_____________]
+--
+
+shiftTable :: Zebra.Table -> Zebra.Table
+shiftTable = \case
+  Zebra.Binary def encoding bs ->
+    Zebra.Binary def encoding bs
+
+  Zebra.Array def x ->
+    Zebra.Array def (shiftColumn x)
+
+  Zebra.Map def k v ->
+    Zebra.Map def (shiftColumn k) (shiftColumn v)
+
+shiftIntEncoding :: Encoding.Int -> Encoding.Int
+shiftIntEncoding = \case
+  Encoding.Int ->
+    Encoding.Int
+
+  Encoding.Date ->
+    Encoding.TimeSeconds
+
+  Encoding.TimeSeconds ->
+    Encoding.TimeSeconds
+
+  Encoding.TimeMilliseconds ->
+    Encoding.TimeMilliseconds
+
+  Encoding.TimeMicroseconds ->
+    Encoding.TimeMicroseconds
+
+shiftInt :: Encoding.Int -> Storable.Vector Int64 -> Storable.Vector Int64
+shiftInt = \case
+  Encoding.Int ->
+    id
+
+  Encoding.Date ->
+    Storable.map (* 86400)
+
+  Encoding.TimeSeconds ->
+    id
+
+  Encoding.TimeMilliseconds ->
+    Storable.map (`quot` 1000)
+
+  Encoding.TimeMicroseconds ->
+    Storable.map (`quot` 1000000)
+
+shiftColumn :: Zebra.Column -> Zebra.Column
+shiftColumn = \case
+  Zebra.Unit n ->
+    Zebra.Unit n
+
+  Zebra.Int def encoding xs ->
+    Zebra.Int def (shiftIntEncoding encoding) (shiftInt encoding xs)
+
+  Zebra.Double def xs ->
+    Zebra.Double def xs
+
+  Zebra.Enum def tags xs ->
+    Zebra.Enum def tags (fmap (fmap shiftColumn) xs)
+
+  Zebra.Struct def xs ->
+    Zebra.Struct def (fmap (fmap shiftColumn) xs)
+
+  Zebra.Nested ns x ->
+    Zebra.Nested ns (shiftTable x)
+
+  Zebra.Reversed x ->
+    Zebra.Reversed (shiftColumn x)
 
 ------------------------------------------------------------------------
 -- Input: Zebra -> Icicle

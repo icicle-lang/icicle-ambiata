@@ -1,9 +1,9 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Icicle.Sea.IO.Psv.Schema (
-    PsvSchemaDecodeError(..)
-  , renderPsvSchemaDecodeError
+module Icicle.Runtime.Serial.Psv.Schema (
+    SerialPsvSchemaError(..)
+  , renderSerialPsvSchemaError
 
   , PsvSchema(..)
   , PsvMissingValue(..)
@@ -11,6 +11,10 @@ module Icicle.Sea.IO.Psv.Schema (
   , PsvEncoding(..)
   , PsvPrimitive(..)
   , PsvStructField(..)
+
+  , encodePsvSchema
+  , encodePsvColumn
+  , encodePsvEncoding
 
   , renderPrettyPsvSchema
   , renderCompactPsvSchema
@@ -33,23 +37,32 @@ import           Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Types as Aeson
 import qualified Data.List as List
+import           Data.Map (Map)
+import qualified Data.Map.Strict as Map
 import           Data.String (String)
 import qualified Data.Text as Text
 import qualified Data.Vector as Boxed
 
+import           Icicle.Data.Name
 import           Icicle.Internal.Aeson
+import qualified Icicle.Runtime.Data.Schema as Icicle
 
 import           P
 
+import           Text.Show.Pretty (ppShow)
 
-data PsvSchemaDecodeError =
-    PsvSchemaDecodeError !AesonDecodeError
+
+data SerialPsvSchemaError =
+    SerialPsvSchemaError !AesonDecodeError
+  | SerialPsvUnsupportedSchema !Icicle.Schema
     deriving (Eq, Show)
 
-renderPsvSchemaDecodeError :: PsvSchemaDecodeError -> Text
-renderPsvSchemaDecodeError = \case
-  PsvSchemaDecodeError err ->
+renderSerialPsvSchemaError :: SerialPsvSchemaError -> Text
+renderSerialPsvSchemaError = \case
+  SerialPsvSchemaError err ->
     renderAesonDecodeError err
+  SerialPsvUnsupportedSchema x ->
+    "Unsupported PSV output: " <> Text.pack (ppShow x)
 
 data PsvPrimitive =
     PsvBoolean
@@ -287,6 +300,63 @@ renderCompactPsvSchema :: PsvSchema -> Text
 renderCompactPsvSchema =
   encodeCompactJson schemaKeyOrder . ppSchema
 
-parsePsvSchema :: Text -> Either PsvSchemaDecodeError PsvSchema
+parsePsvSchema :: Text -> Either SerialPsvSchemaError PsvSchema
 parsePsvSchema =
-  first PsvSchemaDecodeError . decodeJson pSchema
+  first SerialPsvSchemaError . decodeJson pSchema
+
+------------------------------------------------------------------------
+-- Schema: Icicle -> Walrus
+
+encodePsvEncoding :: Icicle.Schema -> Either SerialPsvSchemaError PsvEncoding
+encodePsvEncoding schema =
+  case schema of
+    Icicle.Unit ->
+      pure $ PsvStruct []
+
+    Icicle.Int ->
+      pure $ PsvPrimitive PsvInt
+
+    Icicle.Time ->
+      pure $ PsvPrimitive PsvDate
+
+    Icicle.Double ->
+      pure $ PsvPrimitive PsvDouble
+
+    Icicle.Bool ->
+      pure $ PsvPrimitive PsvBoolean
+
+    Icicle.Sum _ _ ->
+      Left $
+        SerialPsvUnsupportedSchema schema
+
+    Icicle.Option x ->
+      encodePsvEncoding x
+
+    Icicle.Result x ->
+      encodePsvEncoding x
+
+    Icicle.Pair _ _ ->
+      Left $
+        SerialPsvUnsupportedSchema schema
+
+    Icicle.Struct _ ->
+      -- FIXME
+      Left $
+        SerialPsvUnsupportedSchema schema
+
+    Icicle.String ->
+      pure $ PsvPrimitive PsvString
+
+    Icicle.Array x ->
+      PsvList <$> encodePsvEncoding x
+
+    Icicle.Map k v->
+      PsvList <$> (PsvPair <$> encodePsvEncoding k <*> encodePsvEncoding v)
+
+encodePsvColumn :: OutputId -> Icicle.Schema -> Either SerialPsvSchemaError PsvColumn
+encodePsvColumn name column =
+  PsvColumn (renderOutputId name) <$> encodePsvEncoding column
+
+encodePsvSchema :: Map OutputId Icicle.Schema -> Either SerialPsvSchemaError PsvSchema
+encodePsvSchema kvs =
+  PsvSchema (PsvMissingValue "NA") <$> traverse (uncurry encodePsvColumn) (Map.toList kvs)

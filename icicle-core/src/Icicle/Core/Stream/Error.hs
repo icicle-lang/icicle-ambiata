@@ -1,14 +1,17 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Core.Stream.Error (
       StreamError (..)
     ) where
 
-import              Icicle.Internal.Pretty
-import              Icicle.Common.Base
-import              Icicle.Common.Type
-import              Icicle.Core.Exp
+import           GHC.Generics (Generic)
 
-import              P
+import           Icicle.Internal.Pretty
+import           Icicle.Common.Base
+import           Icicle.Common.Type
+import           Icicle.Core.Exp
+
+import           P
 
 data StreamError a n
  -- No such stream variable
@@ -17,7 +20,9 @@ data StreamError a n
  | StreamErrorExp           (ExpError a n Prim)
  -- can't do something with worker function
  | StreamErrorTypeError     (Exp a n) Type Type
- deriving Show
+ deriving (Show, Generic)
+
+instance (NFData a, NFData n) => NFData (StreamError a n)
 
 instance (Pretty n) => Pretty (StreamError a n) where
  pretty e

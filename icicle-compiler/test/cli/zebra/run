@@ -16,45 +16,25 @@ diff_update () {
 echo "====\n"
 echo "Separate compilation + Zebra"
 
-common_args="--snapshot 2010-01-01"
+common_args="--snapshot 2016-02-01"
 dict=test/cli/zebra/dictionary.toml
-zebra_v2=test/cli/zebra/input.zbin2
 zebra_v3=test/cli/zebra/input.zbin3
 
 expected_psv=test/cli/zebra/expected.psv
 expected_schema=test/cli/zebra/expected.schema.json
 out_c=`mktemp -t icicle-c-XXXXXX`
 out_psv_1=`mktemp -t icicle-out-1-XXXXXX`
-out_psv_2=`mktemp -t icicle-out-2-XXXXXX`
 out_schema_1=`mktemp -t icicle-out-schema-1-XXXXXX`
-out_schema_2=`mktemp -t icicle-out-schema-2-XXXXXX`
 drop=`mktemp -t icicle-drop-XXXXXX`
 
-echo "Zebra v2"
-dist/build/icicle/icicle query --dictionary-toml $dict --input-zebra $zebra_v2 --output-dense-psv $out_psv_1 --output-schema $out_schema_1 $common_args
-
-dist/build/icicle/icicle compile --dictionary-toml $dict --input-zebra  --output-dense-psv --output-code $out_c $common_args
-dist/build/icicle/icicle query --dictionary-code $out_c --input-zebra $zebra_v2 --output-dense-psv $out_psv_2 --output-schema $out_schema_2 $common_args
-
-diff_update $expected_psv $out_psv_1
-diff_update $expected_psv $out_psv_2
-diff_update $expected_schema $out_schema_1
-diff_update $expected_schema $out_schema_2
-
 echo "Zebra v3"
-dist/build/icicle/icicle query --dictionary-toml $dict --input-zebra $zebra_v3 --output-dense-psv $out_psv_1 --output-schema $out_schema_1 $common_args
-
-dist/build/icicle/icicle compile --dictionary-toml $dict --input-zebra  --output-dense-psv --output-code $out_c $common_args
-dist/build/icicle/icicle query --dictionary-code $out_c --input-zebra $zebra_v3 --output-dense-psv $out_psv_2 --output-schema $out_schema_2 $common_args
+dist/build/icicle/icicle compile --input-toml $dict --output-c $out_c
+dist/build/icicle/icicle query --dictionary-c $out_c --input-zebra $zebra_v3 --output-psv $out_psv_1 --output-psv-schema $out_schema_1 $common_args
 
 diff_update $expected_psv $out_psv_1
-diff_update $expected_psv $out_psv_2
 diff_update $expected_schema $out_schema_1
-diff_update $expected_schema $out_schema_2
 
 rm $out_c
 rm $out_psv_1
-rm $out_psv_2
 rm $out_schema_1
-rm $out_schema_2
 rm $drop

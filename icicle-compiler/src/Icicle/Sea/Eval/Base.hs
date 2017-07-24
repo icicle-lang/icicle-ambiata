@@ -138,7 +138,7 @@ seaEvalAvalanche program ctx values = do
   let iid = [inputid|default:eval|]
       ps = Map.singleton iid (program :| [])
   bracketEitherT'
-    (seaCompile "Icicle.sea.Eval.Base.seaEvalAvalanche" UseJetskiCache NoInput [iid] ps Nothing)
+    (seaCompile "Icicle.sea.Eval.Base.seaEvalAvalanche" UseJetskiCache NoInput ps Nothing)
     seaRelease
     (\fleet -> do
         programs <- mkSeaPrograms (sfLibrary fleet) ps
@@ -203,13 +203,12 @@ seaCompile ::
   => Fingerprint
   -> UseJetskiCache
   -> Input FilePath
-  -> [InputId]
   -> Map InputId (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
   -> EitherT SeaError IO (SeaFleet st)
-seaCompile fingerprint cache input inputs programs chords = do
+seaCompile fingerprint cache input programs chords = do
   options <- liftIO getCompilerOptions
-  seaCompileFleet options fingerprint cache input inputs programs chords
+  seaCompileFleet options fingerprint cache input programs chords
 
 seaCompileFleet ::
      (Show a, Show n, Pretty n, Eq n)
@@ -217,12 +216,11 @@ seaCompileFleet ::
   -> Fingerprint
   -> UseJetskiCache
   -> Input FilePath
-  -> [InputId]
   -> Map InputId (NonEmpty (Program (Annot a) n Prim))
   -> Maybe FilePath
   -> EitherT SeaError IO (SeaFleet st)
-seaCompileFleet options fingerprint cache input inputs programs chords = do
-  code <- hoistEither (codeOfPrograms fingerprint input inputs (Map.toList programs))
+seaCompileFleet options fingerprint cache input programs chords = do
+  code <- hoistEither (codeOfPrograms fingerprint input (Map.toList programs))
   seaCreateFleet options (fromUseJetskiCache cache) input chords code
 
 seaCreate ::
@@ -272,11 +270,10 @@ assemblyOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
   => Fingerprint
   -> Input x
-  -> [InputId]
   -> [(InputId, NonEmpty (Program (Annot a) n Prim))]
   -> EitherT SeaError IO Text
-assemblyOfPrograms fingerprint input inputs programs = do
-  code    <- hoistEither (codeOfPrograms fingerprint input inputs programs)
+assemblyOfPrograms fingerprint input programs = do
+  code    <- hoistEither (codeOfPrograms fingerprint input programs)
   options <- getCompilerOptions
   firstEitherT SeaJetskiError (compileAssembly options code)
 
@@ -284,11 +281,10 @@ irOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
   => Fingerprint
   -> Input x
-  -> [InputId]
   -> [(InputId, NonEmpty (Program (Annot a) n Prim))]
   -> EitherT SeaError IO Text
-irOfPrograms fingerprint input inputs programs = do
-  code    <- hoistEither (codeOfPrograms fingerprint input inputs programs)
+irOfPrograms fingerprint input programs = do
+  code    <- hoistEither (codeOfPrograms fingerprint input programs)
   options <- getCompilerOptions
   firstEitherT SeaJetskiError (compileIR options code)
 
@@ -296,10 +292,9 @@ codeOfPrograms
   :: (Show a, Show n, Pretty n, Eq n)
   => Fingerprint
   -> Input x
-  -> [InputId]
   -> [(InputId, NonEmpty (Program (Annot a) n Prim))]
   -> Either SeaError Text
-codeOfPrograms fingerprint input inputs programs = do
+codeOfPrograms fingerprint input programs = do
   let defs = seaOfDefinitions (concatMap (NonEmpty.toList . snd) programs)
 
   progs <- zipWithM (\ix (a, p) -> seaOfPrograms ix a p) [0..] programs
@@ -334,15 +329,11 @@ codeOfPrograms fingerprint input inputs programs = do
             ] <> progs
 
       HasInput format opts _ -> do
-        doc <- seaOfDriver format opts inputs clusters
+        doc <- seaOfDriver format opts clusters
         let def = case format of
               FormatPsv conf -> vsep
                 [ defOfPsvInput (psvInputConfig conf)
                 , defOfPsvOutput (psvOutputConfig conf) ]
-              -- FIXME property separate what is needed from psv
-              FormatZebra _ _ _ -> vsep
-                [ "#define ICICLE_PSV_INPUT_SPARSE 1"
-                , "#define ICICLE_ZEBRA 1" ]
 
         pure . textOfDoc . vsep $ [ def, seaPreamble, defs ] <> progs <> ["", doc]
 

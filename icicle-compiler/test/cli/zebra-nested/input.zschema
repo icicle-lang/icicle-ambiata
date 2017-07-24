@@ -20,13 +20,16 @@
             { "name": "default:nested",
               "schema": {
                 "map": {
+                  "default": { "allow": {} },
                   "key": {
                     "struct": {
                       "fields": [
                         {
                           "name": "time",
                           "schema": {
-                            "int": {}}},
+                            "int": {
+                              "encoding": { "date": {} }
+                            }}},
                         {
                           "name": "factset_id",
                           "schema": {

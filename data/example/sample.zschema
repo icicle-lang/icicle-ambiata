@@ -27,7 +27,7 @@
                           "name": "time",
                           "schema": {
                             "int": {
-                              "encoding": { "time": { "interval": { "seconds": {} } }}}}},
+                              "encoding": { "date": {}}}}},
                         {
                           "name": "factset_id",
                           "schema": {

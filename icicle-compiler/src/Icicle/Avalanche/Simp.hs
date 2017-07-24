@@ -1,8 +1,9 @@
 -- | Convert Core programs to Avalanche
-{-# LANGUAGE DoAndIfThenElse     #-}
-{-# LANGUAGE NoImplicitPrelude   #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE OverloadedStrings   #-}
 module Icicle.Avalanche.Simp (
     simpAvalanche
   , simpFlattened
@@ -11,6 +12,12 @@ module Icicle.Avalanche.Simp (
   , defaultSimpOpts
   , SimpError(..)
   ) where
+
+import           Control.Monad.Trans.Class
+
+import           Data.Hashable (Hashable)
+
+import           GHC.Generics (Generic)
 
 import           Icicle.Common.Exp
 import           Icicle.Common.FixT
@@ -31,9 +38,6 @@ import           Icicle.Avalanche.Statement.Simp.Melt
 import           Icicle.Avalanche.Statement.Statement
 
 import           P
-
-import           Control.Monad.Trans.Class
-import           Data.Hashable                               (Hashable)
 
 
 data SimpOpts = SimpOpts
@@ -65,7 +69,9 @@ type TransformName = Text
 
 data SimpError a n p
   = SimpError TransformName (Check.ProgramError a n p)
-  deriving (Show)
+  deriving (Show, Generic)
+
+instance (NFData a, NFData n, NFData p) => NFData (SimpError a n p)
 
 check :: Monad m
       => (x -> Either (Check.ProgramError a n p) b)

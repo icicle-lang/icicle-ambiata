@@ -1,5 +1,6 @@
 -- | Doing things with Constraints
 --
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
@@ -13,17 +14,18 @@ module Icicle.Source.Type.Constraints (
   , nubConstraints
   ) where
 
+import           Data.Hashable (Hashable)
+import           Data.List (nubBy)
+import qualified Data.Map as Map
 
-import                  Icicle.Source.Type.Base
-import                  Icicle.Source.Type.Subst
+import           GHC.Generics (Generic)
 
-import                  Icicle.Internal.Pretty
+import           Icicle.Source.Type.Base
+import           Icicle.Source.Type.Subst
 
-import                  P hiding (join)
+import           Icicle.Internal.Pretty
 
-import                  Data.List (nubBy)
-import qualified        Data.Map as Map
-import                  Data.Hashable (Hashable)
+import           P hiding (join)
 
 
 -- | Result of discharging a single constraint
@@ -33,7 +35,9 @@ data DischargeResult n
  = DischargeLeftover (Constraint n)
  -- | Constraint requires a substitution
  | DischargeSubst (SubstT n)
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
+
+instance NFData n => NFData (DischargeResult n)
 
 -- | Errors that arise from constraints
 data DischargeError n
@@ -45,7 +49,9 @@ data DischargeError n
  -- | IsNum String
  | ConflictingLetTemporalities (Type n) (Type n) (Type n)
  | ConflictingJoinTemporalities (Type n) (Type n) 
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
+
+instance NFData n => NFData (DischargeError n)
 
 instance Pretty n => Pretty (DischargeError n) where
  pretty (CannotUnify p q)

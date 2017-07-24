@@ -23,9 +23,14 @@ import qualified Icicle.Test.Avalanche.MeltPrim
 import qualified Icicle.Test.Data.Time
 import qualified Icicle.Test.Internal.EditDistance
 
+import qualified Icicle.Test.Runtime.Data.Any
 import qualified Icicle.Test.Runtime.Data.Array
+import qualified Icicle.Test.Runtime.Data.IO
 import qualified Icicle.Test.Runtime.Data.Schema
 import qualified Icicle.Test.Runtime.Data.Striped
+import qualified Icicle.Test.Runtime.Evaluator
+import qualified Icicle.Test.Runtime.Serial.Psv.Schema
+import qualified Icicle.Test.Runtime.Serial.Zebra
 
 import qualified Icicle.Test.Source.PrettyParse
 import qualified Icicle.Test.Source.Progress
@@ -38,9 +43,7 @@ import qualified Icicle.Test.Sea.Psv.Struct
 import qualified Icicle.Test.Sea.Psv.Corpus
 import qualified Icicle.Test.Sea.Psv.Success
 import qualified Icicle.Test.Sea.Psv.Failure
-import qualified Icicle.Test.Sea.Psv.Schema
 import qualified Icicle.Test.Sea.PsvFission
-import qualified Icicle.Test.Sea.Zebra
 import qualified Icicle.Test.Sea.Seaworthy
 import qualified Icicle.Test.Sea.Text
 
@@ -88,11 +91,9 @@ sea :: TestSuite
 sea =
   TestSuite "sea" [
       Icicle.Test.Sea.Name.tests
-    , Icicle.Test.Sea.Psv.Schema.tests
     , Icicle.Test.Sea.PsvFission.tests
     , Icicle.Test.Sea.Seaworthy.tests
     , Icicle.Test.Sea.Text.tests
-    , Icicle.Test.Sea.Zebra.tests
     ]
 
 sundry :: TestSuite
@@ -117,9 +118,14 @@ sundry =
     , Icicle.Test.Foreign.Array.tests
     , Icicle.Test.Internal.EditDistance.tests
     , Icicle.Test.Language.tests
+    , Icicle.Test.Runtime.Data.Any.tests
     , Icicle.Test.Runtime.Data.Array.tests
+    , Icicle.Test.Runtime.Data.IO.tests
     , Icicle.Test.Runtime.Data.Schema.tests
     , Icicle.Test.Runtime.Data.Striped.tests
+    , Icicle.Test.Runtime.Evaluator.tests
+    , Icicle.Test.Runtime.Serial.Psv.Schema.tests
+    , Icicle.Test.Runtime.Serial.Zebra.tests
     , Icicle.Test.Serial.tests
     , Icicle.Test.Source.Convert.tests
     , Icicle.Test.Source.History.tests

@@ -45,7 +45,7 @@ import           Icicle.Repl.Pretty
 import           Icicle.Repl.Source
 import qualified Icicle.Runtime.Data as Runtime
 import qualified Icicle.Runtime.Data.Logical as Logical
-import           Icicle.Runtime.Data.Schema (Schema, SchemaError)
+import           Icicle.Runtime.Data.Schema (SchemaError)
 import qualified Icicle.Runtime.Data.Schema as Schema
 import qualified Icicle.Runtime.Data.Striped as Striped
 import qualified Icicle.Runtime.Evaluator as Runtime
@@ -433,7 +433,7 @@ compileSea compiled =
             putSection "C" x
 
       whenSet FlagSeaAssembly $ do
-        result <- liftIO . runEitherT $ Sea.assemblyOfPrograms "icicle-repl" Sea.NoInput [iid] [(iid, flatList)]
+        result <- liftIO . runEitherT $ Sea.assemblyOfPrograms "icicle-repl" Sea.NoInput [(iid, flatList)]
         case result of
           Left err ->
             putSection "C assembly error" err
@@ -441,7 +441,7 @@ compileSea compiled =
             putSection "C assembly" x
 
       whenSet FlagSeaLLVM $ do
-        result <- liftIO . runEitherT $ Sea.irOfPrograms "icicle-repl" Sea.NoInput [iid] [(iid, flatList)]
+        result <- liftIO . runEitherT $ Sea.irOfPrograms "icicle-repl" Sea.NoInput [(iid, flatList)]
         case result of
           Left err ->
             putSection "C LLVM IR error" err
@@ -479,13 +479,6 @@ readZebraRows :: MonadIO m => Int -> FilePath -> EitherT QueryError m (Maybe Zeb
 readZebraRows limit path =
   hoist (liftIO . runResourceT) $
     Stream.head_ (readStripedN limit path)
-
-fromInputType :: ValType -> Either QueryError Schema
-fromInputType = \case
-  PairT (SumT ErrorT x) TimeT ->
-    first QuerySchemaError $ Schema.fromValType x
-  x ->
-    Left $ QueryUnexpectedInputType x
 
 fromOutput :: OutputId -> Runtime.Output key -> Either QueryError (Boxed.Vector (key, Pretty.Doc))
 fromOutput oid output = do
@@ -534,9 +527,9 @@ evaluateZebra compiled path = do
             pure ()
 
           Just input0 -> do
-            inputSchemas <-
-              hoistEither $
-                traverse (fromInputType . Sea.clusterInputType) (Runtime.runtimeClusters runtime)
+            let
+              inputSchemas =
+                fmap (Runtime.clusterInputSchema . Sea.clusterAnnotation) $ Runtime.runtimeClusters runtime
 
             zschema <-
               hoistEither . first QueryRuntimeZebraSchemaError $
@@ -544,7 +537,7 @@ evaluateZebra compiled path = do
 
             input1 <-
               hoistEither . first QueryZebraStripedError $
-                Zebra.transmute zschema input0
+                Zebra.transmute zschema (Runtime.shiftTable input0)
 
             input <-
               hoistEither . first QueryRuntimeZebraStripedError $
@@ -552,7 +545,7 @@ evaluateZebra compiled path = do
 
             output0 <-
               firstT QueryRuntimeError . hoist liftIO $
-                Runtime.snapshot runtime mapSize time input
+                Runtime.snapshotBlock runtime mapSize time input
 
             output1 <- hoistEither $ fromOutput (compiledOutputId compiled) output0
 

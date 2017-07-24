@@ -148,7 +148,7 @@ newtype Variable
  deriving (Eq, Ord, Show, Generic)
 
 instance Hashable Variable
-instance NFData Variable where rnf x = seq x ()
+instance NFData Variable
 
 -- | Each keyword with their name
 keywords :: [(Text, Keyword)]

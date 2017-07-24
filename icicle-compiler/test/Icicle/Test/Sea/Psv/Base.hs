@@ -163,7 +163,7 @@ compileTest wte wt (TestOpts _ inputFormat allowDupTime) = do
     cache =
       SkipJetskiCache
 
-  code <- hoistEither $ codeOfPrograms "Icicle.Test.Sea.Psv.compileTest" hasInput (fmap fst programs) programs
+  code <- hoistEither $ codeOfPrograms "Icicle.Test.Sea.Psv.compileTest" hasInput programs
 
   -- This test only uses snapshot so we can do this.
   let

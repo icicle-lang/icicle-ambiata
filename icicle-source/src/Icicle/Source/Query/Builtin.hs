@@ -1,11 +1,13 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-
 module Icicle.Source.Query.Builtin where
 
-import Icicle.Internal.Pretty
+import           GHC.Generics (Generic)
 
-import P
+import           Icicle.Internal.Pretty
+
+import           P
 
 
 data BuiltinFun
@@ -14,7 +16,7 @@ data BuiltinFun
  | BuiltinData  !BuiltinData
  | BuiltinArray !BuiltinArray
  | BuiltinMap   !BuiltinMap
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
 
 listOfBuiltinFuns :: [BuiltinFun]
 listOfBuiltinFuns = concat
@@ -35,7 +37,7 @@ data BuiltinMath
  | Ceiling
  | Round
  | Truncate
- deriving (Show, Eq, Ord, Enum, Bounded)
+ deriving (Show, Eq, Ord, Enum, Bounded, Generic)
 
 data BuiltinTime
  = DaysBetween
@@ -45,12 +47,12 @@ data BuiltinTime
  | ProjectDay
  | ProjectMonth
  | ProjectYear
- deriving (Show, Eq, Ord, Enum, Bounded)
+ deriving (Show, Eq, Ord, Enum, Bounded, Generic)
 
 data BuiltinData
  = Seq
  | Box
- deriving (Show, Eq, Ord, Enum, Bounded)
+ deriving (Show, Eq, Ord, Enum, Bounded, Generic)
 
 data BuiltinMap
  = MapKeys
@@ -59,20 +61,20 @@ data BuiltinMap
  | MapInsert
  | MapDelete
  | MapLookup
- deriving (Show, Eq, Ord, Enum, Bounded)
+ deriving (Show, Eq, Ord, Enum, Bounded, Generic)
 
 data BuiltinArray
  = ArraySort
  | ArrayLength
  | ArrayIndex
- deriving (Show, Eq, Ord, Enum, Bounded)
+ deriving (Show, Eq, Ord, Enum, Bounded, Generic)
 
-instance NFData BuiltinFun   where rnf x = seq x ()
-instance NFData BuiltinMath  where rnf x = seq x ()
-instance NFData BuiltinTime  where rnf x = seq x ()
-instance NFData BuiltinData  where rnf x = seq x ()
-instance NFData BuiltinMap   where rnf x = seq x ()
-instance NFData BuiltinArray where rnf x = seq x ()
+instance NFData BuiltinFun
+instance NFData BuiltinMath
+instance NFData BuiltinTime
+instance NFData BuiltinData
+instance NFData BuiltinMap
+instance NFData BuiltinArray
 
 --------------------------------------------------------------------------------
 

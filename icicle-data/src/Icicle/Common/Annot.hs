@@ -1,13 +1,15 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-
 module Icicle.Common.Annot (
       Annot (..)
     ) where
 
-import              Icicle.Internal.Pretty
-import              Icicle.Common.Type
+import           GHC.Generics (Generic)
 
-import              P
+import           Icicle.Internal.Pretty
+import           Icicle.Common.Type
+
+import           P
 
 
 data Annot a
@@ -15,9 +17,9 @@ data Annot a
  { annType :: !Type
  , annTail :: !a
  }
- deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show, Generic)
 
-instance NFData (Annot a) where rnf x = seq x ()
+instance NFData a => NFData (Annot a)
 
 instance Pretty (Annot a) where
  pretty ann

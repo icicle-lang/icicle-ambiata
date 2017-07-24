@@ -351,7 +351,7 @@ takeUnit = \case
     Either.Right ()
   x ->
     Either.Left $ LogicalExpectedUnit x
-{-# INLINE takeUnit #-}
+{-# INLINABLE takeUnit #-}
 
 takeBool :: Value -> Either LogicalError Bool64
 takeBool = \case
@@ -359,7 +359,7 @@ takeBool = \case
     Either.Right x
   x ->
     Either.Left $ LogicalExpectedBool x
-{-# INLINE takeBool #-}
+{-# INLINABLE takeBool #-}
 
 takeInt :: Value -> Either LogicalError Int64
 takeInt = \case
@@ -367,7 +367,7 @@ takeInt = \case
     Either.Right x
   x ->
     Either.Left $ LogicalExpectedInt x
-{-# INLINE takeInt #-}
+{-# INLINABLE takeInt #-}
 
 takeDouble :: Value -> Either LogicalError Double
 takeDouble = \case
@@ -375,7 +375,7 @@ takeDouble = \case
     Either.Right x
   x ->
     Either.Left $ LogicalExpectedDouble x
-{-# INLINE takeDouble #-}
+{-# INLINABLE takeDouble #-}
 
 takeTime :: Value -> Either LogicalError Time64
 takeTime = \case
@@ -383,7 +383,7 @@ takeTime = \case
     Either.Right x
   x ->
     Either.Left $ LogicalExpectedTime x
-{-# INLINE takeTime #-}
+{-# INLINABLE takeTime #-}
 
 takeSum :: Value -> Either LogicalError (Either Value Value)
 takeSum = \case
@@ -393,7 +393,7 @@ takeSum = \case
     Either.Right (Either.Right x)
   x ->
     Either.Left $ LogicalExpectedSum x
-{-# INLINE takeSum #-}
+{-# INLINABLE takeSum #-}
 
 takeOption :: Value -> Either LogicalError (Maybe Value)
 takeOption = \case
@@ -403,7 +403,7 @@ takeOption = \case
     Either.Right (Just x)
   x ->
     Either.Left $ LogicalExpectedOption x
-{-# INLINE takeOption #-}
+{-# INLINABLE takeOption #-}
 
 takeResult :: Value -> Either LogicalError (Either Error64 Value)
 takeResult = \case
@@ -413,7 +413,7 @@ takeResult = \case
     Either.Right (Either.Right x)
   x ->
     Either.Left $ LogicalExpectedResult x
-{-# INLINE takeResult #-}
+{-# INLINABLE takeResult #-}
 
 takePair :: Value -> Either LogicalError (Value, Value)
 takePair = \case
@@ -421,7 +421,7 @@ takePair = \case
     Either.Right (x, y)
   x ->
     Either.Left $ LogicalExpectedPair x
-{-# INLINE takePair #-}
+{-# INLINABLE takePair #-}
 
 takeStruct :: Value -> Either LogicalError (Cons Boxed.Vector Value)
 takeStruct = \case
@@ -429,7 +429,7 @@ takeStruct = \case
     Either.Right xs
   x ->
     Either.Left $ LogicalExpectedStruct x
-{-# INLINE takeStruct #-}
+{-# INLINABLE takeStruct #-}
 
 takeString :: Value -> Either LogicalError ByteString
 takeString = \case
@@ -437,7 +437,7 @@ takeString = \case
     Either.Right xs
   x ->
     Either.Left $ LogicalExpectedString x
-{-# INLINE takeString #-}
+{-# INLINABLE takeString #-}
 
 takeArray :: Value -> Either LogicalError (Boxed.Vector Value)
 takeArray = \case
@@ -445,7 +445,7 @@ takeArray = \case
     Either.Right xs
   x ->
     Either.Left $ LogicalExpectedArray x
-{-# INLINE takeArray #-}
+{-# INLINABLE takeArray #-}
 
 takeMap :: Value -> Either LogicalError (Map Value Value)
 takeMap = \case
@@ -453,4 +453,4 @@ takeMap = \case
     Either.Right xs
   x ->
     Either.Left $ LogicalExpectedMap x
-{-# INLINE takeMap #-}
+{-# INLINABLE takeMap #-}

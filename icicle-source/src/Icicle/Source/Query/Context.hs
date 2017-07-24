@@ -1,5 +1,6 @@
 -- | Contexts that filter, group, and do stuff on the input
 -- before they hit the expression.
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -10,11 +11,13 @@ module Icicle.Source.Query.Context (
   , annotOfContext
   ) where
 
-import                  Icicle.Source.Query.Exp
-import                  Icicle.Internal.Pretty
-import                  Icicle.Common.Base
+import           GHC.Generics (Generic)
 
-import                  P
+import           Icicle.Source.Query.Exp
+import           Icicle.Internal.Pretty
+import           Icicle.Common.Base
+
+import           P
 
 
 data Context' q a n
@@ -26,7 +29,9 @@ data Context' q a n
  | LetFold   a          (Fold q a n)
  | Let       a (Name n) (Exp' q a n)
  | GroupFold a (Name n) (Name n) (Exp' q a n)
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance (NFData q, NFData a, NFData n) => NFData (Context' q a n)
 
 data Fold q a n
  = Fold
@@ -34,13 +39,16 @@ data Fold q a n
  , foldInit :: Exp' q a n
  , foldWork :: Exp' q a n
  , foldType :: FoldType }
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
+
+instance (NFData q, NFData a, NFData n) => NFData (Fold q a n)
 
 data FoldType
  = FoldTypeFoldl1
  | FoldTypeFoldl
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Ord, Generic)
 
+instance NFData FoldType
 
 annotOfContext :: Context' q a n -> a
 annotOfContext c
