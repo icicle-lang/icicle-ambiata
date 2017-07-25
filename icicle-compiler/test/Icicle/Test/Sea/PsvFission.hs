@@ -57,6 +57,8 @@ import           Icicle.Common.Annot
 import           Icicle.Test.Sea.Psv.Base
 
 
+-- FIXME This no longer compiles, will write an equivalent in the next PR.
+
 prop_psv_fission =
   forAll genSumErrorFactType $ \inputType ->
   forAll (validated tryCountInputType $ tryGenAttributeWithInput inputType) $ \wta1 ->

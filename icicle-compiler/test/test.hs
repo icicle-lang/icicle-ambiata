@@ -23,6 +23,7 @@ import qualified Icicle.Test.Avalanche.MeltPrim
 import qualified Icicle.Test.Data.Time
 import qualified Icicle.Test.Internal.EditDistance
 
+import qualified Icicle.Test.Runtime.Corpus
 import qualified Icicle.Test.Runtime.Data.Any
 import qualified Icicle.Test.Runtime.Data.Array
 import qualified Icicle.Test.Runtime.Data.IO
@@ -39,12 +40,6 @@ import qualified Icicle.Test.Source.History
 import qualified Icicle.Test.Source.MaxMapSize
 
 import qualified Icicle.Test.Sea.Name
-import qualified Icicle.Test.Sea.Psv.Struct
-import qualified Icicle.Test.Sea.Psv.Corpus
-import qualified Icicle.Test.Sea.Psv.Success
-import qualified Icicle.Test.Sea.Psv.Failure
-import qualified Icicle.Test.Sea.PsvFission
-import qualified Icicle.Test.Sea.Seaworthy
 import qualified Icicle.Test.Sea.Text
 
 import qualified Icicle.Test.Foreign.Array
@@ -63,36 +58,19 @@ data TestSuite =
     , suiteTests :: [IO Bool]
     }
 
-psv_struct :: TestSuite
-psv_struct =
-  TestSuite "psv_struct" [
-      Icicle.Test.Sea.Psv.Struct.tests
-    ]
-
-psv_corpus :: TestSuite
-psv_corpus =
-  TestSuite "psv_corpus" [
-      Icicle.Test.Sea.Psv.Corpus.tests
-    ]
-
-psv_success :: TestSuite
-psv_success =
-  TestSuite "psv_success" [
-      Icicle.Test.Sea.Psv.Success.tests
-    ]
-
-psv_failure :: TestSuite
-psv_failure =
-  TestSuite "psv_failure" [
-      Icicle.Test.Sea.Psv.Failure.tests
-    ]
-
-sea :: TestSuite
-sea =
-  TestSuite "sea" [
-      Icicle.Test.Sea.Name.tests
-    , Icicle.Test.Sea.PsvFission.tests
-    , Icicle.Test.Sea.Seaworthy.tests
+runtime :: TestSuite
+runtime =
+  TestSuite "runtime" [
+      Icicle.Test.Runtime.Data.Any.tests
+    , Icicle.Test.Runtime.Data.Array.tests
+    , Icicle.Test.Runtime.Data.IO.tests
+    , Icicle.Test.Runtime.Data.Schema.tests
+    , Icicle.Test.Runtime.Data.Striped.tests
+    , Icicle.Test.Runtime.Evaluator.tests
+    , Icicle.Test.Runtime.Corpus.tests
+    , Icicle.Test.Runtime.Serial.Psv.Schema.tests
+    , Icicle.Test.Runtime.Serial.Zebra.tests
+    , Icicle.Test.Sea.Name.tests
     , Icicle.Test.Sea.Text.tests
     ]
 
@@ -118,14 +96,6 @@ sundry =
     , Icicle.Test.Foreign.Array.tests
     , Icicle.Test.Internal.EditDistance.tests
     , Icicle.Test.Language.tests
-    , Icicle.Test.Runtime.Data.Any.tests
-    , Icicle.Test.Runtime.Data.Array.tests
-    , Icicle.Test.Runtime.Data.IO.tests
-    , Icicle.Test.Runtime.Data.Schema.tests
-    , Icicle.Test.Runtime.Data.Striped.tests
-    , Icicle.Test.Runtime.Evaluator.tests
-    , Icicle.Test.Runtime.Serial.Psv.Schema.tests
-    , Icicle.Test.Runtime.Serial.Zebra.tests
     , Icicle.Test.Serial.tests
     , Icicle.Test.Source.Convert.tests
     , Icicle.Test.Source.History.tests
@@ -137,11 +107,7 @@ sundry =
 suites :: Map String TestSuite
 suites =
   Map.fromList $ fmap (\x -> (suiteName x, x)) [
-      psv_struct
-    , psv_corpus
-    , psv_success
-    , psv_failure
-    , sea
+      runtime
     , sundry
     ]
 

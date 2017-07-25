@@ -7,6 +7,9 @@ module Icicle.Simulator (
   , SimulateError
   , evaluateVirtualValue
   , evaluateVirtualValue'
+
+  , valueToCore'
+  , valueFromCore'
   ) where
 
 import           Data.List

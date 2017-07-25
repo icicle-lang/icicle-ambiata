@@ -1,7 +1,8 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell#-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell#-}
 module Icicle.Test.Language where
 
 import qualified Icicle.Avalanche.Program as A
@@ -14,15 +15,14 @@ import qualified Icicle.Core.Program.Program as C
 import qualified Icicle.Source.Query as S
 import qualified Icicle.Source.Type as S
 
+import           Icicle.Data.Name
 import qualified Icicle.Data as D
 
-import qualified Icicle.Compiler.Source as Source
 import qualified Icicle.Compiler as P
+import qualified Icicle.Compiler.Sea as P
+import qualified Icicle.Compiler.Source as Source
 
 import qualified Icicle.Source.Parser  as SP
-
-import           Icicle.Sea.Eval
-import qualified Icicle.Sea.Data as Sea
 
 import           Icicle.Test.Arbitrary
 
@@ -39,37 +39,41 @@ import qualified Text.Parsec.Pos as Parsec
 import           P
 import qualified Prelude as Savage
 
+import           System.IO (IO)
+
 import           X.Control.Monad.Trans.Either
 import           Disorder.Core.IO
 
 
+atLeastOneFact :: WellTyped -> Bool
+atLeastOneFact =
+  not . null . concat . Map.elems . wtInputs
+
+prop_languages_eval :: Property
 prop_languages_eval =
   forAll genSumErrorFactType $ \inputType ->
-  forAll (validated 10 $ tryGenAttributeWithInput inputType) $ \wtc ->
-  forAll (gEvalWellTyped wtc) $ \ewt ->
-  forAll genWellTypedEvalContext $ \wte ->
+  forAll (genAttributeWithInput inputType `suchThat` atLeastOneFact) $ \wt ->
+  forAll (pure $ mkFacts wt) $ \facts ->
+  forAll genEvalContext $ \ctx ->
   testIO $ do
   let
-    ctx     = wtEvalContext wte
-    facts   = wtEvalFacts ewt
-    q       = wtEvalDummyQuery ewt
-    coreRes = P.coreEval ctx facts q
+    coreRes = P.coreEval ctx facts dummySourceVar
             $ C.renameProgram sourceNameFromTestName
-            $ wtCore wtc
-    flatRes = P.avalancheEval ctx facts q
+            $ wtCore wt
+    flatRes = P.avalancheEval ctx facts dummySourceVar
             $ A.renameProgram sourceNameFromTestName
             $ A.eraseAnnotP
-            $ wtAvalancheFlat wtc
+            $ wtAvalancheFlat wt
   seaRes     <- runEitherT
-              $ P.seaEval ctx facts q
+              $ P.seaEval ctx facts dummySourceVar
               $ A.renameProgram sourceNameFromTestName
-              $ wtAvalancheFlat wtc
+              $ wtAvalancheFlat wt
   case coreRes of
     Left err
       -> return
        $ counterexample "Core eval failed"
        $ counterexample (show $ pretty err)
-       $ counterexample (show $ pretty (wtCore wtc))
+       $ counterexample (show $ pretty (wtCore wt))
        $ failed
     Right retCore
      -> case flatRes of
@@ -77,48 +81,48 @@ prop_languages_eval =
             -> return
              $ counterexample "Flat Avalanche eval failed"
              $ counterexample (show $ pretty err)
-             $ counterexample (show $ pretty (wtAvalancheFlat wtc))
+             $ counterexample (show $ pretty (wtAvalancheFlat wt))
              $ failed
           Right retFlat
             -> case seaRes of
                  Left err
                    -> return
                     $ counterexample "Sea eval failed"
-                    $ counterexample (show $ pretty err)
+                    $ counterexample (Text.unpack $ P.renderCompilerSeaError err)
                     $ failed
                  Right retSea
                    -> return
                     $ property
                     $ retCore === retFlat .&&. retFlat === retSea
 
-data EvalWellTyped = EvalWellTyped
-  { welltyped        :: WellTyped
-  , wtEvalFacts      :: [D.AsAt D.Fact]
-  , wtEvalDummyQuery :: P.QueryTyped Source.Var
-  } deriving (Show)
-
-gEvalWellTyped :: WellTypedCluster -> Gen EvalWellTyped
-gEvalWellTyped wta = do
-  wt <- genWellTypedForSingleAttribute AllowDupTime wta
-  return $ EvalWellTyped wt (mkFacts wt) (dummySourceOf wta)
-
 mkFacts :: WellTyped -> [D.AsAt D.Fact]
 mkFacts wt =
-  catMaybes . fmap mkAsAt . wtFacts $ wt
+  concat . catMaybes . fmap mkAsAt . Map.toList $ wtInputs wt
   where
-    mkAsAt (WellTypedValue ent attr a)
-      = D.AsAt <$> (D.Fact ent attr <$> factFromCoreValue (D.atFact a))
-               <*> pure (D.atTime a)
+    mkAsAt (ent, as) =
+      for as $ \a ->
+        D.AsAt
+          <$> (D.Fact ent [inputname|input|] <$> factFromTopCoreValue (D.atFact a))
+          <*> pure (D.atTime a)
 
-dummySourceOf :: WellTypedCluster -> P.QueryTyped Source.Var
-dummySourceOf wt
+dummySourceVar :: P.QueryTyped Source.Var
+dummySourceVar
   = let x = nameOf $ NameBase $ SP.Variable "dummy"
         pos = Parsec.initialPos "dummy"
-        input = Sea.clusterInputId . wtCluster $ wt
+        input = [inputid|default:input|]
     in  S.QueryTop
           (D.QualifiedInput input)
           (fromMaybe (Savage.error "dummy") . D.parseOutputId . D.renderInputId $ input)
           (S.Query [] $ S.Var (S.Annot pos S.UnitT []) x)
+
+factFromTopCoreValue :: BaseValue -> Maybe D.Value
+factFromTopCoreValue = \case
+  VLeft (VError _) ->
+    Just D.Tombstone
+  VRight x ->
+    factFromCoreValue x
+  _ ->
+    Nothing
 
 factFromCoreValue :: BaseValue -> Maybe D.Value
 factFromCoreValue bv = case bv of
@@ -160,4 +164,6 @@ sourceNameFromTestName
 
 
 return []
-tests = $checkAllWith TestRunMore (checkArgsSized 10)
+tests :: IO Bool
+tests =
+  $checkAllWith TestRunNormal (checkArgsSized 10)

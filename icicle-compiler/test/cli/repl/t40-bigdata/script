@@ -1,5 +1,7 @@
 -- Test "big data" mode where all queries must be windowed or latest
 :set +big-data
+:set +c-eval
+:set snapshot 2010-01-01
 
 -- Some simple good ones
 feature salary ~> windowed 1 months ~> fold x = 0 : 1 ~> x

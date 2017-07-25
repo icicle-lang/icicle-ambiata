@@ -127,12 +127,12 @@ genEvaluatorTest = do
   dictionary <- genDictionary
   EvaluatorTest dictionary <$> genInput dictionary
 
-prop_evaluator :: Property
-prop_evaluator =
+prop_evaluator_roundtrip :: Property
+prop_evaluator_roundtrip =
   withTests 100 . property $ do
     EvaluatorTest dictionary input <- forAll genEvaluatorTest
 
-    --stime <- forAll $ genSnapshotTime
+    ccoptions0 <- Runtime.getCompilerOptions
 
     let
       stime =
@@ -148,9 +148,17 @@ prop_evaluator =
                 }
           }
 
+      ccoptions = [
+          "-DICICLE_ASSERT=1"
+        , "-DICICLE_ASSERT_MAXIMUM_ARRAY_COUNT=1000000"
+        , "-DICICLE_NOINLINE=1"
+        , "-O0"
+        ] <>
+        ccoptions0
+
     avalanche <- evalEither $ Compiler.avalancheOfDictionary options dictionary
     sea <- evalEither . Runtime.compileAvalanche $ Runtime.AvalancheContext "Icicle.Test.Runtime.Evaluator" avalanche
-    runtime <- evalExceptT $ Runtime.compileSea Runtime.SkipJetskiCache sea
+    runtime <- evalExceptT $ Runtime.compileSeaWith ccoptions Runtime.SkipJetskiCache sea
     output <- evalExceptT . hoist liftIO $ Runtime.snapshotBlock runtime maximumMapSize stime input
 
     let

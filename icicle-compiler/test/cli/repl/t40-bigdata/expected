@@ -1,5 +1,5 @@
 Queries will no longer be evaluated using the C evaluator.
-Snapshot mode activated with a snapshot date of 1970-01-01.
+Snapshot mode activated with a snapshot date of 2017-01-01.
 Loaded dictionary with 5 inputs, 0 outputs, 38 functions.
 Selected psv file as input: test/cli/repl/data.psv
 
@@ -17,18 +17,32 @@ Selected psv file as input: test/cli/repl/data.psv
 
 λ -- Test "big data" mode where all queries must be windowed or latest
 λ Queries are now subject to "big data" restrictions.
+λ Queries will be evaluated using the C evaluator.
+λ Snapshot mode activated with a snapshot date of 2010-01-01.
 λ λ -- Some simple good ones
 λ Core evaluation
 ---------------
 
 homer|1
-marge|1
+marge|0
+
+C evaluation
+------------
+
+homer|1
+marge|0
 
 λ λ Core evaluation
 ---------------
 
-homer|1500
-marge|30
+homer|500
+marge|0
+
+C evaluation
+------------
+
+homer|500
+marge|0
 
 λ λ Core evaluation
 ---------------
@@ -36,8 +50,20 @@ marge|30
 homer|0
 marge|0
 
+C evaluation
+------------
+
+homer|0
+marge|0
+
 λ λ Core evaluation
 ---------------
+
+homer|1500
+marge|30
+
+C evaluation
+------------
 
 homer|1500
 marge|30
@@ -123,8 +149,20 @@ Error
 homer|7500
 marge|90
 
+C evaluation
+------------
+
+homer|7500
+marge|90
+
 λ λ Core evaluation
 ---------------
+
+homer|7500
+marge|90
+
+C evaluation
+------------
 
 homer|7500
 marge|90
@@ -136,8 +174,20 @@ marge|90
 homer|1500
 marge|30
 
+C evaluation
+------------
+
+homer|1500
+marge|30
+
 λ λ Core evaluation
 ---------------
+
+homer|1500
+marge|30
+
+C evaluation
+------------
 
 homer|1500
 marge|30
@@ -201,9 +251,11 @@ Error
 λ Core evaluation
 ---------------
 
-homer|[ ("arm", 4)
-      , ("head", 3)
-      , ("torso", 4)
-      ]
+homer|[ ("torso", 1) ]
+
+C evaluation
+------------
+
+homer|[ ("torso", 1) ]
 
 λ 

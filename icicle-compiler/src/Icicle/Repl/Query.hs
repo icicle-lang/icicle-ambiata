@@ -31,6 +31,7 @@ import qualified Icicle.Avalanche.Prim.Flat as Flat
 import qualified Icicle.Avalanche.Simp as Avalanche
 import           Icicle.Common.Type
 import qualified Icicle.Compiler as Compiler
+import qualified Icicle.Compiler.Sea as Compiler
 import qualified Icicle.Compiler.Source as Source
 import qualified Icicle.Core.Program.Check as Core
 import           Icicle.Data
@@ -51,7 +52,7 @@ import qualified Icicle.Runtime.Data.Striped as Striped
 import qualified Icicle.Runtime.Evaluator as Runtime
 import qualified Icicle.Runtime.Serial.Zebra as Runtime
 import qualified Icicle.Sea.Data as Sea
-import qualified Icicle.Sea.Eval as Sea
+import qualified Icicle.Sea.Eval.Base as Sea
 import qualified Icicle.Sea.FromAvalanche.Program as Sea
 import qualified Icicle.Sea.Preamble as Sea
 import qualified Icicle.Serial as Serial
@@ -433,7 +434,7 @@ compileSea compiled =
             putSection "C" x
 
       whenSet FlagSeaAssembly $ do
-        result <- liftIO . runEitherT $ Sea.assemblyOfPrograms "icicle-repl" Sea.NoInput [(iid, flatList)]
+        result <- liftIO . runEitherT $ Sea.assemblyOfPrograms "icicle-repl" [(iid, flatList)]
         case result of
           Left err ->
             putSection "C assembly error" err
@@ -441,7 +442,7 @@ compileSea compiled =
             putSection "C assembly" x
 
       whenSet FlagSeaLLVM $ do
-        result <- liftIO . runEitherT $ Sea.irOfPrograms "icicle-repl" Sea.NoInput [(iid, flatList)]
+        result <- liftIO . runEitherT $ Sea.irOfPrograms "icicle-repl" [(iid, flatList)]
         case result of
           Left err ->
             putSection "C LLVM IR error" err
@@ -459,7 +460,7 @@ evaluateSea compiled facts =
         result <- liftIO . runEitherT $ Compiler.seaEval context facts (compiledSource compiled) avalanche
         case result of
           Left err ->
-            putSection "C evaluation error" err
+            putSection "C evaluation error" $ Compiler.renderCompilerSeaError err
           Right x ->
             putSection "C evaluation" $ ppResults x
 

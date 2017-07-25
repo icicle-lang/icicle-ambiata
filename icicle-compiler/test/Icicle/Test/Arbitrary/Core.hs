@@ -250,7 +250,7 @@ genPrimType = elements
 
 genStructType :: Gen ValType -> Gen StructType
 genStructType genT
- = StructType . Map.fromList . List.take 10 <$> listOf genField
+ = StructType . Map.fromList <$> listOfN 1 5 genField
  where
    genField = (,) <$> arbitrary <*> genT
 
@@ -343,7 +343,7 @@ tryExp env
     [ funs env ]
  where
   funs e
-   = do ts    <- listOf $ firstOrderType
+   = do ts    <- listOfN 0 5 $ firstOrderType
         r     <- arbitrary
         let t  = FunT ts r
         x     <- tryExpForType t e
@@ -356,7 +356,7 @@ firstOrderType
   val
    = FunT [] <$> arbitrary
   args
-   = do ts <- listOf $ firstOrderType
+   = do ts <- listOfN 0 5 $ firstOrderType
         r  <- arbitrary
         return (FunT ts r)
 
@@ -540,7 +540,7 @@ programForStreamType' streamType
         let sE' = Map.insert n t sE
         k     <- gen_exp_for_type t sE'
         case t of
-         FunT [] t' -> return (sE', SFold n t' z k) 
+         FunT [] t' -> return (sE', SFold n t' z k)
          _          -> gen_fold sE
 
   gen_filt :: Env Var Type -> Int -> Gen (Env Var Type, Stream () Var)
@@ -573,7 +573,7 @@ genInputType
          , SumT    <$> genInputType <*> genInputType
          , MapT    <$> genInputType <*> genInputType
          , OptionT <$> genInputType
-         , (StructT . StructType . Map.fromList) <$> listOf genField
+         , (StructT . StructType . Map.fromList) <$> listOfN 1 5 genField
          ]
  where
   genField
@@ -600,7 +600,7 @@ baseValueForType t
     FactIdentifierT
      -> discard
     ArrayT t'
-     -> smaller (VArray <$> listOf (baseValueForType t'))
+     -> smaller (VArray <$> listOfN 0 5 (baseValueForType t'))
     BufT n t'
      -> smaller (VBuf . List.take n <$> infiniteListOf (baseValueForType t'))
     PairT a b
@@ -615,7 +615,7 @@ baseValueForType t
     MapT k v
      -> smaller
        (VMap . Map.fromList
-     <$> listOf ((,) <$> baseValueForType k <*> baseValueForType v))
+     <$> listOfN 0 5 ((,) <$> baseValueForType k <*> baseValueForType v))
 
     StringT
      -> VString <$> elements simpsons
@@ -643,3 +643,13 @@ inputsForType t
         -- relatively small date increments
         diff    <- choose (0,2)
         go (n-1) (acc <> [entry]) (d+diff)
+
+listOfN :: Int -> Int -> Gen a -> Gen [a]
+listOfN m n gen =
+  sized $ \size -> do
+    let
+      diff =
+        size * (n - m) `quot` 99
+
+    k <- choose (m, m + diff)
+    vectorOf k gen
