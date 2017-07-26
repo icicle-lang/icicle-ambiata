@@ -132,6 +132,7 @@ library
                        Icicle.Command.Timer
 
                        Icicle.Compiler
+                       Icicle.Compiler.Sea
 
                        Icicle.Internal.Aeson
                        Icicle.Internal.Rename
@@ -168,10 +169,7 @@ library
 
                        Icicle.Sea.Data
                        Icicle.Sea.Error
-                       Icicle.Sea.Eval
                        Icicle.Sea.Eval.Base
-                       Icicle.Sea.Eval.Program
-                       Icicle.Sea.Fleet
                        Icicle.Sea.FromAvalanche
                        Icicle.Sea.FromAvalanche.Analysis
                        Icicle.Sea.FromAvalanche.Base
@@ -180,12 +178,7 @@ library
                        Icicle.Sea.FromAvalanche.State
                        Icicle.Sea.FromAvalanche.Type
                        Icicle.Sea.Header
-                       Icicle.Sea.IO
-                       Icicle.Sea.IO.Base
                        Icicle.Sea.IO.Offset
-                       Icicle.Sea.IO.Psv
-                       Icicle.Sea.IO.Psv.Input
-                       Icicle.Sea.IO.Psv.Output
                        Icicle.Sea.Name
                        Icicle.Sea.Preamble
 
@@ -277,6 +270,7 @@ test-suite test
                      , pretty-show                     == 1.6.*
                      , hashable                        == 1.2.*
                      , hedgehog                        >= 0.5        && < 0.6
+                     , hedgehog-quickcheck             >= 0.1        && < 0.2
                      , unordered-containers            == 0.2.*
                      , QuickCheck                      == 2.8.*
                      , quickcheck-instances            == 0.3.*

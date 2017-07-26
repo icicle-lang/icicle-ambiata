@@ -27,7 +27,7 @@ import           System.IO
 
 import           Test.QuickCheck
 
-import           Icicle.Sea.Eval              (getCompilerOptions)
+import           Icicle.Sea.Eval.Base (getCompilerOptions)
 import           Icicle.Internal.Pretty
 import           Icicle.Test.Sea.Utils
 import           Icicle.Test.Arbitrary

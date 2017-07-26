@@ -20,6 +20,9 @@ module Icicle.Runtime.Evaluator (
 
   , compileAvalanche
   , compileSea
+  , compileSeaWith
+
+  , Sea.getCompilerOptions
 
   , snapshotBlock
   , snapshotCluster
@@ -98,6 +101,7 @@ data RuntimeError =
   | RuntimeInputCountMismatch !Int !Int
   | RuntimeInputSchemaMismatch !Schema !Schema
   | RuntimeInputClusterMismatch !(Set InputId) !(Set InputId)
+  | RuntimeInputNoEntities !Schema
     deriving (Eq, Show)
 
 renderRuntimeError :: RuntimeError -> Text
@@ -157,6 +161,12 @@ renderRuntimeError = \case
     "\n" <>
     "\n  inputs without a matching query cluster =" <>
     "\n" <> Text.pack (indent4 (ppShow missingClusters))
+
+  RuntimeInputNoEntities schema ->
+    "Input must contain at least one entity." <>
+    "\n" <>
+    "\n  schema of input =" <>
+    "\n" <> Text.pack (indent4 (ppShow schema))
 
 indent4 :: String -> String
 indent4 =
@@ -318,7 +328,7 @@ compileAvalanche context =
       Map.toList $ avalanchePrograms context
   in
     fmap SeaContext . first RuntimeSeaError $
-      Sea.codeOfPrograms fingerprint Sea.NoInput programs
+      Sea.codeOfPrograms fingerprint programs
 
 fromUseJetskiCache :: UseJetskiCache -> Jetski.CacheLibrary
 fromUseJetskiCache = \case
@@ -330,6 +340,10 @@ fromUseJetskiCache = \case
 compileSea :: MonadIO m => UseJetskiCache -> SeaContext -> EitherT RuntimeError m Runtime
 compileSea cache context = do
   options <- Sea.getCompilerOptions
+  compileSeaWith options cache context
+
+compileSeaWith :: MonadIO m => [Jetski.CompilerOption] -> UseJetskiCache -> SeaContext -> EitherT RuntimeError m Runtime
+compileSeaWith options cache context = do
   (header, code) <- hoistEither . first RuntimeHeaderError . parseHeader $ seaCode context
 
   library <-
@@ -428,6 +442,8 @@ snapshotCluster cluster maxMapSize stime input =
   in
     if inputSchema /= expectedInputSchema then
       left $ RuntimeInputSchemaMismatch expectedInputSchema inputSchema
+    else if Storable.null (inputLength input) then
+      left $ RuntimeInputNoEntities inputSchema
     else
       bracket (liftIO Mempool.create) (liftIO . Mempool.free) $ \pool -> do
         arrays <- bimapT RuntimeStripedError Boxed.fromList $

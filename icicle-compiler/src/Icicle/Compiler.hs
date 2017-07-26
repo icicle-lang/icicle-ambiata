@@ -51,7 +51,6 @@ module Icicle.Compiler (
     -- * Eval
   , coreEval
   , avalancheEval
-  , seaEval
 
     -- * Helpers
   , freshNamer
@@ -110,15 +109,11 @@ import qualified Icicle.Source.Query as Query
 import qualified Icicle.Source.ToCore.Base as ToCore
 import qualified Icicle.Source.ToCore.ToCore as ToCore
 
-import           Icicle.Sea.Eval (SeaError, seaEvalAvalanche)
-
 import qualified Icicle.Simulator as Sim
 
 import qualified Icicle.Compiler.Source as Source
 
 import           P
-
-import           System.IO (IO)
 
 import qualified Text.ParserCombinators.Parsec as Parsec
 
@@ -491,31 +486,6 @@ avalancheEval ctx fs (renameQT unVar -> query) prog
 
     evalV
       = Sim.evaluateVirtualValue' prog ctx
-
-seaEval :: Common.EvalContext
-        -> [AsAt Fact]
-        -> Source.QueryTyped Source.Var
-        -> AvalProgramTyped  Source.Var Flat.Prim
-        -> EitherT SeaError IO [Result]
-seaEval ctx newFacts (renameQT unVar -> query) program =
-  fmap Result . mconcat <$> sequence results
-  where
-    partitions :: [Sim.Partition]
-    partitions  = Sim.streams newFacts
-
-    results :: [EitherT SeaError IO [(Entity, Value)]]
-    results = fmap (evalP (Query.queryInput query)) partitions
-
-    evalP :: UnresolvedInputId
-          -> Sim.Partition
-          -> EitherT SeaError IO [(Entity, Value)]
-    evalP name (Sim.Partition entityName attributeName values)
-      | unresolvedInputName name == attributeName
-      = do outputs <- seaEvalAvalanche program ctx values
-           return $ fmap (\out -> (entityName, snd out)) outputs
-
-      | otherwise
-      = return []
 
 --------------------------------------------------------------------------------
 

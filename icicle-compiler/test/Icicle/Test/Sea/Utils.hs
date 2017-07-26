@@ -11,7 +11,7 @@ module Icicle.Test.Sea.Utils (
   ) where
 
 import qualified Icicle.Internal.Pretty       as PP
-import           Icicle.Sea.Eval              (getCompilerOptions)
+import           Icicle.Sea.Eval.Base (getCompilerOptions)
 import           Icicle.Sea.Preamble          (seaPreamble)
 import           Icicle.Test.Arbitrary        ()
 

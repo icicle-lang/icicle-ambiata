@@ -13,8 +13,7 @@ import qualified Icicle.Core.Eval.Program   as PV
 import           Icicle.Common.Eval
 import           Icicle.Common.Base
 import           Icicle.Data.Fact (AsAt(..))
-
-import           Icicle.Sea.Eval
+import           Icicle.Data.Time
 
 import           P
 
@@ -43,16 +42,14 @@ prop_maxsize ts =
 
 prop_maxsize_corpus :: Property
 prop_maxsize_corpus
- | dup <- AllowDupTime
- = testAllCorpus dup genPsvConstants $ \wt psv ->
+ = testAllCorpus $ \_cid wt ->
+   forAll (getPositive <$> arbitrary) $ \maxMapSize ->
      let
-       evalContext =
-         wellTypedEvalContext (psvFactsLimit psv) (psvMaxMapSize psv)
        props =
-         fmap (checkMaxMapSize (psvMaxMapSize psv)) .
+         fmap (checkMaxMapSize maxMapSize) .
          concatMap (fmap snd) .
          Map.elems $
-         evalWellTyped evalContext wt
+         evalWellTyped (EvalContext (unsafeTimeOfYMD 3000 1 1) maxMapSize) wt
      in
        conjoin props
 
@@ -129,4 +126,5 @@ checkMaxMapSize maxMapSize = go
 
 return []
 tests :: IO Bool
-tests = $checkAllWith TestRunMore (checkArgsSized 100)
+tests =
+  $checkAllWith TestRunNormal (checkArgsSized 100)

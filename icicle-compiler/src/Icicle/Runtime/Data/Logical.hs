@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -8,6 +9,10 @@
 module Icicle.Runtime.Data.Logical (
     Value(..)
   , defaultValue
+
+  , toBaseValue
+  , fromBaseValue
+  , fromTopValue
 
   , takeUnit
   , takeBool
@@ -35,13 +40,19 @@ import           Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
 import qualified Data.ByteString.Char8 as Char8
 import qualified Data.Either as Either
+import qualified Data.List as List
+import           Data.List.NonEmpty (NonEmpty(..))
 import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text
 import qualified Data.Vector as Boxed
 
 import           GHC.Generics (Generic)
 
+import           Icicle.Common.Base
+import           Icicle.Common.Type
+import qualified Icicle.Data.Time as Icicle
 import           Icicle.Internal.Pretty
 import           Icicle.Runtime.Data.Primitive
 import           Icicle.Runtime.Data.Schema (Schema)
@@ -92,6 +103,8 @@ data LogicalError =
   | LogicalExpectedArray !Value
   | LogicalExpectedMap !Value
   | LogicalSchemaMismatch !Schema !Value
+  | LogicalCannotConvertFromBaseValue !ValType !BaseValue
+  | LogicalCannotConvertToBaseValue !ValType !Value
     deriving (Eq, Ord, Show)
 
 renderLogicalError :: LogicalError -> Text
@@ -124,6 +137,22 @@ renderLogicalError = \case
     "Expected map, but was: " <> ppValueSchema x
   LogicalSchemaMismatch s v ->
     "Expected " <> Text.pack (show s) <> ", but was: " <> Text.pack (show v)
+  LogicalCannotConvertFromBaseValue t v ->
+    "Cannot convert BaseValue to Logical.Value:" <>
+    "\n" <>
+    "\n type =" <>
+    "\n   " <> Text.pack (show t) <>
+    "\n" <>
+    "\n value =" <>
+    "\n   " <> Text.pack (show v)
+  LogicalCannotConvertToBaseValue t v ->
+    "Cannot convert Logical.Value to BaseValue:" <>
+    "\n" <>
+    "\n type =" <>
+    "\n   " <> Text.pack (show t) <>
+    "\n" <>
+    "\n value =" <>
+    "\n   " <> Text.pack (show v)
 
 ppValueSchema :: Value -> Text
 ppValueSchema = \case
@@ -454,3 +483,211 @@ takeMap = \case
   x ->
     Either.Left $ LogicalExpectedMap x
 {-# INLINABLE takeMap #-}
+
+------------------------------------------------------------------------
+
+toBaseValue :: ValType -> Value -> Either LogicalError BaseValue
+toBaseValue typ = \case
+  Unit
+    | UnitT <- typ
+    ->
+      pure VUnit
+
+  Bool False64
+    | BoolT <- typ
+    ->
+      pure $ VBool False
+
+  Bool _
+    | BoolT <- typ
+    ->
+      pure $ VBool True
+
+  Int x
+    | IntT <- typ
+    ->
+      pure $ VInt (fromIntegral x)
+
+  Double x
+    | DoubleT <- typ
+    ->
+      pure $ VDouble x
+
+  Time x
+    | TimeT <- typ
+    ->
+      pure . VTime . Icicle.timeOfPacked $ unTime64 x
+
+  String x
+    | StringT <- typ
+    ->
+      pure . VString $ Text.decodeUtf8 x
+
+  Left x
+    | SumT xt _ <- typ
+    ->
+      VLeft <$> toBaseValue xt x
+
+  Right x
+    | SumT _ xt <- typ
+    ->
+      VRight <$> toBaseValue xt x
+
+  None
+    | OptionT _ <- typ
+    ->
+      pure VNone
+
+  Some x
+    | OptionT xt <- typ
+    ->
+      VSome <$> toBaseValue xt x
+
+  Error x
+    | SumT ErrorT _ <- typ
+    ->
+      pure . VLeft . VError . fromMaybe ExceptTombstone $ fromError64 x
+
+  Success x
+    | SumT ErrorT xt <- typ
+    ->
+      VRight <$> toBaseValue xt x
+
+  Pair x y
+    | PairT xt yt <- typ
+    ->
+      VPair <$> toBaseValue xt x <*> toBaseValue yt y
+
+  Struct xs0
+    | StructT (StructType fs) <- typ
+    , Map.size fs == length xs0
+    -> do
+      let
+        go (name, xt) x = do
+          (name,) <$> toBaseValue xt x
+
+      kvs <- zipWithM go (Map.toList fs) (Cons.toList xs0)
+
+      pure . VStruct $ Map.fromList kvs
+
+  Array xs
+    | ArrayT xt <- typ
+    ->
+      VArray <$> traverse (toBaseValue xt) (Boxed.toList xs)
+
+  Map kvs
+    | MapT kt vt <- typ
+    ->
+      VMap . Map.fromList <$> traverse (bitraverse (toBaseValue kt) (toBaseValue vt)) (Map.toList kvs)
+
+  x ->
+    Either.Left $ LogicalCannotConvertToBaseValue typ x
+
+fromBaseValue :: ValType -> BaseValue -> Either LogicalError Value
+fromBaseValue typ = \case
+  VUnit
+    | UnitT <- typ
+    ->
+      pure Unit
+
+  VBool False
+    | BoolT <- typ
+    ->
+      pure $ Bool False64
+
+  VBool True
+    | BoolT <- typ
+    ->
+      pure $ Bool True64
+
+  VInt x
+    | IntT <- typ
+    ->
+      pure . Int $ fromIntegral x
+
+  VDouble x
+    | DoubleT <- typ
+    ->
+      pure $ Double x
+
+  VTime x
+    | TimeT <- typ
+    ->
+      pure . Time . Time64 $ Icicle.packedOfTime x
+
+  VString x
+    | StringT <- typ
+    ->
+      pure . String $ Text.encodeUtf8 x
+
+  VArray xs
+    | ArrayT t <- typ
+    ->
+      Array . Boxed.fromList <$> mapM (fromBaseValue t) xs
+
+  VPair a b
+    | PairT ta tb <- typ
+    ->
+      Pair
+        <$> fromBaseValue ta a
+        <*> fromBaseValue tb b
+
+  VLeft x
+    | SumT t _ <- typ
+    ->
+      Left <$> fromBaseValue t x
+
+  VRight x
+    | SumT _ t <- typ
+    ->
+      Right <$> fromBaseValue t x
+
+  VNone
+    | OptionT _ <- typ
+    ->
+      pure None
+
+  VSome x
+    | OptionT t <- typ
+    ->
+      Some <$> fromBaseValue t x
+
+  VMap x
+    | MapT tk tv <- typ
+    , ks <- Map.keys x
+    , vs <- Map.elems x
+    -> do ks' <- mapM (fromBaseValue tk) ks
+          vs' <- mapM (fromBaseValue tv) vs
+          pure . Map . Map.fromList $ List.zip ks' vs'
+
+  VStruct xs
+    | StructT struct <- typ
+    , types <- getStructType struct
+    , (v:vs) <- Map.elems (Map.intersectionWith (,) types xs)
+    -> do v' <- uncurry fromBaseValue $ v
+          vs' <- mapM (uncurry fromBaseValue) vs
+          pure . Struct . Cons.fromNonEmpty $ v' :| vs'
+
+  VBuf xs
+    | BufT _ t <- typ
+    ->
+      Array . Boxed.fromList <$> mapM (fromBaseValue t) xs
+
+  VError e
+    | ErrorT <- typ
+    ->
+      pure . Error $ fromExceptionInfo e
+
+  x ->
+    Either.Left $ LogicalCannotConvertFromBaseValue typ x
+
+fromTopValue :: ValType -> BaseValue -> Either LogicalError (Error64, Value)
+fromTopValue t = \case
+  VRight v ->
+    (NotAnError64,) <$> fromBaseValue t v
+
+  VLeft (VError ExceptTombstone) ->
+    (Tombstone64,) <$> fromBaseValue t (defaultOfType t)
+
+  x ->
+    Either.Left $ LogicalCannotConvertFromBaseValue t x

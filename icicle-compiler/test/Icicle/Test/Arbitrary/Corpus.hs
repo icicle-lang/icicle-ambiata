@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -8,9 +9,10 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Arbitrary.Corpus where
 
+import qualified Data.List as List
+import           Data.Maybe
 import qualified Data.Set as Set
 import qualified Data.Text as Text
-import           Data.Maybe
 
 import           Test.QuickCheck
 
@@ -26,13 +28,16 @@ import qualified Icicle.Compiler        as Compiler
 import qualified Icicle.Compiler.Source as Source
 import qualified Icicle.Core as Core
 import qualified Icicle.Data as Data
-import qualified Icicle.Sea.Eval as Sea
-import qualified Icicle.Sea.Data as Sea
 import qualified Icicle.Source.Lexer.Token as T
 import qualified Icicle.Storage.Dictionary.Toml as DictionaryLoad
 
 import qualified Prelude as Savage
 
+
+newtype CorpusId =
+  CorpusId {
+      unCorpusId :: Int
+    } deriving (Eq, Ord, Show, Enum, Num)
 
 corpusInputs :: [(InputName, Encoding)]
 corpusInputs =
@@ -162,8 +167,8 @@ corpusQueries =
     ])
   ]
 
-genWellTypedClusterFromSource :: (InputName, OutputId, Text) -> Gen WellTypedCluster
-genWellTypedClusterFromSource (inputName, outputId, src) =
+genWellTypedFromSource :: (InputName, OutputId, Text) -> Gen WellTyped
+genWellTypedFromSource (_inputName, outputId, src) =
   case coreOfSource outputId src of
     Left u ->
       Savage.error . show . vsep $
@@ -173,10 +178,10 @@ genWellTypedClusterFromSource (inputName, outputId, src) =
         , text . Text.unpack $ src
         ]
     Right core ->
-      genWellTypedClusterFromCore (corpusInputId inputName) outputId core
+      genWellTypedFromCore outputId core
 
-genWellTypedClusterFromCore :: InputId -> OutputId -> Core.Program () Var -> Gen WellTypedCluster
-genWellTypedClusterFromCore inputId outputId core = do
+genWellTypedFromCore :: OutputId -> Core.Program () Var -> Gen WellTyped
+genWellTypedFromCore outputId core = do
   wta <- tryGenAttributeFromCore' core
   case wta of
    Left err  ->
@@ -186,15 +191,12 @@ genWellTypedClusterFromCore inputId outputId core = do
        , pretty err
        ]
    Right w ->
-     return $ w { wtCluster = (wtCluster w) { Sea.clusterInputId = inputId} }
+     return w
 
-testAllCorpus :: Show a => Sea.InputAllowDupTime -> (WellTyped -> Gen a) -> (WellTyped -> a -> Property) -> Property
-testAllCorpus dup genExtras prop =
-  conjoin . flip fmap corpusQueries $ \query ->
-    forAll (genWellTypedClusterFromSource query) $ \cluster ->
-    forAll (genWellTypedForSingleAttribute dup cluster) $ \wt ->
-    forAll (genExtras wt) $
-      prop wt
+testAllCorpus :: (CorpusId -> WellTyped -> Property) -> Property
+testAllCorpus prop =
+  conjoin . with (List.zip [0..] corpusQueries) $ \(cid, query) ->
+    forAll (genWellTypedFromSource query) (prop cid)
 
 --------------------------------------------------------------------------------
 
