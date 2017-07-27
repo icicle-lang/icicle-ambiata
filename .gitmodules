@@ -22,3 +22,6 @@
 [submodule "lib/piano"]
 	path = lib/piano
 	url = git@github.com:ambiata/piano
+[submodule "lib/viking"]
+	path = lib/viking
+	url = git@github.com:ambiata/viking

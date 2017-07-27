@@ -69,6 +69,10 @@ import           System.IO.Error (IOError)
 import qualified Text.ParserCombinators.Parsec as Parsec
 import           Text.Show.Pretty (ppShow)
 
+import           Viking (Stream, Of)
+import qualified Viking.ByteStream as ByteStream
+import qualified Viking.Stream as Stream
+
 import           X.Control.Monad.Trans.Either (EitherT, hoistEither, runEitherT, firstJoin)
 
 import           Zebra.Serial.Binary (BinaryStripedDecodeError)
@@ -76,9 +80,6 @@ import qualified Zebra.Serial.Binary as Binary
 import           Zebra.Serial.Text (TextStripedEncodeError)
 import qualified Zebra.Serial.Text as Text
 import qualified Zebra.Table.Striped as Zebra
-import qualified Zebra.X.ByteStream as ByteStream
-import           Zebra.X.Stream (Stream, Of)
-import qualified Zebra.X.Stream as Stream
 
 
 data CompiledQuery =

@@ -32,11 +32,12 @@ import qualified System.FilePath as FilePath
 import           System.IO (FilePath)
 import qualified System.IO as IO
 
+import qualified Viking.ByteStream as ByteStream
+
 import           X.Control.Monad.Trans.Either (runEitherT, firstJoin)
 
 import qualified Zebra.Serial.Binary as Binary
 import qualified Zebra.Table.Schema as Schema
-import qualified Zebra.X.ByteStream as ByteStream
 
 
 data LoadType =

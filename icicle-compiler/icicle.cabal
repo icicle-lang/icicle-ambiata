@@ -22,6 +22,7 @@ library
                      , ambiata-jetski
                      , ambiata-p
                      , ambiata-piano
+                     , ambiata-viking
                      , ambiata-x-eithert
                      , ambiata-x-file-embed
                      , ambiata-x-show
