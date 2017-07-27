@@ -41,7 +41,6 @@ module Icicle.Runtime.Data.Primitive (
   ) where
 
 import           Data.Bits ((.|.), (.&.), unsafeShiftL, unsafeShiftR)
-import qualified Data.List as List
 import qualified Data.Text as Text
 import qualified Data.Vector.Storable as Storable
 import           Data.Word (Word64, Word32, Word8)
@@ -52,8 +51,6 @@ import           Foreign.Storable (Storable(..))
 import           GHC.Generics (Generic)
 
 import           Icicle.Common.Base (ExceptionInfo(..))
-
-import           Numeric (showHex)
 
 import           P
 
@@ -97,14 +94,8 @@ newtype Time64 =
     } deriving (Eq, Ord, Generic, Storable)
 
 instance Show Time64 where
-  showsPrec p (Time64 x) =
-    let
-      showPadding hx rest =
-        '0' : 'x' : List.replicate (16 - length hx) '0' <> hx <> rest
-    in
-      showParen (p > 10) $
-        showString "Time64 " .
-        showPadding (showHex x "")
+  showsPrec p =
+    showsPrec p . unpackTime
 
 -- | The @itime_t@ runtime type in unpacked form.
 --
@@ -114,7 +105,11 @@ data UnpackedTime64 =
     , timeMonth :: !Word8
     , timeDay :: !Word8
     , timeSeconds :: !Word32
-    } deriving (Eq, Ord, Show, Generic)
+    } deriving (Eq, Ord, Generic)
+
+instance Show UnpackedTime64 where
+  showsPrec =
+    gshowsPrec
 
 instance Storable UnpackedTime64 where
   sizeOf _ =
