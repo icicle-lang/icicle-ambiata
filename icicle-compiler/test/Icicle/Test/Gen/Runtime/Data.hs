@@ -5,6 +5,7 @@
 module Icicle.Test.Gen.Runtime.Data where
 
 import           Data.ByteString (ByteString)
+import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
 import qualified Data.Vector as Boxed
@@ -171,7 +172,7 @@ genEntityInputColumn schema = do
     n =
       Striped.length column
 
-  times <- Storable.fromList <$> Gen.list (Range.singleton n) genTime64
+  times <- Storable.fromList . List.sort <$> Gen.list (Range.singleton n) genTime64
   tombstones <- Storable.fromList <$> Gen.list (Range.singleton n) genTombstoneOrSuccess
 
   pure $ InputColumn (Storable.singleton $ fromIntegral n) times tombstones column

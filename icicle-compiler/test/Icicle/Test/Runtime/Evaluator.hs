@@ -6,10 +6,12 @@ module Icicle.Test.Runtime.Evaluator where
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Morph (hoist)
 
+import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Data.Vector as Boxed
+import qualified Data.Vector.Storable as Storable
 
 import           Hedgehog
 import qualified Hedgehog.Gen as Gen
@@ -26,13 +28,15 @@ import qualified Icicle.Runtime.Data.Striped as Striped
 import qualified Icicle.Runtime.Evaluator as Runtime
 import           Icicle.Test.Gen.Data.Fact
 import           Icicle.Test.Gen.Data.Name
-import           Icicle.Test.Gen.Runtime.Data (genInputColumn, genEntityKey)
+import           Icicle.Test.Gen.Runtime.Data (genEntityInputColumn, genEntityKey, genTime64)
 
 import           P
 
 import qualified Prelude as Savage
 
 import           System.IO (IO)
+
+import qualified X.Data.Vector.Cons as Cons
 
 
 genDictionaryInput :: Gen DictionaryInput
@@ -95,18 +99,25 @@ genDictionary = do
   pure $
     Dictionary inputs outputs []
 
-genDictionaryInputColumn :: Int -> DictionaryInput -> Gen InputColumn
-genDictionaryInputColumn n_entities input =
+genDictionaryInputColumn :: DictionaryInput -> Gen InputColumn
+genDictionaryInputColumn input =
   case Schema.fromEncoding $ inputEncoding input of
     Left x ->
       Savage.error $ "genDictionaryInputColumn: " <> show x
     Right schema ->
-      genInputColumn n_entities schema
+      genEntityInputColumn schema
 
-genInput :: Dictionary -> Gen Input
-genInput dictionary = do
-  entities <- Boxed.fromList <$> Gen.list (Range.linear 1 5) genEntityKey
-  Input entities <$> traverse (genDictionaryInputColumn (Boxed.length entities)) (dictionaryInputs dictionary)
+genInputColumns :: Int -> Dictionary -> Gen (Map InputId [InputColumn])
+genInputColumns n_entities dictionary = do
+  let
+    range_entities =
+      Range.singleton n_entities
+
+  traverse (Gen.list range_entities . genDictionaryInputColumn) (dictionaryInputs dictionary)
+
+concatEntities :: [InputColumn] -> InputColumn
+concatEntities =
+  either (Savage.error . ("genInput: " <>) . show) id . concatInputColumn . Cons.unsafeFromList
 
 maximumMapSize :: MaximumMapSize
 maximumMapSize =
@@ -119,25 +130,58 @@ fromInputColumn input =
     (Striped.Result (inputTombstone input) (inputColumn input))
 
 data EvaluatorTest =
-  EvaluatorTest !Dictionary !Input
-  deriving (Show)
+  EvaluatorTest {
+      testDictionary :: !Dictionary
+    , testEntities :: !(Boxed.Vector EntityKey)
+    , testInputs :: !(Map InputId [InputColumn])
+    } deriving (Show)
 
 genEvaluatorTest :: Gen EvaluatorTest
 genEvaluatorTest = do
   dictionary <- genDictionary
-  EvaluatorTest dictionary <$> genInput dictionary
+  entities <- Boxed.fromList <$> Gen.list (Range.linear 1 5) genEntityKey
+  inputs <- genInputColumns (Boxed.length entities) dictionary
+  pure $ EvaluatorTest dictionary entities inputs
+
+takeInput :: EvaluatorTest -> Input
+takeInput et =
+  Input (testEntities et) (fmap concatEntities $ testInputs et)
+
+takeWhileBefore :: SnapshotTime -> InputColumn -> InputColumn
+takeWhileBefore (SnapshotTime stime) icolumn =
+  if Storable.length (inputLength icolumn) /= 1 then
+    Savage.error "takeWhileBefore: this function only works for a single entities"
+  else
+    let
+      time =
+        Storable.takeWhile (< stime) $ inputTime icolumn
+
+      n =
+        Storable.length time
+
+      tombstone =
+        Storable.take n $ inputTombstone icolumn
+
+      (column, _) =
+        Striped.splitAt n $ inputColumn icolumn
+    in
+      InputColumn (Storable.singleton $ fromIntegral n) time tombstone column
+
+takeInputBefore :: SnapshotTime -> EvaluatorTest -> Input
+takeInputBefore stime et =
+  Input (testEntities et) (fmap (concatEntities . fmap (takeWhileBefore stime)) $ testInputs et)
 
 prop_evaluator_roundtrip :: Property
 prop_evaluator_roundtrip =
   withTests 100 . property $ do
-    EvaluatorTest dictionary input <- forAll genEvaluatorTest
+    et@(EvaluatorTest dictionary _entities _inputs) <- forAll genEvaluatorTest
+    stime <- forAll $ SnapshotTime <$> genTime64
 
     ccoptions0 <- Runtime.getCompilerOptions
 
     let
-      stime =
-        SnapshotTime . packTime $
-          UnpackedTime64 3000 1 1 0
+      input =
+        takeInput et
 
       options =
         Compiler.defaultCompileOptions {
@@ -168,7 +212,11 @@ prop_evaluator_roundtrip =
         ]
 
       inputAsOutput =
-        Map.fromList . concatMap two . Map.toList $ inputColumns input
+        Map.fromList .
+        concatMap two .
+        Map.toList .
+        inputColumns $
+        takeInputBefore stime et
 
     inputAsOutput === outputColumns output
 

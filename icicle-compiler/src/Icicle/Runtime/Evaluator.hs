@@ -400,8 +400,12 @@ runtimeOutputSchema =
   Map.elems .
   runtimeClusters
 
-resolveNewCount :: SnapshotTime -> Storable.Vector Int64 -> Storable.Vector Time64 -> Either RuntimeError (Storable.Vector Int64)
-resolveNewCount (SnapshotTime stime) ns ts = do
+resolveAvailableCount ::
+     SnapshotTime
+  -> Storable.Vector Int64
+  -> Storable.Vector Time64
+  -> Either RuntimeError (Storable.Vector Int64)
+resolveAvailableCount (SnapshotTime stime) ns ts = do
   tss <- first RuntimeSegmentError $ Segment.reify ns ts
   pure . Storable.convert $
     Boxed.map (fromIntegral . Storable.length . Storable.takeWhile (< stime)) tss
@@ -456,11 +460,15 @@ snapshotCluster cluster maxMapSize stime input =
         when (inputCount /= n_arrays) $
           left $ RuntimeInputCountMismatch inputCount n_arrays
 
-        ncounts <- hoistEither $ resolveNewCount stime (inputLength input) (inputTime input)
+        let
+          ncounts_all =
+            inputLength input
+
+        ncounts_valid <- hoistEither $ resolveAvailableCount stime ncounts_all (inputTime input)
 
         let
           offsets =
-            Storable.prescanl' (\off n -> off + fromIntegral n * 8) 0 ncounts
+            Storable.prescanl' (\off n -> off + fromIntegral n * 8) 0 ncounts_all
 
           -- This loops runs once per entity
           computeEntity offset ncount = do
@@ -483,7 +491,7 @@ snapshotCluster cluster maxMapSize stime input =
             outputs <- peekOutputs pState outputOffset outputCount
             firstT RuntimeStripedError $ Striped.fromAnys pool outputSchema outputs
 
-        columns <- Boxed.zipWithM computeEntity (Boxed.convert offsets) (Boxed.convert ncounts)
+        columns <- Boxed.zipWithM computeEntity (Boxed.convert offsets) (Boxed.convert ncounts_valid)
 
         case Cons.fromVector columns of
           Nothing ->
