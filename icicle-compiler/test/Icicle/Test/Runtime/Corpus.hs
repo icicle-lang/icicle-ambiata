@@ -121,12 +121,16 @@ handleDiscard :: MonadCatch m => PropertyT m a -> PropertyT m a
 handleDiscard =
   handleIf QuickCheck.isDiscard (const discard)
 
+timeEnd :: Time
+timeEnd =
+  unsafeTimeOfYMD 3000 1 1
+
 test_runtime_corpus :: CorpusId -> (InputName, OutputId, Text) -> Property
 test_runtime_corpus cid query =
   property . handleDiscard $ do
-    stime <- forAll $ Gen.arbitrary
-    maxMapSize <- forAll $ Gen.int (Range.linear 1 100)
     wt <- forAll . Gen.quickcheck $ genWellTypedFromSource query
+    maxMapSize <- forAll $ Gen.int (Range.linear 1 100)
+    stime <- forAll $ Gen.element (timeEnd : fmap atTime (concat . Map.elems $ wtInputs wt))
 
     let
       core_results0 =
