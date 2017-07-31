@@ -27,7 +27,7 @@ import           System.IO
 -- Performing beta reduction
 prop_beta_evaluation = property $ do
   x <- forAll (fst <$> genExpTop)
-  let x' = Beta.beta Beta.isSimpleValue x
+  let x' = Beta.beta x
   annotate (show $ pretty x)
   annotate (show $ pretty x')
   eval0 evalPrim x === eval0 evalPrim x'
@@ -35,15 +35,7 @@ prop_beta_evaluation = property $ do
 -- Beta reduction preserves type
 prop_beta_type = property $ do
   x <- forAll (fst <$> genExpTop)
-  typeExp0 coreFragment x === typeExp0 coreFragment ( Beta.beta Beta.isSimpleValue x)
-
--- Reduce regardless of whether it's a value
-prop_beta_always_evaluation = property $ do
-  x <- forAll (fst <$> genExpTop)
-  let x' = Beta.beta (const True) x
-  annotate (show $ pretty x)
-  annotate (show $ pretty x')
-  eval0 evalPrim x === eval0 evalPrim x'
+  typeExp0 coreFragment x === typeExp0 coreFragment ( Beta.beta x)
 
 -- Converting all beta reductions to lets
 prop_betaToLets_evaluation = property $ do
@@ -85,7 +77,7 @@ prop_anormal_form_type = property $ do
 prop_core_simp_type = property $ do
   x <- forAll (fst <$> genExpTop)
   let simple = snd
-             $ Fresh.runFresh (CoreSimp.simp () Beta.isSimpleValue x)
+             $ Fresh.runFresh (CoreSimp.simp () x)
                               (Fresh.counterNameState (NameBase . Var "anf") 0)
   annotate (show . pretty $ x)
   annotate (show . pretty $ simple)

@@ -20,19 +20,19 @@ import           Test.QuickCheck
 
 -- Anything is alpha equivalent to itself
 -- =====================
-prop_alpha_self = forAll genExpNoType $ \x ->
+prop_alpha_self = forAll genCoreExpNoType $ \x ->
  x `alphaEquality` x
 
 
 -- Any CLOSED expression is alpha equivalent to itself after prefixing
 -- =====================
-prop_alpha_self_prefix_closed = forAll genExpNoType $ \x ->
+prop_alpha_self_prefix_closed = forAll genCoreExpNoType $ \x ->
  Set.null (freevars x) ==>
      x `alphaEquality` renameExp (modName $ Var "" 0) x
 
 -- We can rename anything that isn't free
 -- =====================
-prop_alpha_self_prefix = forAll genExpNoType $ \x ->
+prop_alpha_self_prefix = forAll genCoreExpNoType $ \x ->
 
  let fv    = freevars x
 
@@ -48,8 +48,8 @@ prop_alpha_self_prefix = forAll genExpNoType $ \x ->
 -- If two things evaluate to a different value, they can't be alpha equivalent
 -- =====================
 prop_different_value__not_alpha
- = forAll genExpNoType $ \x ->
-   forAll genExpNoType $ \y ->
+ = forAll genCoreExpNoType $ \x ->
+   forAll genCoreExpNoType $ \y ->
      not (eval0 evalPrim x `equalExceptFunctionsE` eval0 evalPrim y)
      ==> not (x `alphaEquality` y)
 

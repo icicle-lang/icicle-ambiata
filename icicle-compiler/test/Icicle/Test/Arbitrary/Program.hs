@@ -200,7 +200,7 @@ genEvalContext =
 
 --------------------------------------------------------------------------------
 
--- | This is used to ensure the Core evaluation semnatics matches the C code.
+-- | This is used to ensure the Core evaluation semantics matches the C code.
 --
 evalWellTyped ::
      EvalContext
@@ -397,14 +397,6 @@ tryGenAttributeFromCore' core
   | otherwise =
       Savage.error "Impossible! Generator given an input type that is not Sum Error."
 
--- If the input are structs, we can pretend it's a dense value
--- We can't treat other values as a single-field dense struct because the
--- generated programs do not treat them as such.
-genWellTypedWithStruct :: Gen (Maybe WellTyped)
-genWellTypedWithStruct = do
-  st <- arbitrary :: Gen StructType
-  tryGenWellTypedWithInput . SumErrorFactT . StructT $ st
-
 ------------------------------------------------------------------------
 
 fromEither :: Either x a -> Maybe a
@@ -413,68 +405,6 @@ fromEither (Right x) = Just x
 
 nobodyCares :: Show a => Either a b -> Either Savage.String b
 nobodyCares = first (ppShow)
-
-------------------------------------------------------------------------
-
--- * Specialised WellTyped fact type generators to avoid too many discards.
-
-genSupportedArrayStructFactType :: Gen ValType
-genSupportedArrayStructFactType =
-  ArrayT . StructT <$> genSupportedStructFactType
-
-genSupportedFactType :: Gen ValType
-genSupportedFactType =
-  oneof_sized_vals
-    [ BoolT
-    , IntT
-    , DoubleT
-    , TimeT
-    , StringT
-    ]
-    [ ArrayT <$> genSupportedArrayElemFactType
-    , StructT <$> genSupportedStructFactType
-    ]
-
-genSupportedArrayElemFactType :: Gen ValType
-genSupportedArrayElemFactType =
-  -- other types should have been melted
-  oneof_sized_vals
-    [ BoolT
-    , IntT
-    , DoubleT
-    , TimeT
-    , StringT
-    ]
-    [ StructT <$> genSupportedStructFactType
-    ]
-
-genSupportedStructFactType :: Gen StructType
-genSupportedStructFactType =
-  StructType . Map.fromList <$>
-    listOfN 1 5 ((,) <$> arbitrary <*> genSupportedStructFieldFactType)
-
-genSupportedStructFieldFactType :: Gen ValType
-genSupportedStructFieldFactType =
-  oneof_sized_vals
-    [ BoolT
-    , IntT
-    , DoubleT
-    , TimeT
-    , StringT
-    ]
-    [ OptionT <$> genPrimitiveFactType
-    , StructT <$> genSupportedStructFactType
-    ]
-
-genPrimitiveFactType :: Gen ValType
-genPrimitiveFactType =
-  oneof_vals
-    [ BoolT
-    , IntT
-    , DoubleT
-    , TimeT
-    , StringT
-    ]
 
 --------------------------------------------------------------------------------
 

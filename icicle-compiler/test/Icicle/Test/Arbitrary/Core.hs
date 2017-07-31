@@ -68,19 +68,18 @@ equalExceptFunctionsE p q
 -- | Generate a well typed expression.
 -- If we can't generate a well typed expression we want quickcheck to count it as
 -- failing to satisfy a precondition.
--- withTypedExp :: Testable prop => (Exp () Var Prim -> ValType -> prop) -> Property
 withTypedExp :: Testable prop => (Exp () Var Prim -> ValType -> prop) -> Property
 withTypedExp prop
- = forAll genExp
+ = forAll genCoreExp
  $ \(x, t)
  -> typeExp0 X.coreFragment x == Right (FunT [] t) ==> prop x t
 
-genExp :: Gen (Exp () Var Prim, ValType)
-genExp = do
+genCoreExp :: Gen (Exp () Var Prim, ValType)
+genCoreExp = do
  Qc.hedgehog $ CoreGen.genExpTop
 
-genExpNoType :: Gen (Exp () Var Prim)
-genExpNoType = fst <$> genExp
+genCoreExpNoType :: Gen (Exp () Var Prim)
+genCoreExpNoType = fst <$> genCoreExp
 
 programForStreamType :: ValType -> Gen (Program () Var)
 programForStreamType i = do
@@ -105,3 +104,13 @@ inputsForType = Qc.hedgehog . CoreGen.inputsForType
 instance Arbitrary ValType where
  arbitrary = Qc.hedgehog CoreGen.genValType
 
+
+listOfN :: Int -> Int -> Gen a -> Gen [a]
+listOfN m n gen =
+  sized $ \size -> do
+    let
+      diff =
+        size * (n - m) `quot` 99
+
+    k <- choose (m, m + diff)
+    vectorOf k gen

@@ -6,7 +6,6 @@
 module Icicle.Test.Gen.Core.Program where
 
 import qualified Icicle.Core.Exp.Simp as Simp
-import qualified Icicle.Common.Exp.Simp.Beta    as Beta
 import qualified Data.Functor.Identity as Identity
 import qualified Icicle.Common.FixT as Fix
 
@@ -338,7 +337,7 @@ genLetForType r = shrink $ do
 shrink :: C m => m (Exp () Var Prim) -> m (Exp () Var Prim)
 shrink = Gen.shrink go
  where
-  go x = runFixT (Simp.simpX () Beta.isSimpleValue) (Simp.deadX x)
+  go x = runFixT (Simp.simpX ()) (Simp.deadX x)
 
   runFixT f a = case Identity.runIdentity $ Fix.runFixT $ f a of
    (a', Fix.RunAgain) -> [Identity.runIdentity $ Fix.fixpoint f a']
