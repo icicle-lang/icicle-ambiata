@@ -43,27 +43,15 @@ namer = AC.namerText (flip Var 0)
 prop_flatten_commutes_check = property $ do
  t      <- forAll genInputType
  o      <- forAll genOutputType
- evalIO $ putStrLn " - - - G E N E R A T E - - -"
  core   <- forAll (programForStreamType t o)
- evalIO $ putStrLn "========================================================"
- evalIO $ putStrLn (show $ pretty core)
- evalIO $ putStrLn "========================================================"
-
- evalIO $ putStrLn " - - - C O R E C H E C K - - -"
+ annotate (show $ pretty core)
  _      <- evalEither $ Core.checkProgram core
-
- evalIO $ putStrLn " - - - A V A L A N C H E - - -"
  let aval = P.coreAvalanche core
- evalIO $ putStrLn (show $ pretty aval)
-
- evalIO $ putStrLn " - - - F L A T T E N - - -"
+ annotate (show $ pretty aval)
  flat <- evalEither $ P.flattenAvalanche aval
- evalIO $ putStrLn (show $ pretty flat)
-
- evalIO $ putStrLn " - - - S I M P - - -"
+ annotate (show $ pretty flat)
  simp <- evalEither $ P.simpFlattened Avalanche.defaultSimpOpts flat
-
- evalIO $ putStrLn " - - - S I M P C H E C K - - -"
+ annotate (show $ pretty simp)
  _ <- evalEither $ Check.checkProgram AF.flatFragment simp
  return ()
 
