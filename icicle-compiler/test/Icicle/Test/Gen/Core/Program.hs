@@ -45,7 +45,7 @@ type GenT' = State.StateT Int (Reader.ReaderT (Env Var (ValType,Priority), Map.M
 type C m = (Reader.MonadReader (Env Var (ValType,Priority), Map.Map ValType [Prim]) m, State.MonadState Int m, MonadGen m, MonadPlus m)
 
 freshName :: C m => m (Name Var)
-freshName = Gen.element viruses >>= freshName'
+freshName = Gen.element cats >>= freshName'
 
 freshName' :: C m => Text -> m (Name Var)
 freshName' n = do
@@ -124,7 +124,7 @@ programForStreamType' streamType outputType = do
          }
 
  where
-  genCount = Gen.integral $ Range.linear 1 (30 :: Int)
+  genCount = Gen.integral $ Range.linear 1 (10 :: Int)
 
   stuffEnv e m = Reader.local (\(_,p) -> (e,p)) m
 

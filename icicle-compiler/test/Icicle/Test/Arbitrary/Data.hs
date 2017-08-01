@@ -61,7 +61,7 @@ instance PP.Pretty Var where
 instance Arbitrary Var where
   arbitrary =
    sized $ \size ->
-    Var <$> elements viruses <*> choose (0, size)
+    Var <$> elements cats <*> choose (0, size)
 
 instance (Hashable n, Arbitrary n) => Arbitrary (Name n) where
   arbitrary =
