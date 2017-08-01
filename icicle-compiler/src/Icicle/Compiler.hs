@@ -43,6 +43,7 @@ module Icicle.Compiler (
 
     -- * Works on Avalanche programs
   , flattenAvalanche
+  , flattenAvalancheUntyped
   , checkAvalanche
   , simpAvalanche
   , simpFlattened
@@ -374,13 +375,16 @@ flattenAvalanche :: IsName v
                  => AvalProgramUntyped v Core.Prim
                  -> Either (ErrorCompile v) (AvalProgramTyped   v Flat.Prim)
 flattenAvalanche av
- = join
- . second snd
- . first ErrorFlatten
- $!! Fresh.runFreshT go (freshNamer "flat")
+ = flattenAvalancheUntyped av >>= checkAvalanche
+
+flattenAvalancheUntyped :: IsName v
+                 => AvalProgramUntyped v Core.Prim
+                 -> Either (ErrorCompile v) (AvalProgramUntyped   v Flat.Prim)
+flattenAvalancheUntyped av
+ = second snd . first ErrorFlatten $!! Fresh.runFreshT go (freshNamer "flat")
  where
   go = do s'  <- Avalanche.flatten annotUnit (Avalanche.statements av)
-          return $ checkAvalanche (av { Avalanche.statements = force s' })
+          return $ av { Avalanche.statements = force s' }
 
 
 checkAvalanche :: IsName v
