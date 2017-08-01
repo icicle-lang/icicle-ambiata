@@ -126,5 +126,4 @@ checkMaxMapSize maxMapSize = go
 
 return []
 tests :: IO Bool
-tests =
-  $checkAllWith TestRunNormal (checkArgsSized 100)
+tests = $checkAllWith TestRunNormal checkArgs

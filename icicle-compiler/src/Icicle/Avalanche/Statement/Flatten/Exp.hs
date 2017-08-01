@@ -201,7 +201,7 @@ flatX a_fresh xx stm
              stm'   <- flatX'
                      ( xPrim (Core.PrimArray $ Core.PrimArrayMap tv tv')
                        `makeApps'` [upd, xVar n'vals] )
-                     (\v -> stm (mapPack tk tv (xVar n'keys) v))
+                     (\v -> stm (mapPack tk tv' (xVar n'keys) v))
 
              return  $ Let n'vals (mapVals tk tv map')
                      $ Let n'keys (mapKeys tk tv map')
