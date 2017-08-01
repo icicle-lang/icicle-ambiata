@@ -265,7 +265,6 @@ test-suite test
                      , exceptions                      == 0.8.*
                      , filepath                        == 1.4.*
                      , geniplate-mirror                >= 0.7.2      && < 0.8
-                     , lifted-async                    == 0.9.*
                      , megaparsec                      == 5.0.*
                      , mtl                             == 2.2.*
                      , parsec

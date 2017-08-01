@@ -34,42 +34,26 @@ import           P
 
 import           System.IO
 
-import qualified Control.Concurrent.Async.Lifted as Async
-import qualified Control.Concurrent as Concurrent
-import qualified Control.Monad.IO.Class as IO
-
 -- We need a way to differentiate stream variables from scalars
 namer = AC.namerText (flip Var 0)
-
--- Timeout on test failure: 10s
-propasync :: TestT IO () -> TestT IO ()
-propasync f = do
-  i <- Async.race timeout f
-  case i of
-   Left _ -> failure
-   Right _ -> return ()
- where
-  timeout = do
-   IO.liftIO $ Concurrent.threadDelay 10000000
 
 
 prop_flatten_commutes_check = property $ do
  t      <- forAll genInputType
  o      <- forAll genOutputType
  core   <- forAll (programForStreamType t o)
- test $ propasync $ do
-  annotate (show $ pretty core)
-  _      <- evalEither $ Core.checkProgram core
-  let aval = P.coreAvalanche core
-  annotate (show $ pretty aval)
-  flat <- evalEither $ P.flattenAvalancheUntyped aval
-  annotate (show $ pretty flat)
-  flatT <- evalEither $ P.checkAvalanche flat
-  annotate (show $ pretty flatT)
-  simp <- evalEither $ first (show . pretty) $ P.simpFlattened Avalanche.defaultSimpOpts flatT
-  annotate (show $ pretty simp)
-  _ <- evalEither $ Check.checkProgram AF.flatFragment simp
-  return ()
+ annotate (show $ pretty core)
+ _      <- evalEither $ Core.checkProgram core
+ let aval = P.coreAvalanche core
+ annotate (show $ pretty aval)
+ flat <- evalEither $ P.flattenAvalancheUntyped aval
+ annotate (show $ pretty flat)
+ flatT <- evalEither $ P.checkAvalanche flat
+ annotate (show $ pretty flatT)
+ simp <- evalEither $ first (show . pretty) $ P.simpFlattened Avalanche.defaultSimpOpts flatT
+ annotate (show $ pretty simp)
+ _ <- evalEither $ Check.checkProgram AF.flatFragment simp
+ return ()
 
 
 -- Flattening - removing all folds keeps value same
