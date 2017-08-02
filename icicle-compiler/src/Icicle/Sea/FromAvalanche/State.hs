@@ -44,7 +44,6 @@ import           Data.List.NonEmpty (NonEmpty(..))
 
 import           Icicle.Avalanche.Prim.Flat
 import           Icicle.Avalanche.Program
-import           Icicle.Avalanche.Statement.Statement
 
 import           Icicle.Common.Annot
 import           Icicle.Common.Type
@@ -69,7 +68,7 @@ clusterOfPrograms ::
   -> NonEmpty (Program (Annot a) n Prim)
   -> Either SeaError (Cluster () ())
 clusterOfPrograms cid iid programs@(program :| _) =
-  case factVarsOfProgram FactLoopNew program of
+  case factVarsOfProgram program of
     Nothing ->
       Left SeaNoFactLoop
 

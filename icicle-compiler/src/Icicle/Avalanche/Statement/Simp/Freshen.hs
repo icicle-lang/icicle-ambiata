@@ -45,11 +45,10 @@ freshenS payload a_fresh statements
      -> do (n', go') <- insertName n
            ForeachInts t n' <$> goX from <*> goX to <*> go' ss
 
-    ForeachFacts (FactBinds fbTime fbId fbValues) vt ty ss
+    ForeachFacts (FactBinds fbTime fbValues) vt ss
      -> do (fbTime',   payload1) <- insertName'     fbTime   payload
-           (fbId',     payload2) <- insertName'     fbId     payload1
-           (fbValues', payload3) <- insertFactBinds fbValues payload2
-           ForeachFacts (FactBinds fbTime' fbId' fbValues') vt ty <$> freshenS payload3 a_fresh ss
+           (fbValues', payload2) <- insertFactBinds fbValues payload1
+           ForeachFacts (FactBinds fbTime' fbValues') vt <$> freshenS payload2 a_fresh ss
 
     Block ss
      -> Block <$> mapM go ss
@@ -66,8 +65,6 @@ freshenS payload a_fresh statements
 
     Output n t xts
      -> Output n t <$> mapM (\(x',t') -> (,) <$> goX x' <*> return t') xts
-    KeepFactInHistory x
-     -> KeepFactInHistory <$> goX x
 
     LoadResumable{}
      -> return statements

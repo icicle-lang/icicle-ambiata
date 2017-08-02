@@ -11,7 +11,6 @@ module Icicle.Avalanche.Statement.Flatten.Exp (
 
 import              Icicle.Avalanche.Statement.Flatten.Algorithms
 import              Icicle.Avalanche.Statement.Flatten.Base
-import              Icicle.Avalanche.Statement.Flatten.Type
 
 import              Icicle.Avalanche.Statement.Statement
 import qualified    Icicle.Avalanche.Prim.Flat      as Flat
@@ -94,7 +93,7 @@ flatX a_fresh xx stm
       XVar a n
        -> stm $ XVar a n
       XValue a vt bv
-       -> stm $ XValue a (flatT vt) (flatV bv)
+       -> stm $ XValue a vt bv
 
       XApp{}
        -- Primitive applications are where it gets interesting.
@@ -148,39 +147,33 @@ flatX a_fresh xx stm
 
       -- Arithmetic and simple stuff are easy, just move it over
       Core.PrimMinimal pm
-       -> primApps (Flat.PrimMinimal $ flatPrimMinimal pm) xs []
+       -> primApps (Flat.PrimMinimal pm) xs []
 
       -- Handle folds below
       Core.PrimFold pf ta
-       -> flatFold pf (flatT ta) xs
+       -> flatFold pf ta xs
 
 
       -- Map: insert value into map, or if key already exists,
       -- apply update function to existing value
-      Core.PrimMap (Core.PrimMapInsertOrUpdate tkOld tvOld)
+      Core.PrimMap (Core.PrimMapInsertOrUpdate tk tv)
        | [upd, ins, key, map]   <- xs
-       , tk <- flatT tkOld
-       , tv <- flatT tvOld
        -> avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
        -- Map with wrong arguments
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
       -- Map : delete a value
-      Core.PrimMap (Core.PrimMapDelete tkOld tvOld)
+      Core.PrimMap (Core.PrimMapDelete tk tv)
        | [key, map]   <- xs
-       , tk <- flatT tkOld
-       , tv <- flatT tvOld
        -> avalancheMapDelete a_fresh stm flatX tk tv key map
        -- Map with wrong arguments
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
       -- Map: lookup by key
-      Core.PrimMap (Core.PrimMapLookup tkOld tvOld)
+      Core.PrimMap (Core.PrimMapLookup tk tv)
        | [map, key]   <- xs
-       , tk <- flatT tkOld
-       , tv <- flatT tvOld
        -> avalancheMapLookup a_fresh stm flatX tk tv key map
        -- Map with wrong arguments
        | otherwise
@@ -188,11 +181,8 @@ flatX a_fresh xx stm
 
 
       -- Map: create new empty map, for each element, etc
-      Core.PrimMap (Core.PrimMapMapValues tkOld tvOld tvOld')
+      Core.PrimMap (Core.PrimMapMapValues tk tv tv')
        | [upd, map]   <- xs
-       , tk <- flatT tkOld
-       , tv <- flatT tvOld
-       , tv'<- flatT tvOld'
        -> flatX' map
        $ \map'
        -> do n'keys <- fresh
@@ -213,10 +203,8 @@ flatX a_fresh xx stm
 
 
       -- Map over array: create new empty array, for each element, etc
-      Core.PrimArray (Core.PrimArrayMap taOld tbOld)
+      Core.PrimArray (Core.PrimArrayMap ta tb)
        | [upd, arr]   <- xs
-       , ta <- flatT taOld
-       , tb <- flatT tbOld
        -> flatX' arr
        $ \arr'
        -> do    accN <- fresh
@@ -242,56 +230,40 @@ flatX a_fresh xx stm
 
 
       -- LatestPush b f v -> (BufPush (fst b) f, BufPush (snd b) v)
-      Core.PrimLatest (Core.PrimLatestPush i tOld)
-       | [buf, factid, e]    <- xs
-       , t <- flatT tOld
+      Core.PrimLatest (Core.PrimLatestPush i t)
+       | [buf, _, e]    <- xs
        -> flatX' e
        $  \e'
-       -> flatX' factid
-       $  \factid'
        -> flatX' buf
        $  \buf'
        -> do   tmpN      <- fresh
-               let tb1 = BufT i FactIdentifierT 
-               let tb2 = BufT i t
-
-               let pushed = pair tb1 tb2
-                       (bufPush i FactIdentifierT (fstF tb1 tb2 buf') factid')
-                       (bufPush i t               (sndF tb1 tb2 buf') e')
-
+               let pushed = bufPush i t buf' e'
                stm'      <- stm (xVar tmpN)
-               return
-                 $ Let tmpN pushed stm'
+               return $ Let tmpN pushed stm'
 
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
 
       -- LatestRead b     -> BufRead (snd b)
-      Core.PrimLatest (Core.PrimLatestRead i tOld)
+      Core.PrimLatest (Core.PrimLatestRead i t)
        | [buf] <- xs
-       , t <- flatT tOld
        -> flatX' buf
        $  \buf'
        -> do   tmpN       <- fresh
-               let tb1 = BufT i FactIdentifierT 
-               let tb2 = BufT i t
-               let fpRead  = bufRead i t (sndF tb1 tb2 buf')
+               let fpRead  = bufRead i t buf'
                stm'       <- stm (xVar tmpN)
-               return
-                 $ Let tmpN fpRead stm'
+               return $ Let tmpN fpRead stm'
 
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
       Core.PrimWindow newerThan olderThan
-       | [now, fact, factid] <- xs
+       | [now, fact, _] <- xs
        -> flatX' now
        $  \now'
        -> flatX' fact
        $  \fact'
-       -> flatX' factid
-       $  \factid'
        -> let  ge    = xPrim $ Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationGe TimeT
                andb  = xPrim $ Flat.PrimMinimal $ Min.PrimLogical  Min.PrimLogicalAnd
                newer = ge `makeApps'` [fact', windowEdge now' newerThan]
@@ -299,8 +271,7 @@ flatX a_fresh xx stm
                      = andb `makeApps'` [ newer, ge `makeApps'` [windowEdge now' olderThan', fact']]
                      | otherwise
                      = newer
-          in do stm' <- stm both
-                return (If newer (KeepFactInHistory factid') mempty <> stm')
+          in stm both
 
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
@@ -339,10 +310,9 @@ flatX a_fresh xx stm
          return (InitAccumulator (Accumulator acc valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
   -- Array fold becomes a loop
-  flatFold (Core.PrimFoldArray telemOld) valT [k, z, arr]
+  flatFold (Core.PrimFoldArray telem) valT [k, z, arr]
    = do accN <- fresh
         stm' <- stm (xVar accN)
-        let telem = flatT telemOld
 
         -- Loop body updates accumulator with k function
         loop <-  flatX' arr                             $ \arr'
@@ -359,14 +329,12 @@ flatX a_fresh xx stm
 
 
   -- Fold over map. Very similar to above
-  flatFold (Core.PrimFoldMap tkOld tvOld) valT [k, z, mmm]
+  flatFold (Core.PrimFoldMap tk tv) valT [k, z, mmm]
    =  flatX' mmm
    $ \mmm'
    -> do n'keys  <- fresh
          n'vals  <- fresh
          n'zips  <- fresh
-         let tk = flatT tkOld
-         let tv = flatT tvOld
 
          n'kv <- fresh
          n'ac <- fresh
@@ -388,14 +356,13 @@ flatX a_fresh xx stm
 
 
   -- Fold over an option is just "maybe" combinator.
-  flatFold (Core.PrimFoldOption taOld) valT [xsome, xnone, opt]
+  flatFold (Core.PrimFoldOption ta) valT [xsome, xnone, opt]
    = flatX' opt
    $ \opt'
    -> do
       acc  <- fresh
       stm' <- stm (xVar acc)
       tmp  <- fresh
-      let ta = flatT taOld
       let vunit = xValue UnitT VUnit
       ssome <- flatX' (xsome `xApp` (xVar tmp)) $ (return . Write acc)
       snone <- flatX' (xnone `xApp` vunit)  $ (return . Write acc)
@@ -405,10 +372,8 @@ flatX a_fresh xx stm
       return (InitAccumulator (Accumulator acc valT $ xValue valT $ defaultOfType valT) (if_ <> read_))
 
   -- Fold over an either
-  flatFold (Core.PrimFoldSum taOld tbOld) valT [xleft, xright, scrut]
-   = let ta          = flatT taOld
-         tb          = flatT tbOld
-     in  flatX' scrut
+  flatFold (Core.PrimFoldSum ta tb) valT [xleft, xright, scrut]
+   = flatX' scrut
       $ \scrut'
       -> do
          acc  <- fresh

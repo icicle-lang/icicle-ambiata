@@ -88,3 +88,12 @@ inputsForType t = do
        (rs',last') = go days' rs
    in  (AsAt (BubbleGumFact (Flavour days' time'), v) time' : rs', last')
 
+-- TODO: replace inputsForType with this when removing Bubblegum from Core
+inputsForTypeRaw :: MonadGen m => ValType -> m ([AsAt BaseValue], EvalContext)
+inputsForTypeRaw vt = do
+  (vs,d) <- inputsForType vt
+  return (discardBubblegum vs, d)
+
+discardBubblegum :: [AsAt (BubbleGumFact, BaseValue)] -> [AsAt BaseValue]
+discardBubblegum = fmap (\a -> a { atFact = snd $ atFact a })
+

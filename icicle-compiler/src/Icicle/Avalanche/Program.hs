@@ -49,8 +49,8 @@ renameProgram f p
       , maxMapSize = f          $ maxMapSize p
       , statements = renameStmt $ statements p}
   where
-    renameFactBinds (FactBinds t i vs)
-      = FactBinds (f t) (f i) (fmap (first f) vs)
+    renameFactBinds (FactBinds t vs)
+      = FactBinds (f t) (fmap (first f) vs)
 
     renameAcc (Accumulator n t x)
       = Accumulator (f n) t (renameExp f x)
@@ -64,8 +64,8 @@ renameProgram f p
         -> While t (f n) nt (renameExp f x) (renameStmt s)
       ForeachInts t n x1 x2 s
         -> ForeachInts t (f n) (renameExp f x1) (renameExp f x2) (renameStmt s)
-      ForeachFacts bs vt ft s
-        -> ForeachFacts (renameFactBinds bs) vt ft (renameStmt s)
+      ForeachFacts bs vt s
+        -> ForeachFacts (renameFactBinds bs) vt (renameStmt s)
       Block s
         -> Block (fmap renameStmt s)
       InitAccumulator acc s
@@ -76,8 +76,6 @@ renameProgram f p
         -> Write (f n) (renameExp f x)
       Output o t xs
         -> Output o t (fmap (first (renameExp f)) xs)
-      KeepFactInHistory x
-        -> KeepFactInHistory (renameExp f x)
       LoadResumable n t
         -> LoadResumable (f n) t
       SaveResumable n t

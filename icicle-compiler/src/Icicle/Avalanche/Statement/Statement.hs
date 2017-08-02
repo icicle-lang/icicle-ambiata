@@ -8,7 +8,6 @@ module Icicle.Avalanche.Statement.Statement (
     Statement       (..)
   , Accumulator     (..)
   , FactBinds       (..)
-  , FactLoopType    (..)
   , ForeachType     (..)
   , WhileType       (..)
   , nestedIfs
@@ -46,7 +45,7 @@ data Statement a n p
 
  -- | A loop over all the facts.
  -- This should only occur once in the program, and not inside a loop.
- | ForeachFacts !(FactBinds n) !ValType !FactLoopType !(Statement a n p)
+ | ForeachFacts !(FactBinds n) !ValType !(Statement a n p)
 
  -- | Execute several statements in a block.
  | Block ![Statement a n p]
@@ -68,9 +67,6 @@ data Statement a n p
 
  -- | Emit a value to output
  | Output !OutputId !ValType ![(Exp a n p, ValType)]
-
- -- | Mark the current fact as being historically relevant
- | KeepFactInHistory (Exp a n p)
 
  -- | Load an accumulator from history. Must be before any fact loops.
  | LoadResumable !(Name n) !ValType
@@ -98,7 +94,6 @@ nestedIfs conds true false
 data FactBinds n
  = FactBinds {
     factBindTime    :: !(Name n)
-  , factBindId      :: !(Name n)
   , factBindValue   :: ![(Name n, ValType)]
  }
  deriving (Eq, Ord, Show, Generic)
@@ -106,8 +101,8 @@ data FactBinds n
 instance NFData n => NFData (FactBinds n)
 
 factBindsAll :: FactBinds n -> [(Name n, ValType)]
-factBindsAll (FactBinds ntime nid nvalue)
- = (ntime, TimeT) : (nid, FactIdentifierT) : nvalue
+factBindsAll (FactBinds ntime nvalue)
+ = (ntime, TimeT) : nvalue
 
 -- | Mutable accumulators
 data Accumulator a n p
@@ -119,34 +114,6 @@ data Accumulator a n p
  deriving (Eq, Ord, Show, Generic)
 
 instance (NFData a, NFData n, NFData p) => NFData (Accumulator a n p)
-
-
--- | When executing the feature, we also keep track of what data
--- will be required to compute the next snapshot.
--- This consists of the list of individual facts that contribute
--- to "windowed" and "latest" features,
--- as well as the last values of any resumable features like reductions.
---
--- It is important that since the resumable features have already seen the
--- historical data, they cannot see it again.
--- This is why we have two separate loops, so the first loop over historical data
--- does not compute the resumable features:
---
--- 1. Initialise variables for latest and windowed features
--- 2. Loop through historical data, computing latest and windowed features
--- 3. Read last values of resumable variables
--- 4. Loop through new data, computing all features
--- 5. Store last values of resumable variables
--- 6. Return
---
-data FactLoopType
- -- | Loop over the facts that contributed to the last snapshot's windowed and latest features
- = FactLoopHistory
- -- | Loop over newly added facts since the last snapshot
- | FactLoopNew
- deriving (Eq, Ord, Show, Generic)
-
-instance NFData FactLoopType
 
 data ForeachType
  = ForeachStepUp
@@ -184,8 +151,8 @@ transformUDStmt fun env statements
            -> While t n vt end <$> go e' ss
           ForeachInts t n from to ss
            -> ForeachInts t n from to <$> go e' ss
-          ForeachFacts binds ty lo ss
-           -> ForeachFacts binds ty lo <$> go e' ss
+          ForeachFacts binds ty ss
+           -> ForeachFacts binds ty <$> go e' ss
           Block ss
            -> Block <$> mapM (go e') ss
           InitAccumulator acc ss
@@ -196,8 +163,6 @@ transformUDStmt fun env statements
            -> return $ Write n x
           Output n t xs
            -> return $ Output n t xs
-          KeepFactInHistory x
-           -> return $ KeepFactInHistory x
           LoadResumable n t
            -> return $ LoadResumable n t
           SaveResumable n t
@@ -233,7 +198,7 @@ foldStmt down up rjoin env res statements
            -> sub1 ss
           ForeachInts _ _ _ _ ss
            -> sub1 ss
-          ForeachFacts _ _ _ ss
+          ForeachFacts _ _ ss
            -> sub1 ss
           Block ss
            -> do    rs <- mapM (go e') ss
@@ -246,8 +211,6 @@ foldStmt down up rjoin env res statements
           Write{}
            -> up e' res s
           Output{}
-           -> up e' res s
-          KeepFactInHistory{}
            -> up e' res s
           LoadResumable{}
            -> up e' res s
@@ -269,9 +232,9 @@ instance TransformX Statement where
      ForeachInts t n from to ss
       -> ForeachInts t <$> names n <*> exps from <*> exps to <*> go ss
 
-     ForeachFacts (FactBinds ntime nfid ns) v lo ss
+     ForeachFacts (FactBinds ntime ns) v ss
       -> let name_go (n, t) = (,) <$> names n <*> pure t
-         in ForeachFacts <$> (FactBinds <$> names ntime <*> names nfid <*> traverse name_go ns) <*> return v <*> return lo <*> go ss
+         in ForeachFacts <$> (FactBinds <$> names ntime <*> traverse name_go ns) <*> return v <*> go ss
 
      Block ss
       -> Block <$> gos ss
@@ -286,9 +249,6 @@ instance TransformX Statement where
 
      Output n ty xs
       -> Output n ty <$> traverse (\(x,t) -> (,) <$> exps x <*> pure t) xs
-
-     KeepFactInHistory x
-      -> KeepFactInHistory <$> exps x
 
      LoadResumable n t
       -> LoadResumable <$> names n <*> pure t
@@ -358,11 +318,10 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
       subscope stmts <>
       line
 
-    ForeachFacts binds _ lo stmts ->
+    ForeachFacts binds _ stmts ->
       line <>
       prettyKeyword "for_facts" <+>
         prettyFactParts AnnBinding (factBindsAll binds) <+>
-        prettyKeyword "in" <+> pretty lo <> line <>
       subscope stmts <>
       line
 
@@ -389,9 +348,6 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
           --     foo
           --   , bar
           indent 4 $ prettyFactParts AnnVariable xs
-
-    KeepFactInHistory x ->
-      prettyKeyword "keep_fact_in_history" <+> prettyPrec 11 x
 
     LoadResumable n _t ->
       prettyKeyword "load_resumable" <+> annotate AnnVariable (pretty n)
@@ -433,9 +389,3 @@ instance (Pretty n, Pretty p) => Pretty (Accumulator a n p) where
   pretty (Accumulator n vt x) =
     prettyTypedFlat (annotate AnnBinding $ pretty n) (pretty vt) <+> text "=" <+> pretty x
 
-instance Pretty FactLoopType where
-  pretty = \case
-    FactLoopHistory ->
-      prettyKeyword "history"
-    FactLoopNew ->
-      prettyKeyword "new"

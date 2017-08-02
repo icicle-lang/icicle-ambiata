@@ -159,9 +159,8 @@ seaOfStatement cluster kernel stmt
               , "}"
               ]
 
-     ForeachFacts (FactBinds ntime nfid ns) _ FactLoopNew stmt'
+     ForeachFacts (FactBinds ntime ns) _ stmt'
       | inputStruct <- clusterInputVars cluster
-      , nfid' <- mangle nfid
       , ntime' <- mangle ntime
       , ns' <- fmap (first mangle) ns
       -> let
@@ -187,8 +186,6 @@ seaOfStatement cluster kernel stmt
             ] <> fmap structAssign inputStruct <>
             [ ""
             , "for (iint_t i = 0; i < new_count; i++) {"
-            , indent 4 $
-                assign (defOfVar 0 FactIdentifierT $ prettySeaName nfid') "i" <> semi
             , indent 4 $
                 assign (defOfVar 0 TimeT $ prettySeaName ntime') factTime <> semi
             , indent 4 $
@@ -230,14 +227,6 @@ seaOfStatement cluster kernel stmt
      Output n _ xts
       | ixAssign <- \ix xx -> assign ("s->" <> (prettySeaName $ mangleIx n ix)) (seaOfExp xx) <> semi <> suffix "output"
       -> vsep (List.zipWith ixAssign [0..] (fmap fst xts))
-
-     -- TODO Implement historical facts
-
-     ForeachFacts _ _ FactLoopHistory _
-      -> mempty
-
-     KeepFactInHistory _
-      -> mempty
   where
    stNew   n = "s->" <> clusterInputNew (prettySeaName n)
    stRes   n = "s->" <> clusterInputRes (nameOfResumable kernel $ prettySeaName n)

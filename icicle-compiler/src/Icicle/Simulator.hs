@@ -35,8 +35,6 @@ import qualified Icicle.Avalanche.Prim.Eval  as APF
 import qualified Icicle.Avalanche.Prim.Flat  as APF
 import qualified Icicle.Avalanche.Eval    as AE
 
-import qualified Data.Set as Set
-
 
 data Partition =
   Partition
@@ -45,7 +43,7 @@ data Partition =
     [AsAt Value]
   deriving (Eq,Show)
 
-type Result a n = Either (SimulateError a n) ([(OutputId, Value)], Set.Set FactIdentifier)
+type Result a n = Either (SimulateError a n) [(OutputId, Value)]
 
 data SimulateError a n
  = SimulateErrorRuntime (PV.RuntimeError a n)
@@ -94,7 +92,7 @@ evaluateVirtualValue p ctx vs
              $ PV.eval ctx vs' p
 
         v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) (PV.value xv)
-        return (v', PV.history xv)
+        return v'
  where
   toCore n a
    = do v' <- valueToCore' (atFact a) (P.inputType p)
@@ -102,19 +100,19 @@ evaluateVirtualValue p ctx vs
 
 evaluateVirtualValue' :: (Hashable n, Eq n, Show n, Show a) => A.Program a n APF.Prim -> EvalContext -> [AsAt Value] -> Result a n
 evaluateVirtualValue' p ctx vs
- = do   vs' <- zipWithM toCore [1..] vs
+ = do   vs' <- mapM toCore vs
 
-        (outs,bgs)
+        outs
             <- first SimulateErrorRuntime'
              $ AE.evalProgram APF.evalPrim ctx vs' p
 
         v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) outs
         -- bg' <- traverse (traverse valueFromCore') (fst xv)
-        return (v', bgs)
+        return v'
  where
-  toCore n a
+  toCore a
    = do v' <- valueToCore' (atFact a) (A.input p)
-        return $ a { atFact = (B.BubbleGumFact $ B.Flavour n $ atTime a, v') }
+        return $ a { atFact = v' }
 
 valueToCore' :: Value -> ValType -> Either (SimulateError a n) BaseValue
 valueToCore' v vt

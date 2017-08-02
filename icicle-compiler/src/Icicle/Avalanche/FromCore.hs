@@ -55,15 +55,15 @@ programFromCore namer p
  = do   (accNames, factStmts) <- makeStatements p namer (C.streams p)
 
         let inputType'  = PairT (C.inputType p) TimeT
-        let factBinds   = FactBinds (C.factTimeName p) (C.factIdName p) [(C.factValName p, inputType')]
-        let factLoopNew = ForeachFacts factBinds inputType' FactLoopNew
+        let factBinds   = FactBinds (C.factTimeName p) [(C.factValName p, inputType')]
+        let factLoop    = ForeachFacts factBinds inputType'
+                        -- Temporary dummy FactIdentifier binding
+                        $ Let  (C.factIdName p) (X.XValue () FactIdentifierT (VFactIdentifier $ FactIdentifier 0))
                         $ Block factStmts
         let inner       = mconcat (fmap loadResumables accNames) <>
-                          factLoopNew                            <>
+                          factLoop                               <>
                           mconcat (fmap saveResumables accNames) <>
                           readaccums accNames (lets (C.postcomps p) outputs)
-                -- accums (filter (readFromHistory.snd) $ C.reduces p)
-                -- ( factLoopHistory    <>
 
         accs <- createAccums Map.empty (C.streams p) inner
         let stmts       = lets (C.precomps p) accs
@@ -75,9 +75,6 @@ programFromCore namer p
                 , A.statements  = stmts })
 
  where
-  -- TODO: currently ignoring resumables and KeepFactInHistory
-  -- resumables = filter (not.readFromHistory.snd) $ C.reduces p
-
   lets stmts inner
    = foldr (\(n,x) a -> Let n x a) inner stmts
 

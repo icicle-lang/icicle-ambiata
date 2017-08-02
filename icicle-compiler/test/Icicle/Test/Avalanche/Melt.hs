@@ -88,7 +88,7 @@ prop_melt_total t
        | notAllowed (getType x1) -> Just stm
        | notAllowed (getType x2) -> Just stm
        | otherwise               -> unmelted s
-      ForeachFacts (FactBinds _ _ xs) _ _ ss
+      ForeachFacts (FactBinds _ xs) _ ss
        | or $ fmap (notAllowed . snd) xs  -> Just stm
        | otherwise                        -> unmelted ss
       Block ss                            -> foldr (<|>) Nothing $ fmap unmelted ss

@@ -93,10 +93,10 @@ prop_melt_prim = forAll genPrimApps $ \(prim, vals) ->
 evalOut :: Statement () Var Flat.Prim
         -> Either [Char] [(OutputId, BaseValue)]
 evalOut ss
- = case Eval.evalStmt FlatEval.evalPrim Map.empty [] Nothing Map.empty ss of
+ = case Eval.evalStmt FlatEval.evalPrim Map.empty [] Map.empty ss of
     Left err
      -> Left ("Evaluating: got " <> show err)
-    Right (acc,outs,_)
+    Right (acc,outs)
      | not $ Map.null acc
      -> Left ("Oh no! The accumulator heap should be empty but got: " <> show acc)
      | otherwise

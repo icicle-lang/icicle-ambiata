@@ -101,6 +101,13 @@ baseValueForType = Qc.hedgehog . CoreGen.baseValueForType
 inputsForType :: ValType -> Gen ([AsAt (BubbleGumFact, BaseValue)], EvalContext)
 inputsForType = Qc.hedgehog . CoreGen.inputsForType
 
+-- TODO: replace inputsForType with this when removing Bubblegum from Core
+inputsForTypeRaw :: ValType -> Gen ([AsAt BaseValue], EvalContext)
+inputsForTypeRaw = Qc.hedgehog . CoreGen.inputsForTypeRaw
+discardBubblegum :: [AsAt (BubbleGumFact, BaseValue)] -> [AsAt BaseValue]
+discardBubblegum = CoreGen.discardBubblegum
+
+
 instance Arbitrary ValType where
  arbitrary = Qc.hedgehog CoreGen.genValType
 

@@ -140,7 +140,6 @@ void icluster_0_kernel_0(icluster_0_t *s)
     const itime_t   *const new_convzm0zmsimpflatzm47 = s->input.new_convzm0zmsimpflatzm47;
     
     for (iint_t i = 0; i < new_count; i++) {
-        ifactid_t        convzm1              = i;
         itime_t          convzm2              = new_convzm0zmsimpflatzm47[i];
         ierror_t         convzm0zmsimpflatzm45 = new_convzm0zmsimpflatzm45[i];
         iint_t           convzm0zmsimpflatzm46 = new_convzm0zmsimpflatzm46[i];

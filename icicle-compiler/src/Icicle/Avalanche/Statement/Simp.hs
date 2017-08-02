@@ -65,8 +65,6 @@ convertValues a_fresh statements
        -> go $ Write n (goX x)
       Output n t xts
        -> go $ Output n t (fmap (first goX) xts)
-      KeepFactInHistory x
-       -> go $ KeepFactInHistory (goX x)
       _ -> return ((), s)
 
   go x
@@ -236,11 +234,9 @@ forwardStmts a_fresh statements
 
       Read n _acc _t _ss
        -> return (Map.delete n e, s)
-      ForeachFacts ns _t  _f _ss
+      ForeachFacts ns _t _ss
        -> return (foldl (flip Map.delete) e (fmap fst $ factBindsAll ns), s)
       Block{}
-       -> return (e,s)
-      KeepFactInHistory{}
        -> return (e,s)
       LoadResumable{}
        -> return (e,s)
@@ -375,15 +371,14 @@ substXinS a_fresh name payload statements
        | Set.member n frees
        -> freshen n ss $ \n' ss' -> Read n' x z ss'
 
-      ForeachFacts binds@(FactBinds ntime nfid ns) x y ss
+      ForeachFacts binds@(FactBinds ntime ns) vt ss
        | name `elem` fmap fst (factBindsAll binds)
        -> finished s
        | any (flip Set.member frees . fst) (factBindsAll binds)
        -> do ntime'  <- fresh
-             nfid'   <- fresh
              let subF n n' = substXinS a_fresh n (xVar n')
-             ss'     <- subF ntime  ntime' ss >>= subF nfid   nfid'
-             freshenForeach ntime'  nfid' [] ns x y ss'
+             ss'     <- subF ntime  ntime' ss
+             freshenForeach ntime' [] ns vt ss'
 
       _
        -> return (True, s)
@@ -407,12 +402,12 @@ substXinS a_fresh name payload statements
         ss' <- substXinS a_fresh n (xVar n') ss
         trans True (f n' ss')
 
-  freshenForeach ntime nfid ns [] x y ss
-   = return (True, ForeachFacts (FactBinds ntime nfid ns) x y ss)
-  freshenForeach ntime nfid ns ((n,t):ns') x y ss
+  freshenForeach ntime ns [] vt ss
+   = return (True, ForeachFacts (FactBinds ntime ns) vt ss)
+  freshenForeach ntime ns ((n,t):ns') vt ss
    = do n'  <- fresh
         ss' <- substXinS a_fresh n (xVar n') ss
-        freshenForeach ntime nfid (ns <> [(n',t)]) ns' x y ss'
+        freshenForeach ntime (ns <> [(n',t)]) ns' vt ss'
 
   frees = freevars payload
 
@@ -510,8 +505,8 @@ freevarsStmt = go
          -> While t n nt (freevarsExp x) (rmS n $ go s)
        ForeachInts t n x1 x2 s
          -> ForeachInts t n (freevarsExp x1) (freevarsExp x2) (rmS n $ go s)
-       ForeachFacts ns t  f  s
-         -> ForeachFacts ns t f (go s)
+       ForeachFacts ns t s
+         -> ForeachFacts ns t (go s)
        Block ss
          -> Block $ fmap go ss
        InitAccumulator acc s
@@ -520,8 +515,6 @@ freevarsStmt = go
          -> Read n1 n2 t (rmS n1 $ freevarsStmt s)
        Write n x
          -> Write n (freevarsExp x)
-       KeepFactInHistory x
-         -> KeepFactInHistory (freevarsExp x)
 
        -- Anything else, we don't care, the transforms don't touch them
        Output n t xs     -> Output n t (fmap (first freevarsExp) xs)
@@ -550,7 +543,7 @@ killNoEffect = fst . go Set.empty
              = (ss', hasEffect)
        in case ss of
          -- Looping over facts is an effect
-         ForeachFacts _ _ FactLoopNew _
+         ForeachFacts _ _ _
            -> (ss, True)
          -- Writing or pushing is an effect,
          -- unless we're explicitly ignoring this accumulator
@@ -560,9 +553,6 @@ killNoEffect = fst . go Set.empty
            | otherwise
            -> (ss, True)
          Output _ _ _
-           -> (ss, True)
-         -- Marking a fact as used is an effect.
-         KeepFactInHistory _
            -> (ss, True)
          LoadResumable _ _
            -> (ss, True)
@@ -601,8 +591,6 @@ killNoEffect = fst . go Set.empty
                   ss'       = if hasEffect then Block (fmap fst s') else mempty
               in (ss', hasEffect)
          Read _ _ _ s
-          -> subStmt s
-         ForeachFacts _ _ FactLoopHistory s
           -> subStmt s
 
 

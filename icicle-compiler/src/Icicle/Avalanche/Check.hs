@@ -119,8 +119,8 @@ checkStatement frag ctx stmt
 
                ForeachInts t n from' to' <$> go stmts
 
-        ForeachFacts binds vt lo stmts
-         -> ForeachFacts binds vt lo <$> go stmts
+        ForeachFacts binds vt stmts
+         -> ForeachFacts binds vt <$> go stmts
 
 
         Block stmts
@@ -156,12 +156,6 @@ checkStatement frag ctx stmt
                let xts' = List.zip xs' ts
 
                return (Output n t xts')
-
-        KeepFactInHistory x
-         -> do x'   <- first ProgramErrorExp
-                     $ checkExp frag (ctxExp ctx) x
-               requireSame (ProgramErrorWrongType x) (annType $ annotOfExp x') (FunT [] FactIdentifierT)
-               return $ KeepFactInHistory x'
 
         LoadResumable n t
          -> do t' <- maybeToRight (ProgramErrorNoSuchAccumulator n)
@@ -218,7 +212,7 @@ statementContext frag ctx stmt
      -> do ctxX' <- insert (ctxExp ctx) n (FunT [] IntT)
            return (ctx { ctxExp = ctxX' })
 
-    ForeachFacts binds _ _ _
+    ForeachFacts binds _ _
      -> do let inserts m (n,ty) = insert m n (FunT [] ty)
            ctxX' <- foldM inserts (ctxExp ctx) (factBindsAll binds)
            return (ctx { ctxExp = ctxX' })
@@ -239,9 +233,6 @@ statementContext frag ctx stmt
      -> return ctx
 
     Output _ _ _
-     -> return ctx
-
-    KeepFactInHistory _
      -> return ctx
 
     LoadResumable _ _

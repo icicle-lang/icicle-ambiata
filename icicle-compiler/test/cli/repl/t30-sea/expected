@@ -53,12 +53,10 @@ load_resumable acc-conv-11-simpflat-22
 load_resumable acc-conv-11-simpflat-23
 
 for_facts conv-2 : Time
-        , conv-1 : FactIdentifier
         , conv-0-simpflat-307 : Error
         , conv-0-simpflat-308 : String
         , conv-0-simpflat-309 : Int
-        , conv-0-simpflat-310 : Time in new
-{
+        , conv-0-simpflat-310 : Time {
     flat-0-simpflat-41 =i ExceptNotAnError : Error
     flat-0-simpflat-42 =i 0 : Int
     
@@ -988,33 +986,33 @@ a-conv-77-simpflat-261 =r acc-a-conv-77-simpflat-38
 a-conv-77-simpflat-263 =r acc-a-conv-77-simpflat-40
 s-reify-6-conv-12-simpflat-264 =r acc-s-reify-6-conv-12-simpflat-28
 s-reify-6-conv-12-simpflat-265 =r acc-s-reify-6-conv-12-simpflat-29
-flat-110-simpflat-267 =i ExceptNotAnError : Error
-flat-110-simpflat-268 =i 0.0 : Double
+flat-106-simpflat-267 =i ExceptNotAnError : Error
+flat-106-simpflat-268 =i 0.0 : Double
 
 if (eq#
       s-reify-6-conv-12-simpflat-264
       ExceptNotAnError)
 {
-    flat-110-simpflat-267 =w ExceptNotAnError
-    flat-110-simpflat-268 =w s-reify-6-conv-12-simpflat-265
+    flat-106-simpflat-267 =w ExceptNotAnError
+    flat-106-simpflat-268 =w s-reify-6-conv-12-simpflat-265
 }
 else
 {
-    flat-110-simpflat-267 =w s-reify-6-conv-12-simpflat-264
-    flat-110-simpflat-268 =w 0.0
+    flat-106-simpflat-267 =w s-reify-6-conv-12-simpflat-264
+    flat-106-simpflat-268 =w 0.0
 }
 
-flat-110-simpflat-269 =r flat-110-simpflat-267
-flat-110-simpflat-270 =r flat-110-simpflat-268
-flat-111-simpflat-271 =i ExceptNotAnError : Error
-flat-111-simpflat-272 =i 0.0 : Double
+flat-106-simpflat-269 =r flat-106-simpflat-267
+flat-106-simpflat-270 =r flat-106-simpflat-268
+flat-107-simpflat-271 =i ExceptNotAnError : Error
+flat-107-simpflat-272 =i 0.0 : Double
 
 if (eq#
-      flat-110-simpflat-269
+      flat-106-simpflat-269
       ExceptNotAnError)
 {
-    flat-114-simpflat-273 =i ExceptNotAnError : Error
-    flat-114-simpflat-274 =i 0.0 : Double
+    flat-110-simpflat-273 =i ExceptNotAnError : Error
+    flat-110-simpflat-274 =i 0.0 : Double
     
     if (eq#
           a-conv-77-simpflat-260
@@ -1023,165 +1021,165 @@ if (eq#
         conv-152 = sub#
                      a-conv-77-simpflat-261
                      1.0
-        flat-125-simpflat-275 =i ExceptNotAnError : Error
-        flat-125-simpflat-276 =i 0.0 : Double
+        flat-121-simpflat-275 =i ExceptNotAnError : Error
+        flat-121-simpflat-276 =i 0.0 : Double
         
         if (doubleIsValid# conv-152)
         {
-            flat-125-simpflat-275 =w ExceptNotAnError
-            flat-125-simpflat-276 =w sub#
+            flat-121-simpflat-275 =w ExceptNotAnError
+            flat-121-simpflat-276 =w sub#
                                        a-conv-77-simpflat-261
                                        1.0
         }
         else
         {
-            flat-125-simpflat-275 =w ExceptCannotCompute
-            flat-125-simpflat-276 =w 0.0
+            flat-121-simpflat-275 =w ExceptCannotCompute
+            flat-121-simpflat-276 =w 0.0
         }
         
-        flat-125-simpflat-277 =r flat-125-simpflat-275
-        flat-125-simpflat-278 =r flat-125-simpflat-276
-        flat-126-simpflat-279 =i ExceptNotAnError : Error
-        flat-126-simpflat-280 =i 0.0 : Double
+        flat-121-simpflat-277 =r flat-121-simpflat-275
+        flat-121-simpflat-278 =r flat-121-simpflat-276
+        flat-122-simpflat-279 =i ExceptNotAnError : Error
+        flat-122-simpflat-280 =i 0.0 : Double
         
         if (eq#
-              flat-125-simpflat-277
+              flat-121-simpflat-277
               ExceptNotAnError)
         {
             conv-158 = div#
                          a-conv-77-simpflat-263
-                         flat-125-simpflat-278
-            flat-129-simpflat-281 =i ExceptNotAnError : Error
-            flat-129-simpflat-282 =i 0.0 : Double
+                         flat-121-simpflat-278
+            flat-125-simpflat-281 =i ExceptNotAnError : Error
+            flat-125-simpflat-282 =i 0.0 : Double
             
             if (doubleIsValid# conv-158)
             {
-                flat-129-simpflat-281 =w ExceptNotAnError
-                flat-129-simpflat-282 =w div#
+                flat-125-simpflat-281 =w ExceptNotAnError
+                flat-125-simpflat-282 =w div#
                                            a-conv-77-simpflat-263
-                                           flat-125-simpflat-278
+                                           flat-121-simpflat-278
             }
             else
             {
-                flat-129-simpflat-281 =w ExceptCannotCompute
-                flat-129-simpflat-282 =w 0.0
+                flat-125-simpflat-281 =w ExceptCannotCompute
+                flat-125-simpflat-282 =w 0.0
             }
             
-            flat-129-simpflat-283 =r flat-129-simpflat-281
-            flat-129-simpflat-284 =r flat-129-simpflat-282
-            flat-126-simpflat-279 =w flat-129-simpflat-283
-            flat-126-simpflat-280 =w flat-129-simpflat-284
+            flat-125-simpflat-283 =r flat-125-simpflat-281
+            flat-125-simpflat-284 =r flat-125-simpflat-282
+            flat-122-simpflat-279 =w flat-125-simpflat-283
+            flat-122-simpflat-280 =w flat-125-simpflat-284
         }
         else
         {
-            flat-126-simpflat-279 =w flat-125-simpflat-277
-            flat-126-simpflat-280 =w 0.0
+            flat-122-simpflat-279 =w flat-121-simpflat-277
+            flat-122-simpflat-280 =w 0.0
         }
         
-        flat-126-simpflat-285 =r flat-126-simpflat-279
-        flat-126-simpflat-286 =r flat-126-simpflat-280
-        flat-114-simpflat-273 =w flat-126-simpflat-285
-        flat-114-simpflat-274 =w flat-126-simpflat-286
+        flat-122-simpflat-285 =r flat-122-simpflat-279
+        flat-122-simpflat-286 =r flat-122-simpflat-280
+        flat-110-simpflat-273 =w flat-122-simpflat-285
+        flat-110-simpflat-274 =w flat-122-simpflat-286
     }
     else
     {
-        flat-114-simpflat-273 =w a-conv-77-simpflat-260
-        flat-114-simpflat-274 =w 0.0
+        flat-110-simpflat-273 =w a-conv-77-simpflat-260
+        flat-110-simpflat-274 =w 0.0
     }
     
-    flat-114-simpflat-287 =r flat-114-simpflat-273
-    flat-114-simpflat-288 =r flat-114-simpflat-274
-    flat-115-simpflat-289 =i ExceptNotAnError : Error
-    flat-115-simpflat-290 =i 0.0 : Double
+    flat-110-simpflat-287 =r flat-110-simpflat-273
+    flat-110-simpflat-288 =r flat-110-simpflat-274
+    flat-111-simpflat-289 =i ExceptNotAnError : Error
+    flat-111-simpflat-290 =i 0.0 : Double
     
     if (eq#
-          flat-114-simpflat-287
+          flat-110-simpflat-287
           ExceptNotAnError)
     {
         conv-172 = sqrt#
-                     flat-114-simpflat-288
-        flat-122-simpflat-291 =i ExceptNotAnError : Error
-        flat-122-simpflat-292 =i 0.0 : Double
+                     flat-110-simpflat-288
+        flat-118-simpflat-291 =i ExceptNotAnError : Error
+        flat-118-simpflat-292 =i 0.0 : Double
         
         if (doubleIsValid# conv-172)
         {
-            flat-122-simpflat-291 =w ExceptNotAnError
-            flat-122-simpflat-292 =w sqrt#
-                                       flat-114-simpflat-288
+            flat-118-simpflat-291 =w ExceptNotAnError
+            flat-118-simpflat-292 =w sqrt#
+                                       flat-110-simpflat-288
         }
         else
         {
-            flat-122-simpflat-291 =w ExceptCannotCompute
-            flat-122-simpflat-292 =w 0.0
+            flat-118-simpflat-291 =w ExceptCannotCompute
+            flat-118-simpflat-292 =w 0.0
         }
         
-        flat-122-simpflat-293 =r flat-122-simpflat-291
-        flat-122-simpflat-294 =r flat-122-simpflat-292
-        flat-115-simpflat-289 =w flat-122-simpflat-293
-        flat-115-simpflat-290 =w flat-122-simpflat-294
+        flat-118-simpflat-293 =r flat-118-simpflat-291
+        flat-118-simpflat-294 =r flat-118-simpflat-292
+        flat-111-simpflat-289 =w flat-118-simpflat-293
+        flat-111-simpflat-290 =w flat-118-simpflat-294
     }
     else
     {
-        flat-115-simpflat-289 =w flat-114-simpflat-287
-        flat-115-simpflat-290 =w 0.0
+        flat-111-simpflat-289 =w flat-110-simpflat-287
+        flat-111-simpflat-290 =w 0.0
     }
     
-    flat-115-simpflat-295 =r flat-115-simpflat-289
-    flat-115-simpflat-296 =r flat-115-simpflat-290
-    flat-116-simpflat-297 =i ExceptNotAnError : Error
-    flat-116-simpflat-298 =i 0.0 : Double
+    flat-111-simpflat-295 =r flat-111-simpflat-289
+    flat-111-simpflat-296 =r flat-111-simpflat-290
+    flat-112-simpflat-297 =i ExceptNotAnError : Error
+    flat-112-simpflat-298 =i 0.0 : Double
     
     if (eq#
-          flat-115-simpflat-295
+          flat-111-simpflat-295
           ExceptNotAnError)
     {
         conv-180 = mul#
-                     flat-110-simpflat-270
-                     flat-115-simpflat-296
-        flat-119-simpflat-299 =i ExceptNotAnError : Error
-        flat-119-simpflat-300 =i 0.0 : Double
+                     flat-106-simpflat-270
+                     flat-111-simpflat-296
+        flat-115-simpflat-299 =i ExceptNotAnError : Error
+        flat-115-simpflat-300 =i 0.0 : Double
         
         if (doubleIsValid# conv-180)
         {
-            flat-119-simpflat-299 =w ExceptNotAnError
-            flat-119-simpflat-300 =w mul#
-                                       flat-110-simpflat-270
-                                       flat-115-simpflat-296
+            flat-115-simpflat-299 =w ExceptNotAnError
+            flat-115-simpflat-300 =w mul#
+                                       flat-106-simpflat-270
+                                       flat-111-simpflat-296
         }
         else
         {
-            flat-119-simpflat-299 =w ExceptCannotCompute
-            flat-119-simpflat-300 =w 0.0
+            flat-115-simpflat-299 =w ExceptCannotCompute
+            flat-115-simpflat-300 =w 0.0
         }
         
-        flat-119-simpflat-301 =r flat-119-simpflat-299
-        flat-119-simpflat-302 =r flat-119-simpflat-300
-        flat-116-simpflat-297 =w flat-119-simpflat-301
-        flat-116-simpflat-298 =w flat-119-simpflat-302
+        flat-115-simpflat-301 =r flat-115-simpflat-299
+        flat-115-simpflat-302 =r flat-115-simpflat-300
+        flat-112-simpflat-297 =w flat-115-simpflat-301
+        flat-112-simpflat-298 =w flat-115-simpflat-302
     }
     else
     {
-        flat-116-simpflat-297 =w flat-115-simpflat-295
-        flat-116-simpflat-298 =w 0.0
+        flat-112-simpflat-297 =w flat-111-simpflat-295
+        flat-112-simpflat-298 =w 0.0
     }
     
-    flat-116-simpflat-303 =r flat-116-simpflat-297
-    flat-116-simpflat-304 =r flat-116-simpflat-298
-    flat-111-simpflat-271 =w flat-116-simpflat-303
-    flat-111-simpflat-272 =w flat-116-simpflat-304
+    flat-112-simpflat-303 =r flat-112-simpflat-297
+    flat-112-simpflat-304 =r flat-112-simpflat-298
+    flat-107-simpflat-271 =w flat-112-simpflat-303
+    flat-107-simpflat-272 =w flat-112-simpflat-304
 }
 else
 {
-    flat-111-simpflat-271 =w flat-110-simpflat-269
-    flat-111-simpflat-272 =w 0.0
+    flat-107-simpflat-271 =w flat-106-simpflat-269
+    flat-107-simpflat-272 =w 0.0
 }
 
-flat-111-simpflat-305 =r flat-111-simpflat-271
-flat-111-simpflat-306 =r flat-111-simpflat-272
+flat-107-simpflat-305 =r flat-107-simpflat-271
+flat-107-simpflat-306 =r flat-107-simpflat-272
 
 output repl:output : Sum Error Double =
-    flat-111-simpflat-305 : Error
-  , flat-111-simpflat-306 : Double
+    flat-107-simpflat-305 : Error
+  , flat-107-simpflat-306 : Double
 
 Flattened Avalanche (simplified), typechecked
 ---------------------------------------------
@@ -1215,12 +1213,10 @@ load_resumable acc-conv-11-simpflat-22
 load_resumable acc-conv-11-simpflat-23
 
 for_facts conv-2 : Time
-        , conv-1 : FactIdentifier
         , conv-0-simpflat-307 : Error
         , conv-0-simpflat-308 : String
         , conv-0-simpflat-309 : Int
-        , conv-0-simpflat-310 : Time in new
-{
+        , conv-0-simpflat-310 : Time {
     flat-0-simpflat-41 =i ExceptNotAnError : Error
     flat-0-simpflat-42 =i 0 : Int
     
@@ -2150,33 +2146,33 @@ a-conv-77-simpflat-261 =r acc-a-conv-77-simpflat-38
 a-conv-77-simpflat-263 =r acc-a-conv-77-simpflat-40
 s-reify-6-conv-12-simpflat-264 =r acc-s-reify-6-conv-12-simpflat-28
 s-reify-6-conv-12-simpflat-265 =r acc-s-reify-6-conv-12-simpflat-29
-flat-110-simpflat-267 =i ExceptNotAnError : Error
-flat-110-simpflat-268 =i 0.0 : Double
+flat-106-simpflat-267 =i ExceptNotAnError : Error
+flat-106-simpflat-268 =i 0.0 : Double
 
 if (eq#
       s-reify-6-conv-12-simpflat-264
       ExceptNotAnError)
 {
-    flat-110-simpflat-267 =w ExceptNotAnError
-    flat-110-simpflat-268 =w s-reify-6-conv-12-simpflat-265
+    flat-106-simpflat-267 =w ExceptNotAnError
+    flat-106-simpflat-268 =w s-reify-6-conv-12-simpflat-265
 }
 else
 {
-    flat-110-simpflat-267 =w s-reify-6-conv-12-simpflat-264
-    flat-110-simpflat-268 =w 0.0
+    flat-106-simpflat-267 =w s-reify-6-conv-12-simpflat-264
+    flat-106-simpflat-268 =w 0.0
 }
 
-flat-110-simpflat-269 =r flat-110-simpflat-267
-flat-110-simpflat-270 =r flat-110-simpflat-268
-flat-111-simpflat-271 =i ExceptNotAnError : Error
-flat-111-simpflat-272 =i 0.0 : Double
+flat-106-simpflat-269 =r flat-106-simpflat-267
+flat-106-simpflat-270 =r flat-106-simpflat-268
+flat-107-simpflat-271 =i ExceptNotAnError : Error
+flat-107-simpflat-272 =i 0.0 : Double
 
 if (eq#
-      flat-110-simpflat-269
+      flat-106-simpflat-269
       ExceptNotAnError)
 {
-    flat-114-simpflat-273 =i ExceptNotAnError : Error
-    flat-114-simpflat-274 =i 0.0 : Double
+    flat-110-simpflat-273 =i ExceptNotAnError : Error
+    flat-110-simpflat-274 =i 0.0 : Double
     
     if (eq#
           a-conv-77-simpflat-260
@@ -2185,165 +2181,165 @@ if (eq#
         conv-152 = sub#
                      a-conv-77-simpflat-261
                      1.0
-        flat-125-simpflat-275 =i ExceptNotAnError : Error
-        flat-125-simpflat-276 =i 0.0 : Double
+        flat-121-simpflat-275 =i ExceptNotAnError : Error
+        flat-121-simpflat-276 =i 0.0 : Double
         
         if (doubleIsValid# conv-152)
         {
-            flat-125-simpflat-275 =w ExceptNotAnError
-            flat-125-simpflat-276 =w sub#
+            flat-121-simpflat-275 =w ExceptNotAnError
+            flat-121-simpflat-276 =w sub#
                                        a-conv-77-simpflat-261
                                        1.0
         }
         else
         {
-            flat-125-simpflat-275 =w ExceptCannotCompute
-            flat-125-simpflat-276 =w 0.0
+            flat-121-simpflat-275 =w ExceptCannotCompute
+            flat-121-simpflat-276 =w 0.0
         }
         
-        flat-125-simpflat-277 =r flat-125-simpflat-275
-        flat-125-simpflat-278 =r flat-125-simpflat-276
-        flat-126-simpflat-279 =i ExceptNotAnError : Error
-        flat-126-simpflat-280 =i 0.0 : Double
+        flat-121-simpflat-277 =r flat-121-simpflat-275
+        flat-121-simpflat-278 =r flat-121-simpflat-276
+        flat-122-simpflat-279 =i ExceptNotAnError : Error
+        flat-122-simpflat-280 =i 0.0 : Double
         
         if (eq#
-              flat-125-simpflat-277
+              flat-121-simpflat-277
               ExceptNotAnError)
         {
             conv-158 = div#
                          a-conv-77-simpflat-263
-                         flat-125-simpflat-278
-            flat-129-simpflat-281 =i ExceptNotAnError : Error
-            flat-129-simpflat-282 =i 0.0 : Double
+                         flat-121-simpflat-278
+            flat-125-simpflat-281 =i ExceptNotAnError : Error
+            flat-125-simpflat-282 =i 0.0 : Double
             
             if (doubleIsValid# conv-158)
             {
-                flat-129-simpflat-281 =w ExceptNotAnError
-                flat-129-simpflat-282 =w div#
+                flat-125-simpflat-281 =w ExceptNotAnError
+                flat-125-simpflat-282 =w div#
                                            a-conv-77-simpflat-263
-                                           flat-125-simpflat-278
+                                           flat-121-simpflat-278
             }
             else
             {
-                flat-129-simpflat-281 =w ExceptCannotCompute
-                flat-129-simpflat-282 =w 0.0
+                flat-125-simpflat-281 =w ExceptCannotCompute
+                flat-125-simpflat-282 =w 0.0
             }
             
-            flat-129-simpflat-283 =r flat-129-simpflat-281
-            flat-129-simpflat-284 =r flat-129-simpflat-282
-            flat-126-simpflat-279 =w flat-129-simpflat-283
-            flat-126-simpflat-280 =w flat-129-simpflat-284
+            flat-125-simpflat-283 =r flat-125-simpflat-281
+            flat-125-simpflat-284 =r flat-125-simpflat-282
+            flat-122-simpflat-279 =w flat-125-simpflat-283
+            flat-122-simpflat-280 =w flat-125-simpflat-284
         }
         else
         {
-            flat-126-simpflat-279 =w flat-125-simpflat-277
-            flat-126-simpflat-280 =w 0.0
+            flat-122-simpflat-279 =w flat-121-simpflat-277
+            flat-122-simpflat-280 =w 0.0
         }
         
-        flat-126-simpflat-285 =r flat-126-simpflat-279
-        flat-126-simpflat-286 =r flat-126-simpflat-280
-        flat-114-simpflat-273 =w flat-126-simpflat-285
-        flat-114-simpflat-274 =w flat-126-simpflat-286
+        flat-122-simpflat-285 =r flat-122-simpflat-279
+        flat-122-simpflat-286 =r flat-122-simpflat-280
+        flat-110-simpflat-273 =w flat-122-simpflat-285
+        flat-110-simpflat-274 =w flat-122-simpflat-286
     }
     else
     {
-        flat-114-simpflat-273 =w a-conv-77-simpflat-260
-        flat-114-simpflat-274 =w 0.0
+        flat-110-simpflat-273 =w a-conv-77-simpflat-260
+        flat-110-simpflat-274 =w 0.0
     }
     
-    flat-114-simpflat-287 =r flat-114-simpflat-273
-    flat-114-simpflat-288 =r flat-114-simpflat-274
-    flat-115-simpflat-289 =i ExceptNotAnError : Error
-    flat-115-simpflat-290 =i 0.0 : Double
+    flat-110-simpflat-287 =r flat-110-simpflat-273
+    flat-110-simpflat-288 =r flat-110-simpflat-274
+    flat-111-simpflat-289 =i ExceptNotAnError : Error
+    flat-111-simpflat-290 =i 0.0 : Double
     
     if (eq#
-          flat-114-simpflat-287
+          flat-110-simpflat-287
           ExceptNotAnError)
     {
         conv-172 = sqrt#
-                     flat-114-simpflat-288
-        flat-122-simpflat-291 =i ExceptNotAnError : Error
-        flat-122-simpflat-292 =i 0.0 : Double
+                     flat-110-simpflat-288
+        flat-118-simpflat-291 =i ExceptNotAnError : Error
+        flat-118-simpflat-292 =i 0.0 : Double
         
         if (doubleIsValid# conv-172)
         {
-            flat-122-simpflat-291 =w ExceptNotAnError
-            flat-122-simpflat-292 =w sqrt#
-                                       flat-114-simpflat-288
+            flat-118-simpflat-291 =w ExceptNotAnError
+            flat-118-simpflat-292 =w sqrt#
+                                       flat-110-simpflat-288
         }
         else
         {
-            flat-122-simpflat-291 =w ExceptCannotCompute
-            flat-122-simpflat-292 =w 0.0
+            flat-118-simpflat-291 =w ExceptCannotCompute
+            flat-118-simpflat-292 =w 0.0
         }
         
-        flat-122-simpflat-293 =r flat-122-simpflat-291
-        flat-122-simpflat-294 =r flat-122-simpflat-292
-        flat-115-simpflat-289 =w flat-122-simpflat-293
-        flat-115-simpflat-290 =w flat-122-simpflat-294
+        flat-118-simpflat-293 =r flat-118-simpflat-291
+        flat-118-simpflat-294 =r flat-118-simpflat-292
+        flat-111-simpflat-289 =w flat-118-simpflat-293
+        flat-111-simpflat-290 =w flat-118-simpflat-294
     }
     else
     {
-        flat-115-simpflat-289 =w flat-114-simpflat-287
-        flat-115-simpflat-290 =w 0.0
+        flat-111-simpflat-289 =w flat-110-simpflat-287
+        flat-111-simpflat-290 =w 0.0
     }
     
-    flat-115-simpflat-295 =r flat-115-simpflat-289
-    flat-115-simpflat-296 =r flat-115-simpflat-290
-    flat-116-simpflat-297 =i ExceptNotAnError : Error
-    flat-116-simpflat-298 =i 0.0 : Double
+    flat-111-simpflat-295 =r flat-111-simpflat-289
+    flat-111-simpflat-296 =r flat-111-simpflat-290
+    flat-112-simpflat-297 =i ExceptNotAnError : Error
+    flat-112-simpflat-298 =i 0.0 : Double
     
     if (eq#
-          flat-115-simpflat-295
+          flat-111-simpflat-295
           ExceptNotAnError)
     {
         conv-180 = mul#
-                     flat-110-simpflat-270
-                     flat-115-simpflat-296
-        flat-119-simpflat-299 =i ExceptNotAnError : Error
-        flat-119-simpflat-300 =i 0.0 : Double
+                     flat-106-simpflat-270
+                     flat-111-simpflat-296
+        flat-115-simpflat-299 =i ExceptNotAnError : Error
+        flat-115-simpflat-300 =i 0.0 : Double
         
         if (doubleIsValid# conv-180)
         {
-            flat-119-simpflat-299 =w ExceptNotAnError
-            flat-119-simpflat-300 =w mul#
-                                       flat-110-simpflat-270
-                                       flat-115-simpflat-296
+            flat-115-simpflat-299 =w ExceptNotAnError
+            flat-115-simpflat-300 =w mul#
+                                       flat-106-simpflat-270
+                                       flat-111-simpflat-296
         }
         else
         {
-            flat-119-simpflat-299 =w ExceptCannotCompute
-            flat-119-simpflat-300 =w 0.0
+            flat-115-simpflat-299 =w ExceptCannotCompute
+            flat-115-simpflat-300 =w 0.0
         }
         
-        flat-119-simpflat-301 =r flat-119-simpflat-299
-        flat-119-simpflat-302 =r flat-119-simpflat-300
-        flat-116-simpflat-297 =w flat-119-simpflat-301
-        flat-116-simpflat-298 =w flat-119-simpflat-302
+        flat-115-simpflat-301 =r flat-115-simpflat-299
+        flat-115-simpflat-302 =r flat-115-simpflat-300
+        flat-112-simpflat-297 =w flat-115-simpflat-301
+        flat-112-simpflat-298 =w flat-115-simpflat-302
     }
     else
     {
-        flat-116-simpflat-297 =w flat-115-simpflat-295
-        flat-116-simpflat-298 =w 0.0
+        flat-112-simpflat-297 =w flat-111-simpflat-295
+        flat-112-simpflat-298 =w 0.0
     }
     
-    flat-116-simpflat-303 =r flat-116-simpflat-297
-    flat-116-simpflat-304 =r flat-116-simpflat-298
-    flat-111-simpflat-271 =w flat-116-simpflat-303
-    flat-111-simpflat-272 =w flat-116-simpflat-304
+    flat-112-simpflat-303 =r flat-112-simpflat-297
+    flat-112-simpflat-304 =r flat-112-simpflat-298
+    flat-107-simpflat-271 =w flat-112-simpflat-303
+    flat-107-simpflat-272 =w flat-112-simpflat-304
 }
 else
 {
-    flat-111-simpflat-271 =w flat-110-simpflat-269
-    flat-111-simpflat-272 =w 0.0
+    flat-107-simpflat-271 =w flat-106-simpflat-269
+    flat-107-simpflat-272 =w 0.0
 }
 
-flat-111-simpflat-305 =r flat-111-simpflat-271
-flat-111-simpflat-306 =r flat-111-simpflat-272
+flat-107-simpflat-305 =r flat-107-simpflat-271
+flat-107-simpflat-306 =r flat-107-simpflat-272
 
 output repl:output : Sum Error Double =
-    flat-111-simpflat-305 : Error
-  , flat-111-simpflat-306 : Double
+    flat-107-simpflat-305 : Error
+  , flat-107-simpflat-306 : Double
 
 C
 -
@@ -2439,19 +2435,23 @@ void icluster_0_kernel_0(icluster_0_t *s)
     idouble_t        flatzm14zmsimpflatzm77;
     ierror_t         flatzm14zmsimpflatzm76;
     ierror_t         flatzm6zmsimpflatzm119;
-    ierror_t         flatzm115zmsimpflatzm289;
-    idouble_t        flatzm114zmsimpflatzm288;
-    ierror_t         flatzm114zmsimpflatzm287;
+    ierror_t         flatzm111zmsimpflatzm289;
+    idouble_t        flatzm110zmsimpflatzm288;
+    ierror_t         flatzm110zmsimpflatzm287;
     ierror_t         flatzm3zmsimpflatzm131;
     idouble_t        flatzm3zmsimpflatzm133;
     idouble_t        flatzm3zmsimpflatzm132;
     idouble_t        flatzm6zmsimpflatzm130;
-    idouble_t        flatzm115zmsimpflatzm290;
-    idouble_t        flatzm115zmsimpflatzm296;
-    ierror_t         flatzm115zmsimpflatzm295;
-    idouble_t        flatzm116zmsimpflatzm298;
-    ierror_t         flatzm116zmsimpflatzm297;
-    ierror_t         flatzm119zmsimpflatzm299;
+    ierror_t         flatzm115zmsimpflatzm299;
+    idouble_t        flatzm118zmsimpflatzm294;
+    idouble_t        flatzm118zmsimpflatzm292;
+    ierror_t         flatzm118zmsimpflatzm291;
+    ierror_t         flatzm118zmsimpflatzm293;
+    idouble_t        flatzm111zmsimpflatzm296;
+    ierror_t         flatzm111zmsimpflatzm295;
+    idouble_t        flatzm111zmsimpflatzm290;
+    ierror_t         flatzm112zmsimpflatzm297;
+    idouble_t        flatzm112zmsimpflatzm298;
     ierror_t         szmreifyzm6zmconvzm12zmavalzm0zmsimpflatzm59;
     idouble_t        flatzm28zmsimpflatzm81;
     ierror_t         flatzm28zmsimpflatzm80;
@@ -2474,27 +2474,19 @@ void icluster_0_kernel_0(icluster_0_t *s)
     ierror_t         flatzm19zmsimpflatzm105;
     idouble_t        flatzm19zmsimpflatzm104;
     idouble_t        flatzm19zmsimpflatzm106;
-    ierror_t         flatzm110zmsimpflatzm269;
-    idouble_t        flatzm110zmsimpflatzm268;
-    ierror_t         flatzm110zmsimpflatzm267;
     idouble_t        flatzm10zmsimpflatzm118;
     ierror_t         flatzm10zmsimpflatzm116;
     idouble_t        flatzm10zmsimpflatzm117;
     idouble_t        flatzm16zmsimpflatzm115;
     ierror_t         flatzm16zmsimpflatzm113;
     idouble_t        flatzm16zmsimpflatzm114;
-    ierror_t         flatzm114zmsimpflatzm273;
-    idouble_t        flatzm114zmsimpflatzm274;
-    idouble_t        flatzm110zmsimpflatzm270;
-    idouble_t        flatzm111zmsimpflatzm272;
-    ierror_t         flatzm111zmsimpflatzm271;
-    idouble_t        flatzm116zmsimpflatzm304;
-    ierror_t         flatzm116zmsimpflatzm303;
-    idouble_t        flatzm119zmsimpflatzm300;
-    idouble_t        flatzm119zmsimpflatzm302;
-    ierror_t         flatzm119zmsimpflatzm301;
-    idouble_t        flatzm111zmsimpflatzm306;
-    ierror_t         flatzm111zmsimpflatzm305;
+    ierror_t         flatzm110zmsimpflatzm273;
+    idouble_t        flatzm110zmsimpflatzm274;
+    idouble_t        flatzm115zmsimpflatzm300;
+    idouble_t        flatzm115zmsimpflatzm302;
+    ierror_t         flatzm115zmsimpflatzm301;
+    ierror_t         flatzm112zmsimpflatzm303;
+    idouble_t        flatzm112zmsimpflatzm304;
     ierror_t         flatzm32zmsimpflatzm86;
     idouble_t        flatzm32zmsimpflatzm87;
     ierror_t         flatzm32zmsimpflatzm84;
@@ -2515,6 +2507,12 @@ void icluster_0_kernel_0(icluster_0_t *s)
     ierror_t         flatzm35zmsimpflatzm70;
     ierror_t         flatzm48zmsimpflatzm218;
     idouble_t        flatzm48zmsimpflatzm219;
+    ierror_t         flatzm106zmsimpflatzm269;
+    idouble_t        flatzm106zmsimpflatzm268;
+    ierror_t         flatzm106zmsimpflatzm267;
+    idouble_t        flatzm106zmsimpflatzm270;
+    idouble_t        flatzm107zmsimpflatzm272;
+    ierror_t         flatzm107zmsimpflatzm271;
     idouble_t        acczmszmreifyzm6zmconvzm12zmsimpflatzm30;
     idouble_t        flatzm54zmsimpflatzm246;
     idouble_t        flatzm54zmsimpflatzm247;
@@ -2528,6 +2526,8 @@ void icluster_0_kernel_0(icluster_0_t *s)
     idouble_t        flatzm51zmsimpflatzm241;
     idouble_t        acczmszmreifyzm6zmconvzm12zmsimpflatzm29;
     ierror_t         acczmszmreifyzm6zmconvzm12zmsimpflatzm28;
+    ierror_t         flatzm107zmsimpflatzm305;
+    idouble_t        flatzm107zmsimpflatzm306;
     idouble_t        flatzm49zmsimpflatzm221;
     ierror_t         flatzm49zmsimpflatzm220;
     idouble_t        flatzm49zmsimpflatzm227;
@@ -2592,11 +2592,11 @@ void icluster_0_kernel_0(icluster_0_t *s)
     ierror_t         flatzm10zmsimpflatzm65;
     ierror_t         flatzm13zmsimpflatzm68;
     idouble_t        flatzm13zmsimpflatzm69;
-    ierror_t         flatzm125zmsimpflatzm277;
-    idouble_t        flatzm125zmsimpflatzm276;
-    idouble_t        flatzm125zmsimpflatzm278;
-    ierror_t         flatzm125zmsimpflatzm275;
-    ierror_t         flatzm126zmsimpflatzm279;
+    idouble_t        flatzm121zmsimpflatzm278;
+    ierror_t         flatzm121zmsimpflatzm275;
+    ierror_t         flatzm121zmsimpflatzm277;
+    idouble_t        flatzm121zmsimpflatzm276;
+    ierror_t         flatzm122zmsimpflatzm279;
     idouble_t        szmreifyzm6zmconvzm12zmsimpflatzm265;
     ierror_t         szmreifyzm6zmconvzm12zmsimpflatzm264;
     idouble_t        flatzm64zmsimpflatzm225;
@@ -2625,17 +2625,17 @@ void icluster_0_kernel_0(icluster_0_t *s)
     ierror_t         flatzm1zmsimpflatzm47;
     idouble_t        flatzm1zmsimpflatzm46;
     idouble_t        flatzm1zmsimpflatzm48;
-    ierror_t         flatzm129zmsimpflatzm281;
-    idouble_t        flatzm129zmsimpflatzm284;
-    idouble_t        flatzm129zmsimpflatzm282;
-    ierror_t         flatzm129zmsimpflatzm283;
-    idouble_t        flatzm126zmsimpflatzm286;
-    ierror_t         flatzm126zmsimpflatzm285;
-    idouble_t        flatzm126zmsimpflatzm280;
     ierror_t         flatzm71zmsimpflatzm214;
     idouble_t        flatzm71zmsimpflatzm215;
     idouble_t        flatzm71zmsimpflatzm213;
     ierror_t         flatzm71zmsimpflatzm212;
+    idouble_t        flatzm125zmsimpflatzm282;
+    ierror_t         flatzm125zmsimpflatzm283;
+    ierror_t         flatzm125zmsimpflatzm281;
+    idouble_t        flatzm125zmsimpflatzm284;
+    idouble_t        flatzm122zmsimpflatzm286;
+    ierror_t         flatzm122zmsimpflatzm285;
+    idouble_t        flatzm122zmsimpflatzm280;
     ierror_t         acczmconvzm76zmsimpflatzm31;
     idouble_t        acczmconvzm76zmsimpflatzm32;
     idouble_t        acczmazmconvzm77zmsimpflatzm40;
@@ -2663,10 +2663,6 @@ void icluster_0_kernel_0(icluster_0_t *s)
     idouble_t        flatzm2zmsimpflatzm50;
     ierror_t         flatzm2zmsimpflatzm51;
     idouble_t        flatzm2zmsimpflatzm52;
-    ierror_t         flatzm122zmsimpflatzm293;
-    ierror_t         flatzm122zmsimpflatzm291;
-    idouble_t        flatzm122zmsimpflatzm292;
-    idouble_t        flatzm122zmsimpflatzm294;
     ibool_t          flatzm38;
     idouble_t        convzm11zmavalzm1zmsimpflatzm54;
     ierror_t         convzm11zmavalzm1zmsimpflatzm53;
@@ -2744,7 +2740,6 @@ void icluster_0_kernel_0(icluster_0_t *s)
     const itime_t   *const new_convzm0zmsimpflatzm310 = s->input.new_convzm0zmsimpflatzm310;
     
     for (iint_t i = 0; i < new_count; i++) {
-        ifactid_t        convzm1              = i;
         itime_t          convzm2              = new_convzm0zmsimpflatzm310[i];
         ierror_t         convzm0zmsimpflatzm307 = new_convzm0zmsimpflatzm307[i];
         istring_t        convzm0zmsimpflatzm308 = new_convzm0zmsimpflatzm308[i];
@@ -3452,142 +3447,142 @@ void icluster_0_kernel_0(icluster_0_t *s)
     azmconvzm77zmsimpflatzm263                = acczmazmconvzm77zmsimpflatzm40;       /* read */
     szmreifyzm6zmconvzm12zmsimpflatzm264      = acczmszmreifyzm6zmconvzm12zmsimpflatzm28; /* read */
     szmreifyzm6zmconvzm12zmsimpflatzm265      = acczmszmreifyzm6zmconvzm12zmsimpflatzm29; /* read */
-    flatzm110zmsimpflatzm267                  = ierror_not_an_error;                  /* init */
-    flatzm110zmsimpflatzm268                  = 0.0;                                  /* init */
+    flatzm106zmsimpflatzm267                  = ierror_not_an_error;                  /* init */
+    flatzm106zmsimpflatzm268                  = 0.0;                                  /* init */
     
     if (ierror_eq (szmreifyzm6zmconvzm12zmsimpflatzm264, ierror_not_an_error)) {
-        flatzm110zmsimpflatzm267              = ierror_not_an_error;                  /* write */
-        flatzm110zmsimpflatzm268              = szmreifyzm6zmconvzm12zmsimpflatzm265; /* write */
+        flatzm106zmsimpflatzm267              = ierror_not_an_error;                  /* write */
+        flatzm106zmsimpflatzm268              = szmreifyzm6zmconvzm12zmsimpflatzm265; /* write */
     } else {
-        flatzm110zmsimpflatzm267              = szmreifyzm6zmconvzm12zmsimpflatzm264; /* write */
-        flatzm110zmsimpflatzm268              = 0.0;                                  /* write */
+        flatzm106zmsimpflatzm267              = szmreifyzm6zmconvzm12zmsimpflatzm264; /* write */
+        flatzm106zmsimpflatzm268              = 0.0;                                  /* write */
     }
     
-    flatzm110zmsimpflatzm269                  = flatzm110zmsimpflatzm267;             /* read */
-    flatzm110zmsimpflatzm270                  = flatzm110zmsimpflatzm268;             /* read */
-    flatzm111zmsimpflatzm271                  = ierror_not_an_error;                  /* init */
-    flatzm111zmsimpflatzm272                  = 0.0;                                  /* init */
+    flatzm106zmsimpflatzm269                  = flatzm106zmsimpflatzm267;             /* read */
+    flatzm106zmsimpflatzm270                  = flatzm106zmsimpflatzm268;             /* read */
+    flatzm107zmsimpflatzm271                  = ierror_not_an_error;                  /* init */
+    flatzm107zmsimpflatzm272                  = 0.0;                                  /* init */
     
-    if (ierror_eq (flatzm110zmsimpflatzm269, ierror_not_an_error)) {
-        flatzm114zmsimpflatzm273              = ierror_not_an_error;                  /* init */
-        flatzm114zmsimpflatzm274              = 0.0;                                  /* init */
+    if (ierror_eq (flatzm106zmsimpflatzm269, ierror_not_an_error)) {
+        flatzm110zmsimpflatzm273              = ierror_not_an_error;                  /* init */
+        flatzm110zmsimpflatzm274              = 0.0;                                  /* init */
         
         if (ierror_eq (azmconvzm77zmsimpflatzm260, ierror_not_an_error)) {
             idouble_t        convzm152        = idouble_sub (azmconvzm77zmsimpflatzm261, 1.0); /* let */
-            flatzm125zmsimpflatzm275          = ierror_not_an_error;                  /* init */
-            flatzm125zmsimpflatzm276          = 0.0;                                  /* init */
+            flatzm121zmsimpflatzm275          = ierror_not_an_error;                  /* init */
+            flatzm121zmsimpflatzm276          = 0.0;                                  /* init */
             
             if (idouble_is_valid (convzm152)) {
-                flatzm125zmsimpflatzm275      = ierror_not_an_error;                  /* write */
-                flatzm125zmsimpflatzm276      = idouble_sub (azmconvzm77zmsimpflatzm261, 1.0); /* write */
+                flatzm121zmsimpflatzm275      = ierror_not_an_error;                  /* write */
+                flatzm121zmsimpflatzm276      = idouble_sub (azmconvzm77zmsimpflatzm261, 1.0); /* write */
             } else {
-                flatzm125zmsimpflatzm275      = ierror_cannot_compute;                /* write */
-                flatzm125zmsimpflatzm276      = 0.0;                                  /* write */
+                flatzm121zmsimpflatzm275      = ierror_cannot_compute;                /* write */
+                flatzm121zmsimpflatzm276      = 0.0;                                  /* write */
             }
             
-            flatzm125zmsimpflatzm277          = flatzm125zmsimpflatzm275;             /* read */
-            flatzm125zmsimpflatzm278          = flatzm125zmsimpflatzm276;             /* read */
-            flatzm126zmsimpflatzm279          = ierror_not_an_error;                  /* init */
-            flatzm126zmsimpflatzm280          = 0.0;                                  /* init */
+            flatzm121zmsimpflatzm277          = flatzm121zmsimpflatzm275;             /* read */
+            flatzm121zmsimpflatzm278          = flatzm121zmsimpflatzm276;             /* read */
+            flatzm122zmsimpflatzm279          = ierror_not_an_error;                  /* init */
+            flatzm122zmsimpflatzm280          = 0.0;                                  /* init */
             
-            if (ierror_eq (flatzm125zmsimpflatzm277, ierror_not_an_error)) {
-                idouble_t        convzm158    = idouble_div (azmconvzm77zmsimpflatzm263, flatzm125zmsimpflatzm278); /* let */
-                flatzm129zmsimpflatzm281      = ierror_not_an_error;                  /* init */
-                flatzm129zmsimpflatzm282      = 0.0;                                  /* init */
+            if (ierror_eq (flatzm121zmsimpflatzm277, ierror_not_an_error)) {
+                idouble_t        convzm158    = idouble_div (azmconvzm77zmsimpflatzm263, flatzm121zmsimpflatzm278); /* let */
+                flatzm125zmsimpflatzm281      = ierror_not_an_error;                  /* init */
+                flatzm125zmsimpflatzm282      = 0.0;                                  /* init */
                 
                 if (idouble_is_valid (convzm158)) {
-                    flatzm129zmsimpflatzm281  = ierror_not_an_error;                  /* write */
-                    flatzm129zmsimpflatzm282  = idouble_div (azmconvzm77zmsimpflatzm263, flatzm125zmsimpflatzm278); /* write */
+                    flatzm125zmsimpflatzm281  = ierror_not_an_error;                  /* write */
+                    flatzm125zmsimpflatzm282  = idouble_div (azmconvzm77zmsimpflatzm263, flatzm121zmsimpflatzm278); /* write */
                 } else {
-                    flatzm129zmsimpflatzm281  = ierror_cannot_compute;                /* write */
-                    flatzm129zmsimpflatzm282  = 0.0;                                  /* write */
+                    flatzm125zmsimpflatzm281  = ierror_cannot_compute;                /* write */
+                    flatzm125zmsimpflatzm282  = 0.0;                                  /* write */
                 }
                 
-                flatzm129zmsimpflatzm283      = flatzm129zmsimpflatzm281;             /* read */
-                flatzm129zmsimpflatzm284      = flatzm129zmsimpflatzm282;             /* read */
-                flatzm126zmsimpflatzm279      = flatzm129zmsimpflatzm283;             /* write */
-                flatzm126zmsimpflatzm280      = flatzm129zmsimpflatzm284;             /* write */
+                flatzm125zmsimpflatzm283      = flatzm125zmsimpflatzm281;             /* read */
+                flatzm125zmsimpflatzm284      = flatzm125zmsimpflatzm282;             /* read */
+                flatzm122zmsimpflatzm279      = flatzm125zmsimpflatzm283;             /* write */
+                flatzm122zmsimpflatzm280      = flatzm125zmsimpflatzm284;             /* write */
             } else {
-                flatzm126zmsimpflatzm279      = flatzm125zmsimpflatzm277;             /* write */
-                flatzm126zmsimpflatzm280      = 0.0;                                  /* write */
+                flatzm122zmsimpflatzm279      = flatzm121zmsimpflatzm277;             /* write */
+                flatzm122zmsimpflatzm280      = 0.0;                                  /* write */
             }
             
-            flatzm126zmsimpflatzm285          = flatzm126zmsimpflatzm279;             /* read */
-            flatzm126zmsimpflatzm286          = flatzm126zmsimpflatzm280;             /* read */
-            flatzm114zmsimpflatzm273          = flatzm126zmsimpflatzm285;             /* write */
-            flatzm114zmsimpflatzm274          = flatzm126zmsimpflatzm286;             /* write */
+            flatzm122zmsimpflatzm285          = flatzm122zmsimpflatzm279;             /* read */
+            flatzm122zmsimpflatzm286          = flatzm122zmsimpflatzm280;             /* read */
+            flatzm110zmsimpflatzm273          = flatzm122zmsimpflatzm285;             /* write */
+            flatzm110zmsimpflatzm274          = flatzm122zmsimpflatzm286;             /* write */
         } else {
-            flatzm114zmsimpflatzm273          = azmconvzm77zmsimpflatzm260;           /* write */
-            flatzm114zmsimpflatzm274          = 0.0;                                  /* write */
+            flatzm110zmsimpflatzm273          = azmconvzm77zmsimpflatzm260;           /* write */
+            flatzm110zmsimpflatzm274          = 0.0;                                  /* write */
         }
         
-        flatzm114zmsimpflatzm287              = flatzm114zmsimpflatzm273;             /* read */
-        flatzm114zmsimpflatzm288              = flatzm114zmsimpflatzm274;             /* read */
-        flatzm115zmsimpflatzm289              = ierror_not_an_error;                  /* init */
-        flatzm115zmsimpflatzm290              = 0.0;                                  /* init */
+        flatzm110zmsimpflatzm287              = flatzm110zmsimpflatzm273;             /* read */
+        flatzm110zmsimpflatzm288              = flatzm110zmsimpflatzm274;             /* read */
+        flatzm111zmsimpflatzm289              = ierror_not_an_error;                  /* init */
+        flatzm111zmsimpflatzm290              = 0.0;                                  /* init */
         
-        if (ierror_eq (flatzm114zmsimpflatzm287, ierror_not_an_error)) {
-            idouble_t        convzm172        = idouble_sqrt (flatzm114zmsimpflatzm288); /* let */
-            flatzm122zmsimpflatzm291          = ierror_not_an_error;                  /* init */
-            flatzm122zmsimpflatzm292          = 0.0;                                  /* init */
+        if (ierror_eq (flatzm110zmsimpflatzm287, ierror_not_an_error)) {
+            idouble_t        convzm172        = idouble_sqrt (flatzm110zmsimpflatzm288); /* let */
+            flatzm118zmsimpflatzm291          = ierror_not_an_error;                  /* init */
+            flatzm118zmsimpflatzm292          = 0.0;                                  /* init */
             
             if (idouble_is_valid (convzm172)) {
-                flatzm122zmsimpflatzm291      = ierror_not_an_error;                  /* write */
-                flatzm122zmsimpflatzm292      = idouble_sqrt (flatzm114zmsimpflatzm288); /* write */
+                flatzm118zmsimpflatzm291      = ierror_not_an_error;                  /* write */
+                flatzm118zmsimpflatzm292      = idouble_sqrt (flatzm110zmsimpflatzm288); /* write */
             } else {
-                flatzm122zmsimpflatzm291      = ierror_cannot_compute;                /* write */
-                flatzm122zmsimpflatzm292      = 0.0;                                  /* write */
+                flatzm118zmsimpflatzm291      = ierror_cannot_compute;                /* write */
+                flatzm118zmsimpflatzm292      = 0.0;                                  /* write */
             }
             
-            flatzm122zmsimpflatzm293          = flatzm122zmsimpflatzm291;             /* read */
-            flatzm122zmsimpflatzm294          = flatzm122zmsimpflatzm292;             /* read */
-            flatzm115zmsimpflatzm289          = flatzm122zmsimpflatzm293;             /* write */
-            flatzm115zmsimpflatzm290          = flatzm122zmsimpflatzm294;             /* write */
+            flatzm118zmsimpflatzm293          = flatzm118zmsimpflatzm291;             /* read */
+            flatzm118zmsimpflatzm294          = flatzm118zmsimpflatzm292;             /* read */
+            flatzm111zmsimpflatzm289          = flatzm118zmsimpflatzm293;             /* write */
+            flatzm111zmsimpflatzm290          = flatzm118zmsimpflatzm294;             /* write */
         } else {
-            flatzm115zmsimpflatzm289          = flatzm114zmsimpflatzm287;             /* write */
-            flatzm115zmsimpflatzm290          = 0.0;                                  /* write */
+            flatzm111zmsimpflatzm289          = flatzm110zmsimpflatzm287;             /* write */
+            flatzm111zmsimpflatzm290          = 0.0;                                  /* write */
         }
         
-        flatzm115zmsimpflatzm295              = flatzm115zmsimpflatzm289;             /* read */
-        flatzm115zmsimpflatzm296              = flatzm115zmsimpflatzm290;             /* read */
-        flatzm116zmsimpflatzm297              = ierror_not_an_error;                  /* init */
-        flatzm116zmsimpflatzm298              = 0.0;                                  /* init */
+        flatzm111zmsimpflatzm295              = flatzm111zmsimpflatzm289;             /* read */
+        flatzm111zmsimpflatzm296              = flatzm111zmsimpflatzm290;             /* read */
+        flatzm112zmsimpflatzm297              = ierror_not_an_error;                  /* init */
+        flatzm112zmsimpflatzm298              = 0.0;                                  /* init */
         
-        if (ierror_eq (flatzm115zmsimpflatzm295, ierror_not_an_error)) {
-            idouble_t        convzm180        = idouble_mul (flatzm110zmsimpflatzm270, flatzm115zmsimpflatzm296); /* let */
-            flatzm119zmsimpflatzm299          = ierror_not_an_error;                  /* init */
-            flatzm119zmsimpflatzm300          = 0.0;                                  /* init */
+        if (ierror_eq (flatzm111zmsimpflatzm295, ierror_not_an_error)) {
+            idouble_t        convzm180        = idouble_mul (flatzm106zmsimpflatzm270, flatzm111zmsimpflatzm296); /* let */
+            flatzm115zmsimpflatzm299          = ierror_not_an_error;                  /* init */
+            flatzm115zmsimpflatzm300          = 0.0;                                  /* init */
             
             if (idouble_is_valid (convzm180)) {
-                flatzm119zmsimpflatzm299      = ierror_not_an_error;                  /* write */
-                flatzm119zmsimpflatzm300      = idouble_mul (flatzm110zmsimpflatzm270, flatzm115zmsimpflatzm296); /* write */
+                flatzm115zmsimpflatzm299      = ierror_not_an_error;                  /* write */
+                flatzm115zmsimpflatzm300      = idouble_mul (flatzm106zmsimpflatzm270, flatzm111zmsimpflatzm296); /* write */
             } else {
-                flatzm119zmsimpflatzm299      = ierror_cannot_compute;                /* write */
-                flatzm119zmsimpflatzm300      = 0.0;                                  /* write */
+                flatzm115zmsimpflatzm299      = ierror_cannot_compute;                /* write */
+                flatzm115zmsimpflatzm300      = 0.0;                                  /* write */
             }
             
-            flatzm119zmsimpflatzm301          = flatzm119zmsimpflatzm299;             /* read */
-            flatzm119zmsimpflatzm302          = flatzm119zmsimpflatzm300;             /* read */
-            flatzm116zmsimpflatzm297          = flatzm119zmsimpflatzm301;             /* write */
-            flatzm116zmsimpflatzm298          = flatzm119zmsimpflatzm302;             /* write */
+            flatzm115zmsimpflatzm301          = flatzm115zmsimpflatzm299;             /* read */
+            flatzm115zmsimpflatzm302          = flatzm115zmsimpflatzm300;             /* read */
+            flatzm112zmsimpflatzm297          = flatzm115zmsimpflatzm301;             /* write */
+            flatzm112zmsimpflatzm298          = flatzm115zmsimpflatzm302;             /* write */
         } else {
-            flatzm116zmsimpflatzm297          = flatzm115zmsimpflatzm295;             /* write */
-            flatzm116zmsimpflatzm298          = 0.0;                                  /* write */
+            flatzm112zmsimpflatzm297          = flatzm111zmsimpflatzm295;             /* write */
+            flatzm112zmsimpflatzm298          = 0.0;                                  /* write */
         }
         
-        flatzm116zmsimpflatzm303              = flatzm116zmsimpflatzm297;             /* read */
-        flatzm116zmsimpflatzm304              = flatzm116zmsimpflatzm298;             /* read */
-        flatzm111zmsimpflatzm271              = flatzm116zmsimpflatzm303;             /* write */
-        flatzm111zmsimpflatzm272              = flatzm116zmsimpflatzm304;             /* write */
+        flatzm112zmsimpflatzm303              = flatzm112zmsimpflatzm297;             /* read */
+        flatzm112zmsimpflatzm304              = flatzm112zmsimpflatzm298;             /* read */
+        flatzm107zmsimpflatzm271              = flatzm112zmsimpflatzm303;             /* write */
+        flatzm107zmsimpflatzm272              = flatzm112zmsimpflatzm304;             /* write */
     } else {
-        flatzm111zmsimpflatzm271              = flatzm110zmsimpflatzm269;             /* write */
-        flatzm111zmsimpflatzm272              = 0.0;                                  /* write */
+        flatzm107zmsimpflatzm271              = flatzm106zmsimpflatzm269;             /* write */
+        flatzm107zmsimpflatzm272              = 0.0;                                  /* write */
     }
     
-    flatzm111zmsimpflatzm305                  = flatzm111zmsimpflatzm271;             /* read */
-    flatzm111zmsimpflatzm306                  = flatzm111zmsimpflatzm272;             /* read */
-    s->replZCoutputzsixzs0                    = flatzm111zmsimpflatzm305;             /* output */
-    s->replZCoutputzsixzs1                    = flatzm111zmsimpflatzm306;             /* output */
+    flatzm107zmsimpflatzm305                  = flatzm107zmsimpflatzm271;             /* read */
+    flatzm107zmsimpflatzm306                  = flatzm107zmsimpflatzm272;             /* read */
+    s->replZCoutputzsixzs0                    = flatzm107zmsimpflatzm305;             /* output */
+    s->replZCoutputzsixzs1                    = flatzm107zmsimpflatzm306;             /* output */
 }
 
 Core evaluation
@@ -3615,11 +3610,9 @@ load_resumable acc-s-reify-2-conv-5-simpflat-11
 load_resumable acc-s-reify-2-conv-5-simpflat-12
 
 for_facts conv-2 : Time
-        , conv-1 : FactIdentifier
         , conv-0-simpflat-25 : Error
         , conv-0-simpflat-26 : Int
-        , conv-0-simpflat-27 : Time in new
-{
+        , conv-0-simpflat-27 : Time {
     s-reify-2-conv-5-aval-0-simpflat-13 =r acc-s-reify-2-conv-5-simpflat-11
     s-reify-2-conv-5-aval-0-simpflat-14 =r acc-s-reify-2-conv-5-simpflat-12
     flat-0-simpflat-15 =i ExceptNotAnError : Error
@@ -3721,11 +3714,9 @@ load_resumable acc-s-reify-2-conv-5-simpflat-11
 load_resumable acc-s-reify-2-conv-5-simpflat-12
 
 for_facts conv-2 : Time
-        , conv-1 : FactIdentifier
         , conv-0-simpflat-25 : Error
         , conv-0-simpflat-26 : Int
-        , conv-0-simpflat-27 : Time in new
-{
+        , conv-0-simpflat-27 : Time {
     s-reify-2-conv-5-aval-0-simpflat-13 =r acc-s-reify-2-conv-5-simpflat-11
     s-reify-2-conv-5-aval-0-simpflat-14 =r acc-s-reify-2-conv-5-simpflat-12
     flat-0-simpflat-15 =i ExceptNotAnError : Error
@@ -3894,7 +3885,6 @@ void icluster_0_kernel_0(icluster_0_t *s)
     const itime_t   *const new_convzm0zmsimpflatzm27 = s->input.new_convzm0zmsimpflatzm27;
     
     for (iint_t i = 0; i < new_count; i++) {
-        ifactid_t        convzm1              = i;
         itime_t          convzm2              = new_convzm0zmsimpflatzm27[i];
         ierror_t         convzm0zmsimpflatzm25 = new_convzm0zmsimpflatzm25[i];
         iint_t           convzm0zmsimpflatzm26 = new_convzm0zmsimpflatzm26[i];

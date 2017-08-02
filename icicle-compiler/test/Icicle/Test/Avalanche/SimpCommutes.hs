@@ -29,7 +29,7 @@ namer = AC.namerText (flip Var 0)
 prop_simp_commutes_value t =
  forAll (programForStreamType t)
  $ \p ->
- forAll (inputsForType t)
+ forAll (inputsForTypeRaw t)
  $ \(vs,d) ->
     isRight     (checkProgram p) ==>
      let p' = testFresh "fromCore" $ AC.programFromCore namer p
@@ -38,7 +38,7 @@ prop_simp_commutes_value t =
          eval = AE.evalProgram XV.evalPrim d vs
      in counterexample (show $ pretty p')
       $ counterexample (show $ pretty simp)
-       ((snd <$> eval p') === (snd <$> eval simp))
+       (eval p' === eval simp)
 
 
 return []
