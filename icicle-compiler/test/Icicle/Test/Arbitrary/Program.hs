@@ -10,7 +10,6 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Icicle.Test.Arbitrary.Program where
 
-import           Icicle.BubbleGum (BubbleGumFact(..), Flavour(..))
 import           Icicle.Common.Annot
 import           Icicle.Common.Base
 import           Icicle.Common.Eval
@@ -218,11 +217,7 @@ evalWellTyped ::
 evalWellTyped ctx wt =
   let
     evalCore baseValues =
-      let
-        asStreamValue (AsAt v t) =
-          AsAt (BubbleGumFact (Flavour 0 t), v) t
-      in
-        case Core.eval ctx (fmap asStreamValue baseValues) (wtCore wt) of
+        case Core.eval ctx baseValues (wtCore wt) of
           Left e ->
             Savage.error . show . vsep $
               [ "Impossible! Failed to evaluate well-typed Core with this input: "
@@ -246,13 +241,10 @@ evalWellTyped ctx wt =
     -- the output handles this logic so we need to emulate that here.
 
     computeResults =
-      fmap (Core.value . evalCore) computeFacts
+      fmap evalCore computeFacts
 
     defaultOuputsForCluster =
       let
-        evalCoreOnNoInput =
-          Core.value . evalCore $ []
-
         replaceRight x =
           case x of
             VRight _ ->
@@ -260,7 +252,7 @@ evalWellTyped ctx wt =
             _ ->
               x
       in
-        fmap (second replaceRight) evalCoreOnNoInput
+        fmap (second replaceRight) $ evalCore []
 
     hasOutput v =
       case v of
@@ -302,7 +294,7 @@ genVTs ft = do
     valueOrTombstone a =
       Savage.error $ "Impossible! Generated an input value that is not a Sum Error: " <> show a
 
-  return . fmap (fmap (valueOrTombstone . snd)) $ sorted
+  return . fmap (fmap (valueOrTombstone)) $ sorted
 
 genEs :: Gen [Entity]
 genEs =
@@ -460,8 +452,6 @@ isSupportedPsvOutputType = \case
   StringT ->
     True
   ErrorT ->
-    True
-  FactIdentifierT ->
     True
   ArrayT t ->
     isSupportedPsvOutputType t

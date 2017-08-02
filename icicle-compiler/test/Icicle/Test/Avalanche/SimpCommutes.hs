@@ -29,7 +29,7 @@ namer = AC.namerText (flip Var 0)
 prop_simp_commutes_value t =
  forAll (programForStreamType t)
  $ \p ->
- forAll (inputsForTypeRaw t)
+ forAll (inputsForType t)
  $ \(vs,d) ->
     isRight     (checkProgram p) ==>
      let p' = testFresh "fromCore" $ AC.programFromCore namer p

@@ -14,7 +14,6 @@ import qualified Icicle.Avalanche.Prim.Eval as AE
 import qualified Icicle.Avalanche.Prim.Flat as AF
 import qualified Icicle.Avalanche.Program as AP
 import qualified Icicle.Avalanche.Statement.Flatten as AF
-import           Icicle.BubbleGum
 import           Icicle.Common.Base
 import           Icicle.Common.Eval
 import qualified Icicle.Common.Fresh as Fresh
@@ -33,7 +32,7 @@ import           Test.QuickCheck
 data TestSourceConvert
  = TestSourceConvert
  { tsQwf    :: QueryWithFeature
- , tsInputs :: [AsAt (BubbleGumFact, BaseValue)]
+ , tsInputs :: [AsAt BaseValue]
  , tsEvalCtx:: EvalContext
  , tsCore   :: C.Program () T.Variable
  , tsAval   :: AP.Program () T.Variable AF.Prim
@@ -75,12 +74,11 @@ instance Arbitrary TestSourceConvert where
     NameBase $ T.Variable (desc <> T.pack (show i))
  
 
-evalCore :: TestSourceConvert -> [AsAt (BubbleGumFact, BaseValue)] -> Either (CV.RuntimeError () T.Variable) (CV.ProgramValue T.Variable)
+evalCore :: TestSourceConvert -> [AsAt BaseValue] -> Either (CV.RuntimeError () T.Variable) [(OutputId, BaseValue)]
 evalCore ts vs
  = CV.eval (tsEvalCtx ts) vs (tsCore ts)
 
--- TODO: replace inputsForType with this when removing Bubblegum from Core
-evalAval :: TestSourceConvert -> [AsAt (BubbleGumFact, BaseValue)] -> Either (AE.RuntimeError () T.Variable AF.Prim) [(OutputId, BaseValue)]
+evalAval :: TestSourceConvert -> [AsAt BaseValue] -> Either (AE.RuntimeError () T.Variable AF.Prim) [(OutputId, BaseValue)]
 evalAval ts vs
- = AE.evalProgram AE.evalPrim (tsEvalCtx ts) (discardBubblegum vs) (tsAval ts)
+ = AE.evalProgram AE.evalPrim (tsEvalCtx ts) vs (tsAval ts)
 

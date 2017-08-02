@@ -27,7 +27,6 @@ data Program a n =
  -- | The type of the input/concrete feature
    inputType    :: !ValType
  , factValName  :: !(Name n)
- , factIdName   :: !(Name n)
  , factTimeName :: !(Name n)
  , snaptimeName :: !(Name n)
  , maxMapSize   :: !(Name n)
@@ -52,7 +51,6 @@ renameProgram :: (Name n -> Name n') -> Program a n -> Program a n'
 renameProgram f p
   = p
   { factValName  = f $ factValName  p
-  , factIdName   = f $ factIdName   p
   , factTimeName = f $ factTimeName p
   , snaptimeName = f $ snaptimeName p
   , maxMapSize   = f $ maxMapSize   p
@@ -95,8 +93,6 @@ instance Pretty n => Pretty (Program a n) where
         , vsep [
               ppInput (factValName p) $
                 align (pretty (inputType p))
-            , ppInput (factIdName p) $
-                annotate AnnConstructor "FactIdentifier"
             , ppInput (factTimeName p) $
                 annotate AnnConstructor "Time"
             , ppInput (snaptimeName p) $

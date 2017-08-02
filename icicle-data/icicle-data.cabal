@@ -81,5 +81,3 @@ library
                        Icicle.Data.Fact
                        Icicle.Data.Name
                        Icicle.Data.Time
-
-                       Icicle.BubbleGum

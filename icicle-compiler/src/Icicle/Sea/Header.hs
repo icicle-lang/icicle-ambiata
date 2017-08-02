@@ -140,10 +140,6 @@ pValType =
       Just $
         (ErrorT <$) . pUnit
 
-    "fact_identifier" ->
-      Just $
-        (FactIdentifierT <$) . pUnit
-
     "array" ->
       Just $
         fmap ArrayT . pValType
@@ -205,9 +201,6 @@ ppValType = \case
 
  ErrorT ->
    ppEnum "error" ppUnit
-
- FactIdentifierT ->
-   ppEnum "fact_identifier" ppUnit
 
  ArrayT x ->
    ppEnum "array" $

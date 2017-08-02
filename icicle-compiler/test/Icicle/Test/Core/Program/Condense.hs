@@ -49,7 +49,7 @@ prop_condense_eval t =
      -- it is tempting to try "e1 === e2" here, but some of the errors have names inside them.
      -- they should be the same error modulo renaming..
      -> property True
-    (Right v1, Right v2) -> PV.value v1 === PV.value v2
+    (Right v1, Right v2) -> v1 === v2
     (_,_)                -> property False
 
 -- Condensing gives <= total stream size

@@ -59,7 +59,6 @@ genValType =
     , pure StringT
     , pure UnitT
     , pure ErrorT
-    , pure FactIdentifierT
     ] [
       ArrayT <$> genValType
     , MapT <$> genValType <*> genValType

@@ -55,7 +55,6 @@ data Schema =
 data SchemaError =
     SchemaFoundEmptyStruct
   | SchemaFoundStandloneError
-  | SchemaFoundFactIdentifier
   | SchemaFoundBuf !Int !ValType
   | SchemaEncodingUnit
   | SchemaEncodingSum !Schema !Schema
@@ -72,8 +71,6 @@ renderSchemaError = \case
     "Found illegal empty struct when converting ValType to Schema"
   SchemaFoundStandloneError ->
     "Found illegal standlone error when converting ValType to Schema"
-  SchemaFoundFactIdentifier ->
-    "Found illegal fact identifier error when converting ValType to Schema"
   SchemaFoundBuf _n _t ->
     "Found illegal buffer error when converting ValType to Schema"
   SchemaEncodingUnit ->
@@ -129,9 +126,6 @@ fromValType = \case
 
   ErrorT ->
     Left SchemaFoundStandloneError
-
-  FactIdentifierT ->
-    Left SchemaFoundFactIdentifier
 
   BufT n x ->
     Left $ SchemaFoundBuf n x

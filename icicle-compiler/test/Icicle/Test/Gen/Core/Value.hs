@@ -3,7 +3,6 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Test.Gen.Core.Value where
 
-import           Icicle.BubbleGum
 import           Icicle.Data hiding (Value(..), StructField(..))
 import           Icicle.Data.Time
 
@@ -39,8 +38,6 @@ baseValueForType t
      -> VBool <$> Gen.bool
     TimeT
      -> VTime <$> Qc.arbitrary
-    FactIdentifierT
-     -> (VFactIdentifier . FactIdentifier) <$> Gen.integral r100
     ArrayT t'
      -> Gen.small (VArray <$> Gen.list r10 (baseValueForType t'))
     BufT n t'
@@ -71,7 +68,7 @@ r10 = Range.linear 0 10
 r100 :: Integral a => Range a
 r100 = Range.linear 0 100
 
-inputsForType :: MonadGen m => ValType -> m ([AsAt (BubbleGumFact, BaseValue)], EvalContext)
+inputsForType :: MonadGen m => ValType -> m ([AsAt BaseValue], EvalContext)
 inputsForType t = do
   start         <- Gen.integral r100
   values        <- Gen.list r100 ((,) <$> daysIncrement <*> baseValueForType t)
@@ -86,14 +83,5 @@ inputsForType t = do
    let days' = days0 + days
        time' = timeOfDays days'
        (rs',last') = go days' rs
-   in  (AsAt (BubbleGumFact (Flavour days' time'), v) time' : rs', last')
-
--- TODO: replace inputsForType with this when removing Bubblegum from Core
-inputsForTypeRaw :: MonadGen m => ValType -> m ([AsAt BaseValue], EvalContext)
-inputsForTypeRaw vt = do
-  (vs,d) <- inputsForType vt
-  return (discardBubblegum vs, d)
-
-discardBubblegum :: [AsAt (BubbleGumFact, BaseValue)] -> [AsAt BaseValue]
-discardBubblegum = fmap (\a -> a { atFact = snd $ atFact a })
+   in  (AsAt v time' : rs', last')
 

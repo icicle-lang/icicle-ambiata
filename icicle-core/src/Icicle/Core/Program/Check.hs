@@ -36,7 +36,6 @@ checkProgram p
         
         -- "Kons" environment: only available in kons of folds
         kenv    <- ins (factValName  p) (funOfVal $ PairT (inputType p) TimeT) Map.empty
-               >>= ins (factIdName   p) (funOfVal $ FactIdentifierT)
                >>= ins (factTimeName p) (funOfVal $ TimeT)
 
         -- Check stream computations with precomputations in environment

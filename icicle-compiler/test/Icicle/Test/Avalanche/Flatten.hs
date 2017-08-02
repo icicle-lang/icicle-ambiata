@@ -60,7 +60,7 @@ prop_flatten_commutes_value = property $ do
  t      <- forAll genInputType
  o      <- forAll genOutputType
  p      <- forAll (programForStreamType t o)
- (vs,d) <- forAll (inputsForTypeRaw t)
+ (vs,d) <- forAll (inputsForType t)
 
  let p' = testFresh "fromCore" $ AC.programFromCore namer p
  let eval xp = AE.evalProgram xp d vs
@@ -84,7 +84,7 @@ prop_flatten_simp_commutes_value = property $ do
  t <- forAll genInputType
  o <- forAll genOutputType
  p <- forAll (programForStreamType t o)
- x <- forAll (inputsForTypeRaw t)
+ x <- forAll (inputsForType t)
  flatten_simp_commutes_value p x
 
 flatten_simp_commutes_value p (vs, d) = do

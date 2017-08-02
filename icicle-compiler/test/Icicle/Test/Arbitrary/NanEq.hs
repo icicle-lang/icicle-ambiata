@@ -20,7 +20,7 @@ import qualified Data.Map.Lazy as Map
 import           Disorder.Jack.Property (Property, counterexample)
 import           Disorder.Jack.Property.Diff (renderDiffs)
 
-import           Icicle.Common.Base (BaseValue, StructField, ExceptionInfo, FactIdentifier)
+import           Icicle.Common.Base (BaseValue, StructField, ExceptionInfo)
 import           Icicle.Data.Time (Time)
 import           Icicle.Data.Name (Namespace, InputName, InputId, OutputName, OutputId)
 
@@ -129,8 +129,6 @@ instance NanEq OutputId
 instance NanEq ExceptionInfo
 
 instance NanEq StructField
-
-instance NanEq FactIdentifier
 
 instance NanEq BaseValue
 

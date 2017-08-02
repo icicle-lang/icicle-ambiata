@@ -15,7 +15,6 @@ module Icicle.Common.Base (
     , StructField(..)
     , ExceptionInfo(..)
     , WindowUnit(..)
-    , FactIdentifier(..)
     ) where
 
 import              Icicle.Internal.Pretty
@@ -97,21 +96,9 @@ data BaseValue
  | VStruct   !(Map.Map StructField  BaseValue)
  | VBuf      ![BaseValue]
  | VError    !ExceptionInfo
- | VFactIdentifier !FactIdentifier
  deriving (Show, Ord, Eq, Generic)
 
 instance NFData BaseValue
-
--- | Fact identifiers are represented as indices into the input stream for
--- Core and Avalanche evaluators, but for a real streaming model such as C
--- we need to convert this as a unique (and consistent) identifier across runs.
--- Perhaps a pair of timestamp and index
-newtype FactIdentifier
- = FactIdentifier
- { getFactIdentifierIndex :: Int }
- deriving (Eq, Ord, Show, Generic)
-
-instance NFData FactIdentifier
 
 -- | Called "exceptions"
 -- because they aren't really errors,
@@ -179,14 +166,8 @@ instance Pretty BaseValue where
       prettyApp hsep p (prettyConstructor "Struct") [Map.toList mv]
     VError e ->
       pretty e
-    VFactIdentifier f ->
-      pretty f
     VBuf vs ->
       prettyApp hsep p (prettyConstructor "Buf") [vs]
-
-instance Pretty FactIdentifier where
-  prettyPrec p f =
-    prettyApp hsep p (prettyConstructor "FactIdentifier") [getFactIdentifierIndex f]
 
 instance Pretty StructField where
   pretty =

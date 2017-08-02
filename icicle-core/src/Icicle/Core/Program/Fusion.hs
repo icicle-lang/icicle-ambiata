@@ -53,7 +53,6 @@ fuseProgramsDistinctNames _ lp rp
  $ Program
  { inputType = inputType lp
  , factValName = factValName lp
- , factIdName= factIdName lp
  , factTimeName = factTimeName lp
  , snaptimeName = snaptimeName lp
  , maxMapSize   = maxMapSize lp
@@ -68,7 +67,6 @@ fuseProgramsDistinctNames _ lp rp
 
   inpsubst
    = [ (factValName  rp, factValName  lp)
-     , (factIdName   rp, factIdName   lp)
      , (factTimeName rp, factTimeName lp)
      , (snaptimeName rp, snaptimeName lp)
      , (maxMapSize   rp, maxMapSize   lp) ]

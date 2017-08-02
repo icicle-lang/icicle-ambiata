@@ -29,7 +29,7 @@ namer = AC.namerText (flip Var 0)
 prop_eval_right t =
  forAll (programForStreamType t)
  $ \p ->
- forAll (inputsForTypeRaw t)
+ forAll (inputsForType t)
  $ \(vs,d) ->
     isRight     (checkProgram p) ==>
      isRight $ AE.evalProgram XV.evalPrim d vs $ testFresh "fromCore" $ AC.programFromCore namer p
@@ -42,9 +42,9 @@ prop_eval_commutes_value t =
  forAll (inputsForType t)
  $ \(vs,d) -> counterexample (show $ pretty p) $
     isRight     (checkProgram p) ==>
-     case (AE.evalProgram XV.evalPrim d (discardBubblegum vs) $ testFresh "fromCore" $ AC.programFromCore namer p, PV.eval d vs p) of
+     case (AE.evalProgram XV.evalPrim d vs $ testFresh "fromCore" $ AC.programFromCore namer p, PV.eval d vs p) of
       (Right aval, Right cres)
-       ->   aval === PV.value   cres
+       ->   aval === cres
       (_, Left _)
        -> counterexample "Impossible: Core evaluation or type check must be wrong" False
       (Left err, _)

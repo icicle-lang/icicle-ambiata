@@ -38,8 +38,6 @@ genDerivedType t = case t of
  TimeT      -> usually
  StringT    -> usually
  ErrorT     -> usually
- FactIdentifierT
-            -> usually
  PairT a b  -> Gen.choice [genDerivedType a, genDerivedType b, usually]
  SumT a b   -> Gen.choice [genDerivedType a, genDerivedType b, usually]
  OptionT a  -> Gen.choice [genDerivedType a, usually]
@@ -123,8 +121,6 @@ isOrdValType t = case t of
  TimeT      -> True
  StringT    -> True
  ErrorT     -> True
- FactIdentifierT
-            -> True
  PairT a b  -> isOrdValType a && isOrdValType b
  SumT a b   -> isOrdValType a && isOrdValType b
  OptionT a  -> isOrdValType a

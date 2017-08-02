@@ -148,7 +148,6 @@ factFromCoreValue bv = case bv of
   VBuf xs           ->  D.ListValue . D.List
                     <$> sequence (fmap factFromCoreValue xs)
   VError _          ->  Just $ D.Tombstone
-  VFactIdentifier _ ->  Just $ D.Tombstone
   VStruct x
    |  Map.null x
    -> Just D.Tombstone
