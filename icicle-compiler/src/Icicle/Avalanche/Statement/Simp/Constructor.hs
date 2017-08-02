@@ -322,7 +322,7 @@ constructor a_fresh statements
 
    | (PrimMinimal (Min.PrimRelation op t), [nx, ny]) <- prima
    , melts <- meltLogical t
-   , length melts /= 1
+   , melts /= [MeltRep t]
    = let tis = List.zip melts [0..]
          with0 p tvi = withPrim p t nx ny tvi
          mk = makeComparisons with0 tis

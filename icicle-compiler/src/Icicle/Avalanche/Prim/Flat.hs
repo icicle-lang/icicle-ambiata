@@ -201,6 +201,7 @@ typeOfPrim p
 
 -- We need to distinguish between an error and an error which is the tag in (Sum Error t)
 data MeltLogical = MeltRep ValType | MeltTagSumError -- | MeltTagSum | MeltTagOption
+ deriving Eq
 
 repOfMelt :: MeltLogical -> ValType
 repOfMelt (MeltRep v)     = v
