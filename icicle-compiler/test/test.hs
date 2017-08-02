@@ -36,7 +36,6 @@ import qualified Icicle.Test.Runtime.Serial.Zebra
 import qualified Icicle.Test.Source.PrettyParse
 import qualified Icicle.Test.Source.Progress
 import qualified Icicle.Test.Source.Convert
-import qualified Icicle.Test.Source.History
 import qualified Icicle.Test.Source.MaxMapSize
 
 import qualified Icicle.Test.Sea.Name
@@ -98,7 +97,6 @@ sundry =
     , Icicle.Test.Language.tests
     , Icicle.Test.Serial.tests
     , Icicle.Test.Source.Convert.tests
-    , Icicle.Test.Source.History.tests
     , Icicle.Test.Source.MaxMapSize.tests
     , Icicle.Test.Source.PrettyParse.tests
     , Icicle.Test.Source.Progress.tests

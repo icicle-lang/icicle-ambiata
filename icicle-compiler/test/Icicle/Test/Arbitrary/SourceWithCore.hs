@@ -7,7 +7,6 @@ import Icicle.Test.Arbitrary.Source
 
 
 import qualified Data.Text as T
-import qualified Data.Set as Set
 
 import qualified Icicle.Avalanche.Eval as AE
 import qualified Icicle.Avalanche.FromCore as AC
@@ -80,7 +79,8 @@ evalCore :: TestSourceConvert -> [AsAt (BubbleGumFact, BaseValue)] -> Either (CV
 evalCore ts vs
  = CV.eval (tsEvalCtx ts) vs (tsCore ts)
 
-evalAval :: TestSourceConvert -> [AsAt (BubbleGumFact, BaseValue)] -> Either (AE.RuntimeError () T.Variable AF.Prim) ([(OutputId, BaseValue)], Set.Set FactIdentifier)
+-- TODO: replace inputsForType with this when removing Bubblegum from Core
+evalAval :: TestSourceConvert -> [AsAt (BubbleGumFact, BaseValue)] -> Either (AE.RuntimeError () T.Variable AF.Prim) [(OutputId, BaseValue)]
 evalAval ts vs
- = AE.evalProgram AE.evalPrim (tsEvalCtx ts) vs (tsAval ts)
+ = AE.evalProgram AE.evalPrim (tsEvalCtx ts) (discardBubblegum vs) (tsAval ts)
 

@@ -456,7 +456,7 @@ coreEval ctx fs (renameQT unVar -> query) prog
   where
     evalP feat (Sim.Partition ent attr values)
       | attr == unresolvedInputName feat
-      = do  (vs',_) <- evalV values
+      = do  vs' <- evalV values
             return $ fmap (\v -> Result (ent, snd v)) vs'
 
       | otherwise
@@ -482,7 +482,7 @@ avalancheEval ctx fs (renameQT unVar -> query) prog
   where
     evalP feat (Sim.Partition ent attr values)
       | attr == unresolvedInputName feat
-      = do  (vs',_) <- evalV values
+      = do  vs' <- evalV values
             return $ fmap (\v -> Result (ent, snd v)) vs'
 
       | otherwise

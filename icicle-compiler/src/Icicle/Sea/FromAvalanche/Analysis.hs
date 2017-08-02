@@ -36,42 +36,35 @@ import qualified Data.Set as Set
 -- Analysis
 
 factVarsOfProgram :: Eq n
-                  => FactLoopType
-                  -> Program (Annot a) n Prim
+                  => Program (Annot a) n Prim
                   -> Maybe (ValType, [(Name n, ValType)])
 
-factVarsOfProgram loopType = factVarsOfStatement loopType . statements
+factVarsOfProgram = factVarsOfStatement . statements
 
 
 factVarsOfStatement :: Eq n
-                    => FactLoopType
-                    -> Statement (Annot a) n Prim
+                    => Statement (Annot a) n Prim
                     -> Maybe (ValType, [(Name n, ValType)])
 
-factVarsOfStatement loopType stmt
+factVarsOfStatement stmt
  = case stmt of
      Block []              -> Nothing
-     Block (s:ss)          -> factVarsOfStatement loopType s <|>
-                              factVarsOfStatement loopType (Block ss)
-     Let _ _ ss            -> factVarsOfStatement loopType ss
-     If _ tt ee            -> factVarsOfStatement loopType tt <|>
-                              factVarsOfStatement loopType ee
-     InitAccumulator _ ss  -> factVarsOfStatement loopType ss
-     Read _ _ _ ss         -> factVarsOfStatement loopType ss
+     Block (s:ss)          -> factVarsOfStatement s <|>
+                              factVarsOfStatement (Block ss)
+     Let _ _ ss            -> factVarsOfStatement ss
+     If _ tt ee            -> factVarsOfStatement tt <|>
+                              factVarsOfStatement ee
+     InitAccumulator _ ss  -> factVarsOfStatement ss
+     Read _ _ _ ss         -> factVarsOfStatement ss
      Write _ _             -> Nothing
      LoadResumable _ _     -> Nothing
      SaveResumable _ _     -> Nothing
      Output _ _ _          -> Nothing
-     KeepFactInHistory _   -> Nothing
-     While     _ _ _ _ ss  -> factVarsOfStatement loopType ss
-     ForeachInts _ _ _ _ ss-> factVarsOfStatement loopType ss
+     While     _ _ _ _ ss  -> factVarsOfStatement ss
+     ForeachInts _ _ _ _ ss-> factVarsOfStatement ss
 
-     ForeachFacts binds vt lt ss
-      | lt == loopType
+     ForeachFacts binds vt _
       -> Just (vt, factBindValue binds)
-
-      | otherwise
-      -> factVarsOfStatement loopType ss
 
 ------------------------------------------------------------------------
 
@@ -89,13 +82,12 @@ resumablesOfStatement stmt
                                 resumablesOfStatement ee
      ForeachInts  _ _ _ _ ss -> resumablesOfStatement ss
      While        _ _ _ _ ss -> resumablesOfStatement ss
-     ForeachFacts _ _ _ ss   -> resumablesOfStatement ss
+     ForeachFacts _ _ ss     -> resumablesOfStatement ss
      InitAccumulator  _ ss   -> resumablesOfStatement ss
      Read _ _ _ ss           -> resumablesOfStatement ss
 
      Write _ _             -> Map.empty
      Output _ _ _          -> Map.empty
-     KeepFactInHistory _   -> Map.empty
 
      LoadResumable n t     -> Map.singleton n t
      SaveResumable n t     -> Map.singleton n t
@@ -116,13 +108,12 @@ accumsOfStatement stmt
                                 accumsOfStatement ee
      While        _ _ _ _ ss -> accumsOfStatement ss
      ForeachInts  _ _ _ _ ss -> accumsOfStatement ss
-     ForeachFacts _ _ _ ss   -> accumsOfStatement ss
+     ForeachFacts _ _ ss     -> accumsOfStatement ss
      Read _ _ _ ss           -> accumsOfStatement ss
      Write _ _               -> Map.empty
      LoadResumable _ _       -> Map.empty
      SaveResumable _ _       -> Map.empty
      Output _ _ _            -> Map.empty
-     KeepFactInHistory _     -> Map.empty
 
      InitAccumulator (Accumulator n avt _) ss
       -> Map.singleton n avt `Map.union`
@@ -144,13 +135,12 @@ readsOfStatement stmt
                                 readsOfStatement ee
      While        _ n t _ ss -> Map.singleton n t `Map.union` readsOfStatement ss
      ForeachInts  _ _ _ _ ss -> readsOfStatement ss
-     ForeachFacts _ _ _ ss   -> readsOfStatement ss
+     ForeachFacts _ _ ss     -> readsOfStatement ss
      InitAccumulator _ ss    -> readsOfStatement ss
      Write _ _               -> Map.empty
      LoadResumable _ _       -> Map.empty
      SaveResumable _ _       -> Map.empty
      Output _ _ _            -> Map.empty
-     KeepFactInHistory _     -> Map.empty
 
      Read n _ vt ss
       -> Map.singleton n vt `Map.union`
@@ -172,13 +162,12 @@ outputsOfStatement stmt
                                 outputsOfStatement ee
      While        _ _ _ _ ss -> outputsOfStatement ss
      ForeachInts  _ _ _ _ ss -> outputsOfStatement ss
-     ForeachFacts _ _ _ ss   -> outputsOfStatement ss
+     ForeachFacts _ _ ss     -> outputsOfStatement ss
      InitAccumulator _ ss    -> outputsOfStatement ss
      Read _ _ _ ss           -> outputsOfStatement ss
      Write _ _               -> Map.empty
      LoadResumable _ _       -> Map.empty
      SaveResumable _ _       -> Map.empty
-     KeepFactInHistory _     -> Map.empty
 
      Output n t xts
       -> Map.singleton n $ MeltedType t (fmap snd xts)
@@ -206,9 +195,8 @@ typesOfStatement stmt
                               typesOfExp       t `Set.union`
                               typesOfStatement s
      Write _ x             -> typesOfExp x
-     KeepFactInHistory _   -> Set.singleton FactIdentifierT
 
-     ForeachFacts binds _ _ ss
+     ForeachFacts binds _ ss
       -> Set.fromList (fmap snd $ factBindsAll binds) `Set.union`
          typesOfStatement ss
 

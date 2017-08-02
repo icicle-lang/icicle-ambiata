@@ -13,8 +13,6 @@ import              Icicle.Avalanche.Statement.Statement
 import              Icicle.Avalanche.Statement.Simp.Melt
 import              Icicle.Avalanche.Program
 
-import              Icicle.BubbleGum
-
 import              Icicle.Common.Base
 import              Icicle.Common.Eval
 import              Icicle.Common.Type
@@ -28,7 +26,6 @@ import              P
 
 import              Data.List   (zip)
 import qualified    Data.Map    as Map
-import qualified    Data.Set    as Set
 import              Data.Hashable (Hashable)
 
 
@@ -50,7 +47,6 @@ data RuntimeError a n p
  | RuntimeErrorForeachTypeMismatch [(Name n, ValType)] ValType BaseValue
  | RuntimeErrorOutputTypeMismatch  OutputId ValType [BaseValue]
  | RuntimeErrorNotBaseValue  (Value a n p)
- | RuntimeErrorKeepFactTypeMismatch BaseValue
  | RuntimeErrorAccumulatorLatestNotInt  BaseValue
  | RuntimeErrorOutOfScope (Name n)
  deriving (Eq, Show)
@@ -78,8 +74,6 @@ instance (Pretty n, Pretty p) => Pretty (RuntimeError a n p) where
     "                   values = " <+> align (vsep (fmap pretty vs))
  pretty (RuntimeErrorNotBaseValue p)
   = "Value isn't a base value:" <+> (pretty p)
- pretty (RuntimeErrorKeepFactTypeMismatch v)
-  = "KeepFact type error: expected a FactIdentifer, but got " <> pretty v
  pretty (RuntimeErrorAccumulatorLatestNotInt p)
   = "Accumulator Latest needs an integer, got" <+> pretty p
  pretty (RuntimeErrorOutOfScope n)
@@ -98,9 +92,9 @@ evalProgram
         :: (Hashable n, Eq n, Show n, Show p, Show a)
         => XV.EvalPrim a n p
         -> EvalContext
-        -> [AsAt (BubbleGumFact, BaseValue)]
+        -> [AsAt BaseValue]
         -> Program a n p
-        -> Either (RuntimeError a n p) ([(OutputId, BaseValue)], Set.Set FactIdentifier)
+        -> Either (RuntimeError a n p) [(OutputId, BaseValue)]
 
 evalProgram evalPrim ctx values p
  = do   -- Precomputations are just expressions
@@ -112,9 +106,7 @@ evalProgram evalPrim ctx values p
                   [ (bindtime   p, VBase $ VTime $ evalSnapshotTime ctx)
                   , (maxMapSize p, VBase $ VInt  $ evalMaxMapSize   ctx) ]
         let ah    = Map.empty
-        (_,ret,bgs) <- evalStmt evalPrim xh values Nothing ah stmts
-
-        return (ret, bgs)
+        snd <$> evalStmt evalPrim xh values ah stmts
 
 
 -- | Evaluate a single statement for a single value
@@ -122,13 +114,12 @@ evalStmt
         :: (Hashable n, Eq n, Show n, Show p, Show a)
         => XV.EvalPrim a n p
         -> Heap a n p
-        -> [AsAt (BubbleGumFact, BaseValue)]
-        -> Maybe BubbleGumFact
+        -> [AsAt BaseValue]
         -> AccumulatorHeap n
         -> Statement a n p
-        -> Either (RuntimeError a n p) (AccumulatorHeap n, [(OutputId, BaseValue)], Set.Set FactIdentifier)
+        -> Either (RuntimeError a n p) (AccumulatorHeap n, [(OutputId, BaseValue)])
 
-evalStmt evalPrim xh values bubblegum ah stmt
+evalStmt evalPrim xh values ah stmt
  = case stmt of
     If x stmts elses
      -> do  v   <- eval x >>= baseValue
@@ -149,21 +140,21 @@ evalStmt evalPrim xh values bubblegum ah stmt
      -> do  tov <- eval to >>= baseValue
             let check WhileEq = (==)
                 check WhileNe = (/=)
-            let evalLoop curr@(ah',out,bg) end
+            let evalLoop curr@(ah',out) end
                  = do accv <- maybeToRight (RuntimeErrorLoopAccumulatorBad acc)
                             $ Map.lookup acc ah'
                       if check t accv end
-                      then do next <-  appendOutputs out bg
+                      then do next <-  appendOutputs out
                                    <$> go xh ah' stmts
                               evalLoop next end
                       else return curr
-            evalLoop (ah, mempty, mempty) tov
+            evalLoop (ah, mempty) tov
 
     ForeachInts t n from to stmts
      -> do  fromv <- eval from >>= baseValue
             tov   <- eval to   >>= baseValue
-            let evalLoop (ah',out,bg) index
-                 = appendOutputs out bg
+            let evalLoop (ah',out) index
+                 = appendOutputs out
                  <$> go (Map.insert n (VBase $ VInt index) xh) ah' stmts
 
             case (fromv, tov) of
@@ -171,46 +162,35 @@ evalStmt evalPrim xh values bubblegum ah stmt
               -> -- Open-closed interval [from,to)
                  -- ie "foreach i in 0 to 0" does not run
                  foldM evalLoop
-                       (ah, mempty, mempty)
+                       (ah, mempty)
                        (case t of
                           ForeachStepUp   -> [fromi, fromi + 1 .. toi-1]
                           ForeachStepDown -> [fromi, fromi - 1 .. toi+1])
              _
               -> Left $ RuntimeErrorForeachNotInt fromv tov
 
-    -- TODO: evaluation ignores history/bubblegum.
-    -- All inputs are new, so history loop does nothing.
-    ForeachFacts _ _ FactLoopHistory _
-     -> returnHeap ah
-
-
     -- Allow unmelted foreach
     -- (i.e. where ty == ty' and we only have a singleton list of bindings)
-    ForeachFacts (FactBinds ntime nfid [(n, ty)]) ty' FactLoopNew stmts
+    ForeachFacts (FactBinds ntime [(n, ty)]) ty' stmts
      | ty == ty'
-     -> do  let evalInput (ah',out,bg) (inp,ix) = do
-                  let v0     = snd (atFact inp)
+     -> do  let evalInput (ah',out) inp = do
+                  let v0     = atFact inp
                       v1     = VTime (atTime inp)
                       vv     = VPair v0 v1
                       input' = Map.insert n     (VBase vv)
-                             $ Map.insert ntime (VBase v1)
-                             $ Map.insert nfid  (VBase ix) xh
-                      bgf    = Just $ fst $ atFact inp
+                             $ Map.insert ntime (VBase v1) xh
 
-                  appendOutputs out bg <$> evalStmt evalPrim input' [] bgf ah' stmts
+                  appendOutputs out <$> evalStmt evalPrim input' [] ah' stmts
 
-                indices = fmap (VFactIdentifier . FactIdentifier) [0..]
+            foldM evalInput (ah,mempty) values
 
-            foldM evalInput (ah,mempty,mempty) (values `zip` indices)
-
-    ForeachFacts (FactBinds ntime nfid ns) ty FactLoopNew stmts
-     -> do  let evalInput (ah',out,bg) (inp,ix) = do
-                  let v0  = snd (atFact inp)
+    ForeachFacts (FactBinds ntime ns) ty stmts
+     -> do  let evalInput (ah',out) inp = do
+                  let v0  = atFact inp
                       v1  = VTime (atTime inp)
                       vv  = VPair v0 v1
                       mvs = meltValue vv ty
-                      input1 = Map.insert ntime (VBase v1)
-                             $ Map.insert nfid  (VBase ix) xh
+                      input1 = Map.insert ntime (VBase v1) xh
 
                   case mvs of
                     Nothing
@@ -223,20 +203,17 @@ evalStmt evalPrim xh values bubblegum ah stmt
                      | otherwise
                      , nvs    <- zip (fmap fst ns) vs
                      , input' <- foldr (\(n, v) -> Map.insert n (VBase v)) input1 nvs
-                     , bgf    <- Just $ fst $ atFact inp
-                     -> appendOutputs out bg <$> evalStmt evalPrim input' [] bgf ah' stmts
+                     -> appendOutputs out <$> evalStmt evalPrim input' [] ah' stmts
 
-                indices = fmap (VFactIdentifier . FactIdentifier) [0..]
-
-            foldM evalInput (ah,mempty,mempty) (values `zip` indices)
+            foldM evalInput (ah,mempty) values
 
     Block []
      -> returnHeap ah
     Block [s]
      -> go' s
     Block (s:ss)
-     -> do (ah',out,bg) <- go xh ah s
-           appendOutputs out bg <$> go xh ah' (Block ss)
+     -> do (ah',out) <- go xh ah s
+           appendOutputs out <$> go xh ah' (Block ss)
 
     InitAccumulator (Accumulator n _ x) stmts
      -> do v <- eval x >>= baseValue
@@ -272,18 +249,9 @@ evalStmt evalPrim xh values bubblegum ah stmt
               -- need unmelting because the program has not been through the
               -- melting transform yet.
               --
-              (_,    Just v)  -> return (ah, [(n, v)], mempty)
-              (v:[], Nothing) -> return (ah, [(n, v)], mempty)
+              (_,    Just v)  -> return (ah, [(n, v)])
+              (v:[], Nothing) -> return (ah, [(n, v)])
               (_,    Nothing) -> Left (RuntimeErrorOutputTypeMismatch n t vs)
-
-    -- Keep this fact in history
-    KeepFactInHistory x
-     -> do v <- eval x >>= baseValue
-           case v of
-            VFactIdentifier fid
-             -> return (ah, mempty, Set.singleton fid)
-            _
-             -> Left (RuntimeErrorKeepFactTypeMismatch v)
 
     LoadResumable _ _
      -> returnHeap ah
@@ -293,13 +261,13 @@ evalStmt evalPrim xh values bubblegum ah stmt
 
  where
   -- Go through all the substatements
-  go xh' = evalStmt evalPrim xh' values bubblegum
+  go xh' = evalStmt evalPrim xh' values
   go' = go xh ah
 
-  appendOutputs out bg (ah', out', bg')
-   = (ah', out <> out', bg <> bg')
+  appendOutputs out (ah', out')
+   = (ah', out <> out')
   returnHeap ah'
-   = return (ah', mempty, mempty)
+   = return (ah', mempty)
 
   -- Raise Exp error to Avalanche
   eval = first RuntimeErrorLoop

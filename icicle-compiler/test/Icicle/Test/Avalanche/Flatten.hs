@@ -22,7 +22,6 @@ import qualified Icicle.Avalanche.Eval      as AE
 import qualified Icicle.Avalanche.Prim.Eval as AE
 import qualified Icicle.Avalanche.Prim.Flat as AF
 import qualified Icicle.Avalanche.Statement.Flatten   as AF
-import qualified Icicle.Avalanche.Statement.Flatten.Type as AF
 import qualified Icicle.Avalanche.Simp                    as Avalanche
 
 import           Icicle.Internal.Pretty (pretty)
@@ -61,7 +60,7 @@ prop_flatten_commutes_value = property $ do
  t      <- forAll genInputType
  o      <- forAll genOutputType
  p      <- forAll (programForStreamType t o)
- (vs,d) <- forAll (inputsForType t)
+ (vs,d) <- forAll (inputsForTypeRaw t)
 
  let p' = testFresh "fromCore" $ AC.programFromCore namer p
  let eval xp = AE.evalProgram xp d vs
@@ -75,20 +74,9 @@ prop_flatten_commutes_value = property $ do
   Right s' -> do
    annotate ("Avalanche:\n" <> show (pretty p'))
    annotate ("Flat:\n" <> show (pretty s'))
-   let xv' = flatOuts (eval XV.evalPrim p')
+   let xv' = eval XV.evalPrim p'
    let fv' = eval AE.evalPrim p' { AP.statements = s'}
    first show xv' === first show fv'
- where
-  -- We might need to fix up some outputs after the flattening.
-  -- Flattening changes buffers to pairs of buffers (for fact identifiers),
-  -- so any buffers in the output will have changed values.
-  -- However, this will not occur in a "real program" as they cannot return buffers,
-  -- only arrays that are read from buffers.
-  -- That means it is fine to do the transform afterwards, here.
-  flatOuts (Right (outs,bgs))
-   = Right (fmap (second AF.flatV) outs, bgs)
-
-  flatOuts other = other
 
 
 
@@ -96,7 +84,7 @@ prop_flatten_simp_commutes_value = property $ do
  t <- forAll genInputType
  o <- forAll genOutputType
  p <- forAll (programForStreamType t o)
- x <- forAll (inputsForType t)
+ x <- forAll (inputsForTypeRaw t)
  flatten_simp_commutes_value p x
 
 flatten_simp_commutes_value p (vs, d) = do
@@ -114,8 +102,8 @@ flatten_simp_commutes_value p (vs, d) = do
  where
   eval xp  = AE.evalProgram xp d vs
   compareEvalResult xv yv = do
-    let xv' = second snd (first show xv)
-    let yv' = second snd (first show yv)
+    let xv' = first show xv
+    let yv' = first show yv
     xv' === yv'
 
 return []

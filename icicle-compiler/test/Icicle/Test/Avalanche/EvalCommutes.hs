@@ -29,7 +29,7 @@ namer = AC.namerText (flip Var 0)
 prop_eval_right t =
  forAll (programForStreamType t)
  $ \p ->
- forAll (inputsForType t)
+ forAll (inputsForTypeRaw t)
  $ \(vs,d) ->
     isRight     (checkProgram p) ==>
      isRight $ AE.evalProgram XV.evalPrim d vs $ testFresh "fromCore" $ AC.programFromCore namer p
@@ -42,32 +42,13 @@ prop_eval_commutes_value t =
  forAll (inputsForType t)
  $ \(vs,d) -> counterexample (show $ pretty p) $
     isRight     (checkProgram p) ==>
-     case (AE.evalProgram XV.evalPrim d vs $ testFresh "fromCore" $ AC.programFromCore namer p, PV.eval d vs p) of
-      (Right (aval, _), Right cres)
+     case (AE.evalProgram XV.evalPrim d (discardBubblegum vs) $ testFresh "fromCore" $ AC.programFromCore namer p, PV.eval d vs p) of
+      (Right aval, Right cres)
        ->   aval === PV.value   cres
       (_, Left _)
        -> counterexample "Impossible: Core evaluation or type check must be wrong" False
       (Left err, _)
        -> counterexample ("Avalanche runtime error " <> show err) False
-
-
--- going to Avalanche doesn't affect history
---
--- Oh no! This should be failing, but it isn't.
--- I suspect that's because the Core generator isn't making interesting windowed and latest programs.
--- It is probably a good idea to make this go all the way from Source.
--- This also requires flattening, because buffer history isn't dealt with in fromCore.
-prop_eval_commutes_history t =
- forAll (programForStreamType t)
- $ \p ->
- forAll (inputsForType t)
- $ \(vs,d) -> counterexample (show $ pretty p) $
-    isRight     (checkProgram p) ==>
-     case (AE.evalProgram XV.evalPrim d vs $ testFresh "fromCore" $ AC.programFromCore namer p, PV.eval d vs p) of
-      (Right (_, abg), Right cres)
-       ->  abg === PV.history cres
-      _
-       -> property False
 
 
 
