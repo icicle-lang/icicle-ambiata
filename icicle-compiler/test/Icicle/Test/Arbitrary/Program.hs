@@ -84,26 +84,35 @@ instance Pretty WellTyped where
       [ "========================================"
       , "== Well-typed"
       , ""
-      , "Input Type ="
+      , "Input Type"
+      , "----------"
       , indent 2 $ pretty (wtInputType wt)
-      , "Input Data ="
+      , ""
+      , "Input Data"
+      , "----------"
       , indent 2 $ vsep (fmap prettyValues $ Map.toList (wtInputs wt))
-      , "Outputs ="
-      , indent 2 $ vsep (fmap pretty (wtOutputs wt))
-      , "Core ="
+      , ""
+      , "Outputs"
+      , "-------"
+      , indent 2 $ vsep (fmap (uncurry prettyTypedBest . bimap pretty pretty) (wtOutputs wt))
+      , ""
+      , "Core"
+      , "----"
       , indent 2 $ pretty (wtCore wt)
-      , "Avalanche ="
+      , ""
+      , "Avalanche"
+      , "---------"
       , indent 2 $ pretty (wtAvalanche wt)
-      , "Flat ="
+      , ""
+      , "Flat"
+      , "----"
       , indent 2 $ pretty (wtAvalancheFlat wt)
       ]
 
 prettyValues :: (Entity, [AsAt BaseValue]) -> Doc
 prettyValues (e, xts) =
-  vsep $ [
-      "#" <+> pretty e
-    ] <>
-    fmap (\(AsAt x t) -> pretty (renderTime t) <> "|" <> pretty x) xts
+  vsep $
+    fmap (\(AsAt x t) -> pretty e <> "|" <> pretty (renderTime t) <> "|" <> pretty x) xts
 
 --------------------------------------------------------------------------------
 
@@ -226,8 +235,11 @@ evalWellTyped ctx wt =
     clusterEntities =
       Map.keys $ wtInputs wt
 
+    stime =
+      evalSnapshotTime $ ctx
+
     computeFacts =
-      fmap sortByTime $ wtInputs wt
+      fmap (List.takeWhile ((< stime) . atTime) . sortByTime) $ wtInputs wt
 
     -- NOTE (invariant)
     -- any entity that was read has an output in psv/zebra

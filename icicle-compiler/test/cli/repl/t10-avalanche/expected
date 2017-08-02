@@ -27,81 +27,74 @@ conv-3 : Time =
 conv-4 : Int =
   MAX_MAP_SIZE
 
-init acc-c-conv-11 : Sum Error Int =
-  Right 0
-init acc-conv-26 : Buf 3 (Sum Error Int) =
-  Buf []
+acc-c-conv-11 =i Right 0 : Sum Error Int
+acc-conv-26 =i Buf [] : Buf 3 (Sum Error Int)
 load_resumable acc-conv-26
 load_resumable acc-c-conv-11
+
 for_facts conv-2 : Time
         , conv-1 : FactIdentifier
         , conv-0 : (Sum Error Int, Time) in new
 {
-  let anf-0 =
-    fst# conv-0
-  let anf-1 =
-    Sum_fold#
-      (\reify-0-conv-5 ->
-        left# reify-0-conv-5)
-      (\reify-1-conv-6 ->
-        right# (gt# reify-1-conv-6 10))
-      anf-0
-  if (Sum_fold#
-        (\reify-2-conv-8 -> True)
-        (\reify-3-conv-9 ->
-          reify-3-conv-9)
-        anf-1)
-  {
-    read c-conv-11-aval-0 =
-      acc-c-conv-11
-    write acc-c-conv-11 =
-      Sum_fold#
-        (\reify-6-conv-12 ->
-          left# reify-6-conv-12)
-        (\reify-7-conv-13 ->
-          Sum_fold#
-            (\reify-8-conv-17 ->
-              left# reify-8-conv-17)
-            (\reify-9-conv-18 ->
-              right# reify-9-conv-18)
-            (Sum_fold#
-              (\reify-4-conv-14 ->
-                left# reify-4-conv-14)
-              (\reify-5-conv-15 ->
-                right# (add# reify-5-conv-15 1))
-              c-conv-11-aval-0))
-        anf-0
-  }
-  read conv-26-aval-1 =
-    acc-conv-26
-  let anf-3 =
-    anf-0
-  write acc-conv-26 =
-    Latest_push#
-      conv-26-aval-1
-      conv-1
-      anf-3
+    anf-0 = fst# conv-0
+    anf-1 = Sum_fold#
+              (\reify-0-conv-5 ->
+                left# reify-0-conv-5)
+              (\reify-1-conv-6 ->
+                right# (gt# reify-1-conv-6 10))
+              anf-0
+    
+    if (Sum_fold#
+          (\reify-2-conv-8 -> True)
+          (\reify-3-conv-9 ->
+            reify-3-conv-9)
+          anf-1)
+    {
+        c-conv-11-aval-0 =r acc-c-conv-11
+        acc-c-conv-11 =w Sum_fold#
+                           (\reify-6-conv-12 ->
+                             left# reify-6-conv-12)
+                           (\reify-7-conv-13 ->
+                             Sum_fold#
+                               (\reify-8-conv-17 ->
+                                 left# reify-8-conv-17)
+                               (\reify-9-conv-18 ->
+                                 right# reify-9-conv-18)
+                               (Sum_fold#
+                                 (\reify-4-conv-14 ->
+                                   left# reify-4-conv-14)
+                                 (\reify-5-conv-15 ->
+                                   right# (add# reify-5-conv-15 1))
+                                 c-conv-11-aval-0))
+                           anf-0
+    }
+    
+    conv-26-aval-1 =r acc-conv-26
+    anf-3 = anf-0
+    acc-conv-26 =w Latest_push#
+                     conv-26-aval-1
+                     conv-1
+                     anf-3
 }
+
 save_resumable acc-conv-26
 save_resumable acc-c-conv-11
-read conv-26 =
-  acc-conv-26
-read c-conv-11 =
-  acc-c-conv-11
-let conv-31 =
-  Sum_fold#
-    (\reify-10-conv-21 ->
-      left# reify-10-conv-21)
-    (\reify-11-conv-23 ->
-      let
-        conv-27 =
-          Latest_read# conv-26
-        
-        conv-28 =
-          pair# reify-11-conv-23 conv-27
-      in
-        right# conv-28)
-    c-conv-11
+conv-26 =r acc-conv-26
+c-conv-11 =r acc-c-conv-11
+conv-31 = Sum_fold#
+            (\reify-10-conv-21 ->
+              left# reify-10-conv-21)
+            (\reify-11-conv-23 ->
+              let
+                conv-27 =
+                  Latest_read# conv-26
+                
+                conv-28 =
+                  pair# reify-11-conv-23 conv-27
+              in
+                right# conv-28)
+            c-conv-11
+
 output repl:output : Sum Error (Int, Array (Sum Error Int)) =
   conv-31 : Sum Error (Int, Array (Sum Error Int))
 
@@ -120,104 +113,100 @@ conv-3 : Time =
 conv-4 : Int =
   MAX_MAP_SIZE
 
-init acc-conv-37 : Sum Error (Map Time (Buf 2 (Sum Error Int, Time))) =
-  Right (Map [])
+acc-conv-37 =i Right (Map []) : Sum Error (Map Time (Buf 2 (Sum Error Int, Time)))
 load_resumable acc-conv-37
 
 for_facts conv-2 : Time
         , conv-1 : FactIdentifier
         , conv-0 : (Sum Error Int, Time) in new
 {
-  read conv-37-aval-0 =
-    acc-conv-37
-  write acc-conv-37 =
-    Sum_fold#
-      (\conv-30 -> left# conv-30)
-      (\conv-27 ->
-        let
-          conv-26 =
-            snd# conv-0
-          
-          conv-32 =
-            Map_insertOrUpdate#
-              (\conv-31 ->
-                Latest_push#
-                  conv-31
-                  conv-1
-                  conv-0)
-              (Latest_push#
-                (Buf [])
-                conv-1
-                conv-0)
-              conv-26
-              conv-27
-        in
-          if#
-            (\conv-33 -> right# conv-32)
-            (\conv-33 ->
-              Left ExceptCannotCompute)
-            (lt#
-              (length# (keys# conv-32))
-              conv-4))
-      conv-37-aval-0
+    conv-37-aval-0 =r acc-conv-37
+    acc-conv-37 =w Sum_fold#
+                     (\conv-30 -> left# conv-30)
+                     (\conv-27 ->
+                       let
+                         conv-26 =
+                           snd# conv-0
+                         
+                         conv-32 =
+                           Map_insertOrUpdate#
+                             (\conv-31 ->
+                               Latest_push#
+                                 conv-31
+                                 conv-1
+                                 conv-0)
+                             (Latest_push#
+                               (Buf [])
+                               conv-1
+                               conv-0)
+                             conv-26
+                             conv-27
+                       in
+                         if#
+                           (\conv-33 -> right# conv-32)
+                           (\conv-33 ->
+                             Left ExceptCannotCompute)
+                           (lt#
+                             (length# (keys# conv-32))
+                             conv-4))
+                     conv-37-aval-0
 }
-save_resumable acc-conv-37
 
-read conv-37 =
-  acc-conv-37
-let conv-38 =
-  Sum_fold#
-    (\conv-30 -> left# conv-30)
-    (\conv-27 ->
-      Map_fold#
-        (\conv-24 conv-26 conv-28 ->
-          Sum_fold#
+save_resumable acc-conv-37
+conv-37 =r acc-conv-37
+conv-38 = Sum_fold#
             (\conv-30 -> left# conv-30)
-            (\conv-25 ->
-              Sum_fold#
-                (\conv-30 -> left# conv-30)
-                (\conv-29 ->
-                  let
-                    conv-35 =
-                      Map_insertOrUpdate#
-                        (\conv-34 -> conv-29)
-                        conv-29
-                        conv-26
-                        conv-25
-                  in
-                    if#
-                      (\conv-36 -> right# conv-35)
-                      (\conv-36 ->
-                        Left ExceptCannotCompute)
-                      (lt#
-                        (length# (keys# conv-35))
-                        conv-4))
-                (let
-                  conv-5 =
-                    Latest_read# conv-28
-                in
-                  Array_fold#
-                    (\conv-9 conv-8 ->
+            (\conv-27 ->
+              Map_fold#
+                (\conv-24 conv-26 conv-28 ->
+                  Sum_fold#
+                    (\conv-30 -> left# conv-30)
+                    (\conv-25 ->
                       Sum_fold#
-                        (\reify-0-conv-12 ->
-                          left# reify-0-conv-12)
-                        (\reify-1-conv-13 ->
-                          Sum_fold#
-                            (\reify-2-conv-14 ->
-                              left# reify-2-conv-14)
-                            (\reify-3-conv-15 ->
-                              right#
-                                (add#
-                                  reify-1-conv-13
-                                  reify-3-conv-15))
-                            conv-9)
-                        (fst# conv-8))
-                    (Right 0)
-                    conv-5))
-            conv-24)
-        (Right (Map []))
-        conv-27)
-    conv-37
+                        (\conv-30 -> left# conv-30)
+                        (\conv-29 ->
+                          let
+                            conv-35 =
+                              Map_insertOrUpdate#
+                                (\conv-34 -> conv-29)
+                                conv-29
+                                conv-26
+                                conv-25
+                          in
+                            if#
+                              (\conv-36 -> right# conv-35)
+                              (\conv-36 ->
+                                Left ExceptCannotCompute)
+                              (lt#
+                                (length# (keys# conv-35))
+                                conv-4))
+                        (let
+                          conv-5 =
+                            Latest_read# conv-28
+                        in
+                          Array_fold#
+                            (\conv-9 conv-8 ->
+                              Sum_fold#
+                                (\reify-0-conv-12 ->
+                                  left# reify-0-conv-12)
+                                (\reify-1-conv-13 ->
+                                  Sum_fold#
+                                    (\reify-2-conv-14 ->
+                                      left# reify-2-conv-14)
+                                    (\reify-3-conv-15 ->
+                                      right#
+                                        (add#
+                                          reify-1-conv-13
+                                          reify-3-conv-15))
+                                    conv-9)
+                                (fst# conv-8))
+                            (Right 0)
+                            conv-5))
+                    conv-24)
+                (Right (Map []))
+                conv-27)
+            conv-37
+
 output repl:output : Sum Error (Map Time Int) =
   conv-38 : Sum Error (Map Time Int)
 

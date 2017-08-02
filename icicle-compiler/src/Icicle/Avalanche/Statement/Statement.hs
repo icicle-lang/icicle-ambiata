@@ -309,62 +309,74 @@ instance TransformX Accumulator where
 
 -- Pretty printing -------------
 
+flattenBlocks :: Statement a n p -> [Statement a n p]
+flattenBlocks = \case
+  Block xs ->
+    concatMap flattenBlocks xs
+  x ->
+    [x]
 
 instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
   pretty = \case
     If x stmts elses ->
+      line <>
       prettyKeyword "if" <+> prettyPunctuation "(" <> pretty x <> prettyPunctuation ")" <> line <>
       subscope stmts <>
       case elses of
         Block [] ->
-          mempty
+          line
         _ ->
           line <>
           prettyKeyword "else" <> line <>
-          subscope elses
+          subscope elses <>
+          line
 
     Let n x stmts ->
-      prettyKeyword "let" <+> annotate AnnBinding (pretty n) <+> "=" <> line <>
-      indent 2 (pretty x) <> line <>
+      annotate AnnBinding (pretty n) <+> "=" <+> pretty x <> line <>
       nosubscope stmts
 
     Read n acc _vt stmts ->
-      prettyKeyword "read" <+> annotate AnnBinding (pretty n) <+> "=" <> line <>
-      indent 2 (annotate AnnVariable $ pretty acc) <> line <>
+      annotate AnnBinding (pretty n) <+> prettyPunctuation "=r" <+> annotate AnnVariable (pretty acc) <> line <>
       nosubscope stmts
 
+    Write n x ->
+      annotate AnnBinding (pretty n) <+> prettyPunctuation "=w" <+> pretty x
+
     While t n _ end stmts ->
-      prettyKeyword "while" <+> prettyPunctuation "(" <> pretty n <+> pretty t <+> pretty end <> ")" <>
-      subscope stmts
+      line <>
+      prettyKeyword "while" <+> prettyPunctuation "(" <> annotate AnnVariable (pretty n) <+> pretty t <+> pretty end <> ")" <> line <>
+      subscope stmts <>
+      line
 
     ForeachInts _ n from to stmts ->
+      line <>
       prettyKeyword "foreach" <+>
         prettyPunctuation "(" <> annotate AnnBinding (pretty n) <+>
         prettyKeyword "in" <+> pretty from <+>
         prettyPunctuation ".." <+> pretty to <>
         prettyPunctuation ")" <> line <>
-      subscope stmts
+      subscope stmts <>
+      line
 
     ForeachFacts binds _ lo stmts ->
+      line <>
       prettyKeyword "for_facts" <+>
         prettyFactParts AnnBinding (factBindsAll binds) <+>
         prettyKeyword "in" <+> pretty lo <> line <>
-      subscope stmts
+      subscope stmts <>
+      line
 
-    Block stmts ->
+    x@(Block _) ->
      -- We don't actually need to indent here,
      -- because it doesn't really introduce scope
-     vcat $ fmap pretty stmts
+     vcat (fmap pretty $ flattenBlocks x)
 
-    InitAccumulator acc stmts ->
-      prettyKeyword "init" <+> pretty acc <> line <>
+    InitAccumulator (Accumulator n vt x) stmts ->
+      annotate AnnBinding (pretty n) <+> prettyPunctuation "=i" <+> prettyTypedFlat (pretty x) (pretty vt) <> line <>
       nosubscope stmts
 
-    Write n x ->
-      prettyKeyword "write" <+> annotate AnnBinding (pretty n) <+> prettyPunctuation "=" <> line <>
-      indent 2 (pretty x)
-
     Output n t xs ->
+      line <>
       prettyKeyword "output" <+>
         prettyTypedFlat (annotate AnnBinding $ pretty n) (pretty t) <+> prettyPunctuation "=" <> line <>
       case xs of
@@ -379,7 +391,7 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
           indent 4 $ prettyFactParts AnnVariable xs
 
     KeepFactInHistory x ->
-      prettyKeyword "keep_fact_in_history" <+> pretty x
+      prettyKeyword "keep_fact_in_history" <+> prettyPrec 11 x
 
     LoadResumable n _t ->
       prettyKeyword "load_resumable" <+> annotate AnnVariable (pretty n)
@@ -391,7 +403,7 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
     subscope stmt
      = vcat
      [ prettyPunctuation "{"
-     , indent 2 (pretty stmt)
+     , indent 4 (pretty stmt)
      , prettyPunctuation "}"]
 
     -- We don't want to indent for every let or read just for aesthetic reasons:
@@ -419,8 +431,7 @@ instance Pretty WhileType where
 
 instance (Pretty n, Pretty p) => Pretty (Accumulator a n p) where
   pretty (Accumulator n vt x) =
-    prettyTypedFlat (annotate AnnBinding $ pretty n) (pretty vt) <+> text "=" <> line <>
-    indent 2 (pretty x)
+    prettyTypedFlat (annotate AnnBinding $ pretty n) (pretty vt) <+> text "=" <+> pretty x
 
 instance Pretty FactLoopType where
   pretty = \case

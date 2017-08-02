@@ -29,28 +29,17 @@ conv-3 : Time =
 conv-4 : Int =
   MAX_MAP_SIZE
 
-init acc-conv-11-simpflat-22 : Error =
-  ExceptNotAnError
-init acc-conv-11-simpflat-23 : Double =
-  0.0
-init acc-s-reify-6-conv-12-simpflat-28 : Error =
-  ExceptFold1NoValue
-init acc-s-reify-6-conv-12-simpflat-29 : Double =
-  0.0
-init acc-s-reify-6-conv-12-simpflat-30 : Double =
-  0.0
-init acc-conv-76-simpflat-31 : Error =
-  ExceptNotAnError
-init acc-conv-76-simpflat-32 : Double =
-  0.0
-init acc-a-conv-77-simpflat-37 : Error =
-  ExceptNotAnError
-init acc-a-conv-77-simpflat-38 : Double =
-  0.0
-init acc-a-conv-77-simpflat-39 : Double =
-  0.0
-init acc-a-conv-77-simpflat-40 : Double =
-  0.0
+acc-conv-11-simpflat-22 =i ExceptNotAnError : Error
+acc-conv-11-simpflat-23 =i 0.0 : Double
+acc-s-reify-6-conv-12-simpflat-28 =i ExceptFold1NoValue : Error
+acc-s-reify-6-conv-12-simpflat-29 =i 0.0 : Double
+acc-s-reify-6-conv-12-simpflat-30 =i 0.0 : Double
+acc-conv-76-simpflat-31 =i ExceptNotAnError : Error
+acc-conv-76-simpflat-32 =i 0.0 : Double
+acc-a-conv-77-simpflat-37 =i ExceptNotAnError : Error
+acc-a-conv-77-simpflat-38 =i 0.0 : Double
+acc-a-conv-77-simpflat-39 =i 0.0 : Double
+acc-a-conv-77-simpflat-40 =i 0.0 : Double
 load_resumable acc-a-conv-77-simpflat-37
 load_resumable acc-a-conv-77-simpflat-38
 load_resumable acc-a-conv-77-simpflat-39
@@ -62,6 +51,7 @@ load_resumable acc-s-reify-6-conv-12-simpflat-29
 load_resumable acc-s-reify-6-conv-12-simpflat-30
 load_resumable acc-conv-11-simpflat-22
 load_resumable acc-conv-11-simpflat-23
+
 for_facts conv-2 : Time
         , conv-1 : FactIdentifier
         , conv-0-simpflat-307 : Error
@@ -69,1266 +59,919 @@ for_facts conv-2 : Time
         , conv-0-simpflat-309 : Int
         , conv-0-simpflat-310 : Time in new
 {
-  init flat-0-simpflat-41 : Error =
-    ExceptNotAnError
-  init flat-0-simpflat-42 : Int =
-    0
-  if (eq#
-        conv-0-simpflat-307
-        ExceptNotAnError)
-  {
-    write flat-0-simpflat-41 =
-      ExceptNotAnError
-    write flat-0-simpflat-42 =
-      conv-0-simpflat-309
-  }
-  else
-  {
-    write flat-0-simpflat-41 =
-      conv-0-simpflat-307
-    write flat-0-simpflat-42 =
-      0
-  }
-  read flat-0-simpflat-43 =
-    flat-0-simpflat-41
-  read flat-0-simpflat-44 =
-    flat-0-simpflat-42
-  init flat-1-simpflat-45 : Error =
-    ExceptNotAnError
-  init flat-1-simpflat-46 : Double =
-    0.0
-  if (eq#
-        flat-0-simpflat-43
-        ExceptNotAnError)
-  {
-    write flat-1-simpflat-45 =
-      ExceptNotAnError
-    write flat-1-simpflat-46 =
-      doubleOfInt#
-        flat-0-simpflat-44
-  }
-  else
-  {
-    write flat-1-simpflat-45 =
-      flat-0-simpflat-43
-    write flat-1-simpflat-46 =
-      0.0
-  }
-  read flat-1-simpflat-47 =
-    flat-1-simpflat-45
-  read flat-1-simpflat-48 =
-    flat-1-simpflat-46
-  init flat-2-simpflat-49 : Error =
-    ExceptNotAnError
-  init flat-2-simpflat-50 : Double =
-    0.0
-  if (eq#
-        flat-1-simpflat-47
-        ExceptNotAnError)
-  {
-    write flat-2-simpflat-49 =
-      ExceptNotAnError
-    write flat-2-simpflat-50 =
-      flat-1-simpflat-48
-  }
-  else
-  {
-    write flat-2-simpflat-49 =
-      flat-1-simpflat-47
-    write flat-2-simpflat-50 =
-      0.0
-  }
-  read flat-2-simpflat-51 =
-    flat-2-simpflat-49
-  read flat-2-simpflat-52 =
-    flat-2-simpflat-50
-  write acc-conv-11-simpflat-22 =
-    flat-2-simpflat-51
-  write acc-conv-11-simpflat-23 =
-    flat-2-simpflat-52
-  read conv-11-aval-1-simpflat-53 =
-    acc-conv-11-simpflat-22
-  read conv-11-aval-1-simpflat-54 =
-    acc-conv-11-simpflat-23
-  read s-reify-6-conv-12-aval-0-simpflat-59 =
-    acc-s-reify-6-conv-12-simpflat-28
-  read s-reify-6-conv-12-aval-0-simpflat-60 =
-    acc-s-reify-6-conv-12-simpflat-29
-  read s-reify-6-conv-12-aval-0-simpflat-61 =
-    acc-s-reify-6-conv-12-simpflat-30
-  init flat-3-simpflat-62 : Error =
-    ExceptNotAnError
-  init flat-3-simpflat-63 : Double =
-    0.0
-  init flat-3-simpflat-64 : Double =
-    0.0
-  if (eq#
-        s-reify-6-conv-12-aval-0-simpflat-59
-        ExceptNotAnError)
-  {
-    init flat-10-simpflat-65 : Error =
-      ExceptNotAnError
-    init flat-10-simpflat-66 : Double =
-      0.0
-    init flat-10-simpflat-67 : Double =
-      0.0
-    if (eq#
-          s-reify-6-conv-12-aval-0-simpflat-59
-          ExceptNotAnError)
-    {
-      init flat-13-simpflat-68 : Error =
-        ExceptNotAnError
-      init flat-13-simpflat-69 : Double =
-        0.0
-      if (eq#
-            conv-11-aval-1-simpflat-53
-            ExceptNotAnError)
-      {
-        let conv-25 =
-          sub#
-            conv-11-aval-1-simpflat-54
-            s-reify-6-conv-12-aval-0-simpflat-60
-        init flat-35-simpflat-70 : Error =
-          ExceptNotAnError
-        init flat-35-simpflat-71 : Double =
-          0.0
-        if (doubleIsValid# conv-25)
-        {
-          write flat-35-simpflat-70 =
-            ExceptNotAnError
-          write flat-35-simpflat-71 =
-            sub#
-              conv-11-aval-1-simpflat-54
-              s-reify-6-conv-12-aval-0-simpflat-60
-        }
-        else
-        {
-          write flat-35-simpflat-70 =
-            ExceptCannotCompute
-          write flat-35-simpflat-71 =
-            0.0
-        }
-        read flat-35-simpflat-72 =
-          flat-35-simpflat-70
-        read flat-35-simpflat-73 =
-          flat-35-simpflat-71
-        write flat-13-simpflat-68 =
-          flat-35-simpflat-72
-        write flat-13-simpflat-69 =
-          flat-35-simpflat-73
-      }
-      else
-      {
-        write flat-13-simpflat-68 =
-          conv-11-aval-1-simpflat-53
-        write flat-13-simpflat-69 =
-          0.0
-      }
-      read flat-13-simpflat-74 =
-        flat-13-simpflat-68
-      read flat-13-simpflat-75 =
-        flat-13-simpflat-69
-      init flat-14-simpflat-76 : Error =
-        ExceptNotAnError
-      init flat-14-simpflat-77 : Double =
-        0.0
-      if (eq#
-            flat-13-simpflat-74
-            ExceptNotAnError)
-      {
-        let conv-30 =
-          add#
-            s-reify-6-conv-12-aval-0-simpflat-61
-            1.0
-        init flat-28-simpflat-78 : Error =
-          ExceptNotAnError
-        init flat-28-simpflat-79 : Double =
-          0.0
-        if (doubleIsValid# conv-30)
-        {
-          write flat-28-simpflat-78 =
-            ExceptNotAnError
-          write flat-28-simpflat-79 =
-            add#
-              s-reify-6-conv-12-aval-0-simpflat-61
-              1.0
-        }
-        else
-        {
-          write flat-28-simpflat-78 =
-            ExceptCannotCompute
-          write flat-28-simpflat-79 =
-            0.0
-        }
-        read flat-28-simpflat-80 =
-          flat-28-simpflat-78
-        read flat-28-simpflat-81 =
-          flat-28-simpflat-79
-        init flat-29-simpflat-82 : Error =
-          ExceptNotAnError
-        init flat-29-simpflat-83 : Double =
-          0.0
-        if (eq#
-              flat-28-simpflat-80
-              ExceptNotAnError)
-        {
-          let conv-34 =
-            div#
-              flat-13-simpflat-75
-              flat-28-simpflat-81
-          init flat-32-simpflat-84 : Error =
-            ExceptNotAnError
-          init flat-32-simpflat-85 : Double =
-            0.0
-          if (doubleIsValid# conv-34)
-          {
-            write flat-32-simpflat-84 =
-              ExceptNotAnError
-            write flat-32-simpflat-85 =
-              div#
-                flat-13-simpflat-75
-                flat-28-simpflat-81
-          }
-          else
-          {
-            write flat-32-simpflat-84 =
-              ExceptCannotCompute
-            write flat-32-simpflat-85 =
-              0.0
-          }
-          read flat-32-simpflat-86 =
-            flat-32-simpflat-84
-          read flat-32-simpflat-87 =
-            flat-32-simpflat-85
-          write flat-29-simpflat-82 =
-            flat-32-simpflat-86
-          write flat-29-simpflat-83 =
-            flat-32-simpflat-87
-        }
-        else
-        {
-          write flat-29-simpflat-82 =
-            flat-28-simpflat-80
-          write flat-29-simpflat-83 =
-            0.0
-        }
-        read flat-29-simpflat-88 =
-          flat-29-simpflat-82
-        read flat-29-simpflat-89 =
-          flat-29-simpflat-83
-        write flat-14-simpflat-76 =
-          flat-29-simpflat-88
-        write flat-14-simpflat-77 =
-          flat-29-simpflat-89
-      }
-      else
-      {
-        write flat-14-simpflat-76 =
-          flat-13-simpflat-74
-        write flat-14-simpflat-77 =
-          0.0
-      }
-      read flat-14-simpflat-90 =
-        flat-14-simpflat-76
-      read flat-14-simpflat-91 =
-        flat-14-simpflat-77
-      init flat-15-simpflat-92 : Error =
-        ExceptNotAnError
-      init flat-15-simpflat-93 : Double =
-        0.0
-      if (eq#
-            flat-14-simpflat-90
-            ExceptNotAnError)
-      {
-        let conv-40 =
-          add#
-            s-reify-6-conv-12-aval-0-simpflat-60
-            flat-14-simpflat-91
-        init flat-25-simpflat-94 : Error =
-          ExceptNotAnError
-        init flat-25-simpflat-95 : Double =
-          0.0
-        if (doubleIsValid# conv-40)
-        {
-          write flat-25-simpflat-94 =
-            ExceptNotAnError
-          write flat-25-simpflat-95 =
-            add#
-              s-reify-6-conv-12-aval-0-simpflat-60
-              flat-14-simpflat-91
-        }
-        else
-        {
-          write flat-25-simpflat-94 =
-            ExceptCannotCompute
-          write flat-25-simpflat-95 =
-            0.0
-        }
-        read flat-25-simpflat-96 =
-          flat-25-simpflat-94
-        read flat-25-simpflat-97 =
-          flat-25-simpflat-95
-        write flat-15-simpflat-92 =
-          flat-25-simpflat-96
-        write flat-15-simpflat-93 =
-          flat-25-simpflat-97
-      }
-      else
-      {
-        write flat-15-simpflat-92 =
-          flat-14-simpflat-90
-        write flat-15-simpflat-93 =
-          0.0
-      }
-      read flat-15-simpflat-98 =
-        flat-15-simpflat-92
-      read flat-15-simpflat-99 =
-        flat-15-simpflat-93
-      init flat-16-simpflat-100 : Error =
-        ExceptNotAnError
-      init flat-16-simpflat-101 : Double =
-        0.0
-      init flat-16-simpflat-102 : Double =
-        0.0
-      if (eq#
-            flat-15-simpflat-98
-            ExceptNotAnError)
-      {
-        let conv-45 =
-          add#
-            s-reify-6-conv-12-aval-0-simpflat-61
-            1.0
-        init flat-19-simpflat-103 : Error =
-          ExceptNotAnError
-        init flat-19-simpflat-104 : Double =
-          0.0
-        if (doubleIsValid# conv-45)
-        {
-          write flat-19-simpflat-103 =
-            ExceptNotAnError
-          write flat-19-simpflat-104 =
-            add#
-              s-reify-6-conv-12-aval-0-simpflat-61
-              1.0
-        }
-        else
-        {
-          write flat-19-simpflat-103 =
-            ExceptCannotCompute
-          write flat-19-simpflat-104 =
-            0.0
-        }
-        read flat-19-simpflat-105 =
-          flat-19-simpflat-103
-        read flat-19-simpflat-106 =
-          flat-19-simpflat-104
-        init flat-20-simpflat-107 : Error =
-          ExceptNotAnError
-        init flat-20-simpflat-108 : Double =
-          0.0
-        init flat-20-simpflat-109 : Double =
-          0.0
-        if (eq#
-              flat-19-simpflat-105
-              ExceptNotAnError)
-        {
-          write flat-20-simpflat-107 =
-            ExceptNotAnError
-          write flat-20-simpflat-108 =
-            flat-15-simpflat-99
-          write flat-20-simpflat-109 =
-            flat-19-simpflat-106
-        }
-        else
-        {
-          write flat-20-simpflat-107 =
-            flat-19-simpflat-105
-          write flat-20-simpflat-108 =
-            0.0
-          write flat-20-simpflat-109 =
-            0.0
-        }
-        read flat-20-simpflat-110 =
-          flat-20-simpflat-107
-        read flat-20-simpflat-111 =
-          flat-20-simpflat-108
-        read flat-20-simpflat-112 =
-          flat-20-simpflat-109
-        write flat-16-simpflat-100 =
-          flat-20-simpflat-110
-        write flat-16-simpflat-101 =
-          flat-20-simpflat-111
-        write flat-16-simpflat-102 =
-          flat-20-simpflat-112
-      }
-      else
-      {
-        write flat-16-simpflat-100 =
-          flat-15-simpflat-98
-        write flat-16-simpflat-101 =
-          0.0
-        write flat-16-simpflat-102 =
-          0.0
-      }
-      read flat-16-simpflat-113 =
-        flat-16-simpflat-100
-      read flat-16-simpflat-114 =
-        flat-16-simpflat-101
-      read flat-16-simpflat-115 =
-        flat-16-simpflat-102
-      write flat-10-simpflat-65 =
-        flat-16-simpflat-113
-      write flat-10-simpflat-66 =
-        flat-16-simpflat-114
-      write flat-10-simpflat-67 =
-        flat-16-simpflat-115
-    }
-    else
-    {
-      write flat-10-simpflat-65 =
-        s-reify-6-conv-12-aval-0-simpflat-59
-      write flat-10-simpflat-66 =
-        0.0
-      write flat-10-simpflat-67 =
-        0.0
-    }
-    read flat-10-simpflat-116 =
-      flat-10-simpflat-65
-    read flat-10-simpflat-117 =
-      flat-10-simpflat-66
-    read flat-10-simpflat-118 =
-      flat-10-simpflat-67
-    write flat-3-simpflat-62 =
-      flat-10-simpflat-116
-    write flat-3-simpflat-63 =
-      flat-10-simpflat-117
-    write flat-3-simpflat-64 =
-      flat-10-simpflat-118
-  }
-  else
-  {
-    init flat-6-simpflat-119 : Error =
-      ExceptNotAnError
-    init flat-6-simpflat-120 : Double =
-      0.0
-    init flat-6-simpflat-121 : Double =
-      0.0
-    if (eq#
-          ExceptFold1NoValue
-          s-reify-6-conv-12-aval-0-simpflat-59)
-    {
-      init flat-7-simpflat-122 : Error =
-        ExceptNotAnError
-      init flat-7-simpflat-123 : Double =
-        0.0
-      init flat-7-simpflat-124 : Double =
-        0.0
-      if (eq#
-            conv-11-aval-1-simpflat-53
-            ExceptNotAnError)
-      {
-        write flat-7-simpflat-122 =
-          ExceptNotAnError
-        write flat-7-simpflat-123 =
-          conv-11-aval-1-simpflat-54
-        write flat-7-simpflat-124 =
-          1.0
-      }
-      else
-      {
-        write flat-7-simpflat-122 =
-          conv-11-aval-1-simpflat-53
-        write flat-7-simpflat-123 =
-          0.0
-        write flat-7-simpflat-124 =
-          0.0
-      }
-      read flat-7-simpflat-125 =
-        flat-7-simpflat-122
-      read flat-7-simpflat-126 =
-        flat-7-simpflat-123
-      read flat-7-simpflat-127 =
-        flat-7-simpflat-124
-      write flat-6-simpflat-119 =
-        flat-7-simpflat-125
-      write flat-6-simpflat-120 =
-        flat-7-simpflat-126
-      write flat-6-simpflat-121 =
-        flat-7-simpflat-127
-    }
-    else
-    {
-      write flat-6-simpflat-119 =
-        s-reify-6-conv-12-aval-0-simpflat-59
-      write flat-6-simpflat-120 =
-        0.0
-      write flat-6-simpflat-121 =
-        0.0
-    }
-    read flat-6-simpflat-128 =
-      flat-6-simpflat-119
-    read flat-6-simpflat-129 =
-      flat-6-simpflat-120
-    read flat-6-simpflat-130 =
-      flat-6-simpflat-121
-    write flat-3-simpflat-62 =
-      flat-6-simpflat-128
-    write flat-3-simpflat-63 =
-      flat-6-simpflat-129
-    write flat-3-simpflat-64 =
-      flat-6-simpflat-130
-  }
-  read flat-3-simpflat-131 =
-    flat-3-simpflat-62
-  read flat-3-simpflat-132 =
-    flat-3-simpflat-63
-  read flat-3-simpflat-133 =
-    flat-3-simpflat-64
-  write acc-s-reify-6-conv-12-simpflat-28 =
-    flat-3-simpflat-131
-  write acc-s-reify-6-conv-12-simpflat-29 =
-    flat-3-simpflat-132
-  write acc-s-reify-6-conv-12-simpflat-30 =
-    flat-3-simpflat-133
-  init flat-36-simpflat-134 : Error =
-    ExceptNotAnError
-  init flat-36-simpflat-135 : String =
-    ""
-  if (eq#
-        conv-0-simpflat-307
-        ExceptNotAnError)
-  {
-    write flat-36-simpflat-134 =
-      ExceptNotAnError
-    write flat-36-simpflat-135 =
-      conv-0-simpflat-308
-  }
-  else
-  {
-    write flat-36-simpflat-134 =
-      conv-0-simpflat-307
-    write flat-36-simpflat-135 =
-      ""
-  }
-  read flat-36-simpflat-136 =
-    flat-36-simpflat-134
-  read flat-36-simpflat-137 =
-    flat-36-simpflat-135
-  init flat-37-simpflat-138 : Error =
-    ExceptNotAnError
-  init flat-37-simpflat-139 : Bool =
-    False
-  if (eq#
-        flat-36-simpflat-136
-        ExceptNotAnError)
-  {
-    write flat-37-simpflat-138 =
-      ExceptNotAnError
-    write flat-37-simpflat-139 =
-      eq#
-        flat-36-simpflat-137
-        "torso"
-  }
-  else
-  {
-    write flat-37-simpflat-138 =
-      flat-36-simpflat-136
-    write flat-37-simpflat-139 =
-      False
-  }
-  read flat-37-simpflat-140 =
-    flat-37-simpflat-138
-  read flat-37-simpflat-141 =
-    flat-37-simpflat-139
-  init flat-38 : Bool =
-    False
-  if (eq#
-        flat-37-simpflat-140
-        ExceptNotAnError)
-  {
-    write flat-38 =
-      flat-37-simpflat-141
-  }
-  else
-  {
-    write flat-38 =
-      True
-  }
-  read flat-38 =
-    flat-38
-  if (flat-38)
-  {
-    init flat-39-simpflat-142 : Error =
-      ExceptNotAnError
-    init flat-39-simpflat-143 : Int =
-      0
+    flat-0-simpflat-41 =i ExceptNotAnError : Error
+    flat-0-simpflat-42 =i 0 : Int
+    
     if (eq#
           conv-0-simpflat-307
           ExceptNotAnError)
     {
-      write flat-39-simpflat-142 =
-        ExceptNotAnError
-      write flat-39-simpflat-143 =
-        conv-0-simpflat-309
+        flat-0-simpflat-41 =w ExceptNotAnError
+        flat-0-simpflat-42 =w conv-0-simpflat-309
     }
     else
     {
-      write flat-39-simpflat-142 =
-        conv-0-simpflat-307
-      write flat-39-simpflat-143 =
-        0
+        flat-0-simpflat-41 =w conv-0-simpflat-307
+        flat-0-simpflat-42 =w 0
     }
-    read flat-39-simpflat-144 =
-      flat-39-simpflat-142
-    read flat-39-simpflat-145 =
-      flat-39-simpflat-143
-    init flat-40-simpflat-146 : Error =
-      ExceptNotAnError
-    init flat-40-simpflat-147 : Double =
-      0.0
+    
+    flat-0-simpflat-43 =r flat-0-simpflat-41
+    flat-0-simpflat-44 =r flat-0-simpflat-42
+    flat-1-simpflat-45 =i ExceptNotAnError : Error
+    flat-1-simpflat-46 =i 0.0 : Double
+    
     if (eq#
-          flat-39-simpflat-144
+          flat-0-simpflat-43
           ExceptNotAnError)
     {
-      write flat-40-simpflat-146 =
-        ExceptNotAnError
-      write flat-40-simpflat-147 =
-        doubleOfInt#
-          flat-39-simpflat-145
+        flat-1-simpflat-45 =w ExceptNotAnError
+        flat-1-simpflat-46 =w doubleOfInt#
+                                flat-0-simpflat-44
     }
     else
     {
-      write flat-40-simpflat-146 =
-        flat-39-simpflat-144
-      write flat-40-simpflat-147 =
-        0.0
+        flat-1-simpflat-45 =w flat-0-simpflat-43
+        flat-1-simpflat-46 =w 0.0
     }
-    read flat-40-simpflat-148 =
-      flat-40-simpflat-146
-    read flat-40-simpflat-149 =
-      flat-40-simpflat-147
-    write acc-conv-76-simpflat-31 =
-      flat-40-simpflat-148
-    write acc-conv-76-simpflat-32 =
-      flat-40-simpflat-149
-    read conv-76-aval-3-simpflat-150 =
-      acc-conv-76-simpflat-31
-    read conv-76-aval-3-simpflat-151 =
-      acc-conv-76-simpflat-32
-    read a-conv-77-aval-2-simpflat-156 =
-      acc-a-conv-77-simpflat-37
-    read a-conv-77-aval-2-simpflat-157 =
-      acc-a-conv-77-simpflat-38
-    read a-conv-77-aval-2-simpflat-158 =
-      acc-a-conv-77-simpflat-39
-    read a-conv-77-aval-2-simpflat-159 =
-      acc-a-conv-77-simpflat-40
-    init flat-41-simpflat-160 : Error =
-      ExceptNotAnError
-    init flat-41-simpflat-161 : Double =
-      0.0
-    init flat-41-simpflat-162 : Double =
-      0.0
-    init flat-41-simpflat-163 : Double =
-      0.0
+    
+    flat-1-simpflat-47 =r flat-1-simpflat-45
+    flat-1-simpflat-48 =r flat-1-simpflat-46
+    flat-2-simpflat-49 =i ExceptNotAnError : Error
+    flat-2-simpflat-50 =i 0.0 : Double
+    
     if (eq#
-          a-conv-77-aval-2-simpflat-156
+          flat-1-simpflat-47
           ExceptNotAnError)
     {
-      let conv-84 =
-        add#
-          a-conv-77-aval-2-simpflat-157
-          1.0
-      init flat-44-simpflat-164 : Error =
-        ExceptNotAnError
-      init flat-44-simpflat-165 : Double =
-        0.0
-      if (doubleIsValid# conv-84)
-      {
-        write flat-44-simpflat-164 =
-          ExceptNotAnError
-        write flat-44-simpflat-165 =
-          add#
-            a-conv-77-aval-2-simpflat-157
-            1.0
-      }
-      else
-      {
-        write flat-44-simpflat-164 =
-          ExceptCannotCompute
-        write flat-44-simpflat-165 =
-          0.0
-      }
-      read flat-44-simpflat-166 =
-        flat-44-simpflat-164
-      read flat-44-simpflat-167 =
-        flat-44-simpflat-165
-      init flat-45-simpflat-168 : Error =
-        ExceptNotAnError
-      init flat-45-simpflat-169 : Double =
-        0.0
-      if (eq#
-            conv-76-aval-3-simpflat-150
-            ExceptNotAnError)
-      {
-        let conv-89 =
-          sub#
-            conv-76-aval-3-simpflat-151
-            a-conv-77-aval-2-simpflat-158
-        init flat-89-simpflat-170 : Error =
-          ExceptNotAnError
-        init flat-89-simpflat-171 : Double =
-          0.0
-        if (doubleIsValid# conv-89)
-        {
-          write flat-89-simpflat-170 =
-            ExceptNotAnError
-          write flat-89-simpflat-171 =
-            sub#
-              conv-76-aval-3-simpflat-151
-              a-conv-77-aval-2-simpflat-158
-        }
-        else
-        {
-          write flat-89-simpflat-170 =
-            ExceptCannotCompute
-          write flat-89-simpflat-171 =
-            0.0
-        }
-        read flat-89-simpflat-172 =
-          flat-89-simpflat-170
-        read flat-89-simpflat-173 =
-          flat-89-simpflat-171
-        write flat-45-simpflat-168 =
-          flat-89-simpflat-172
-        write flat-45-simpflat-169 =
-          flat-89-simpflat-173
-      }
-      else
-      {
-        write flat-45-simpflat-168 =
-          conv-76-aval-3-simpflat-150
-        write flat-45-simpflat-169 =
-          0.0
-      }
-      read flat-45-simpflat-174 =
-        flat-45-simpflat-168
-      read flat-45-simpflat-175 =
-        flat-45-simpflat-169
-      init flat-46-simpflat-176 : Error =
-        ExceptNotAnError
-      init flat-46-simpflat-177 : Double =
-        0.0
-      if (eq#
-            flat-45-simpflat-174
-            ExceptNotAnError)
-      {
-        init flat-83-simpflat-178 : Error =
-          ExceptNotAnError
-        init flat-83-simpflat-179 : Double =
-          0.0
+        flat-2-simpflat-49 =w ExceptNotAnError
+        flat-2-simpflat-50 =w flat-1-simpflat-48
+    }
+    else
+    {
+        flat-2-simpflat-49 =w flat-1-simpflat-47
+        flat-2-simpflat-50 =w 0.0
+    }
+    
+    flat-2-simpflat-51 =r flat-2-simpflat-49
+    flat-2-simpflat-52 =r flat-2-simpflat-50
+    acc-conv-11-simpflat-22 =w flat-2-simpflat-51
+    acc-conv-11-simpflat-23 =w flat-2-simpflat-52
+    conv-11-aval-1-simpflat-53 =r acc-conv-11-simpflat-22
+    conv-11-aval-1-simpflat-54 =r acc-conv-11-simpflat-23
+    s-reify-6-conv-12-aval-0-simpflat-59 =r acc-s-reify-6-conv-12-simpflat-28
+    s-reify-6-conv-12-aval-0-simpflat-60 =r acc-s-reify-6-conv-12-simpflat-29
+    s-reify-6-conv-12-aval-0-simpflat-61 =r acc-s-reify-6-conv-12-simpflat-30
+    flat-3-simpflat-62 =i ExceptNotAnError : Error
+    flat-3-simpflat-63 =i 0.0 : Double
+    flat-3-simpflat-64 =i 0.0 : Double
+    
+    if (eq#
+          s-reify-6-conv-12-aval-0-simpflat-59
+          ExceptNotAnError)
+    {
+        flat-10-simpflat-65 =i ExceptNotAnError : Error
+        flat-10-simpflat-66 =i 0.0 : Double
+        flat-10-simpflat-67 =i 0.0 : Double
+        
         if (eq#
-              flat-44-simpflat-166
+              s-reify-6-conv-12-aval-0-simpflat-59
               ExceptNotAnError)
         {
-          let conv-97 =
-            div#
-              flat-45-simpflat-175
-              flat-44-simpflat-167
-          init flat-86-simpflat-180 : Error =
-            ExceptNotAnError
-          init flat-86-simpflat-181 : Double =
-            0.0
-          if (doubleIsValid# conv-97)
-          {
-            write flat-86-simpflat-180 =
-              ExceptNotAnError
-            write flat-86-simpflat-181 =
-              div#
-                flat-45-simpflat-175
-                flat-44-simpflat-167
-          }
-          else
-          {
-            write flat-86-simpflat-180 =
-              ExceptCannotCompute
-            write flat-86-simpflat-181 =
-              0.0
-          }
-          read flat-86-simpflat-182 =
-            flat-86-simpflat-180
-          read flat-86-simpflat-183 =
-            flat-86-simpflat-181
-          write flat-83-simpflat-178 =
-            flat-86-simpflat-182
-          write flat-83-simpflat-179 =
-            flat-86-simpflat-183
-        }
-        else
-        {
-          write flat-83-simpflat-178 =
-            flat-44-simpflat-166
-          write flat-83-simpflat-179 =
-            0.0
-        }
-        read flat-83-simpflat-184 =
-          flat-83-simpflat-178
-        read flat-83-simpflat-185 =
-          flat-83-simpflat-179
-        write flat-46-simpflat-176 =
-          flat-83-simpflat-184
-        write flat-46-simpflat-177 =
-          flat-83-simpflat-185
-      }
-      else
-      {
-        write flat-46-simpflat-176 =
-          flat-45-simpflat-174
-        write flat-46-simpflat-177 =
-          0.0
-      }
-      read flat-46-simpflat-186 =
-        flat-46-simpflat-176
-      read flat-46-simpflat-187 =
-        flat-46-simpflat-177
-      init flat-47-simpflat-188 : Error =
-        ExceptNotAnError
-      init flat-47-simpflat-189 : Double =
-        0.0
-      if (eq#
-            flat-46-simpflat-186
-            ExceptNotAnError)
-      {
-        let conv-103 =
-          add#
-            a-conv-77-aval-2-simpflat-158
-            flat-46-simpflat-187
-        init flat-80-simpflat-190 : Error =
-          ExceptNotAnError
-        init flat-80-simpflat-191 : Double =
-          0.0
-        if (doubleIsValid# conv-103)
-        {
-          write flat-80-simpflat-190 =
-            ExceptNotAnError
-          write flat-80-simpflat-191 =
-            add#
-              a-conv-77-aval-2-simpflat-158
-              flat-46-simpflat-187
-        }
-        else
-        {
-          write flat-80-simpflat-190 =
-            ExceptCannotCompute
-          write flat-80-simpflat-191 =
-            0.0
-        }
-        read flat-80-simpflat-192 =
-          flat-80-simpflat-190
-        read flat-80-simpflat-193 =
-          flat-80-simpflat-191
-        write flat-47-simpflat-188 =
-          flat-80-simpflat-192
-        write flat-47-simpflat-189 =
-          flat-80-simpflat-193
-      }
-      else
-      {
-        write flat-47-simpflat-188 =
-          flat-46-simpflat-186
-        write flat-47-simpflat-189 =
-          0.0
-      }
-      read flat-47-simpflat-194 =
-        flat-47-simpflat-188
-      read flat-47-simpflat-195 =
-        flat-47-simpflat-189
-      init flat-48-simpflat-196 : Error =
-        ExceptNotAnError
-      init flat-48-simpflat-197 : Double =
-        0.0
-      if (eq#
-            flat-45-simpflat-174
-            ExceptNotAnError)
-      {
-        init flat-67-simpflat-198 : Error =
-          ExceptNotAnError
-        init flat-67-simpflat-199 : Double =
-          0.0
-        if (eq#
-              conv-76-aval-3-simpflat-150
-              ExceptNotAnError)
-        {
-          init flat-74-simpflat-200 : Error =
-            ExceptNotAnError
-          init flat-74-simpflat-201 : Double =
-            0.0
-          if (eq#
-                flat-47-simpflat-194
-                ExceptNotAnError)
-          {
-            let conv-113 =
-              sub#
-                conv-76-aval-3-simpflat-151
-                flat-47-simpflat-195
-            init flat-77-simpflat-202 : Error =
-              ExceptNotAnError
-            init flat-77-simpflat-203 : Double =
-              0.0
-            if (doubleIsValid# conv-113)
+            flat-13-simpflat-68 =i ExceptNotAnError : Error
+            flat-13-simpflat-69 =i 0.0 : Double
+            
+            if (eq#
+                  conv-11-aval-1-simpflat-53
+                  ExceptNotAnError)
             {
-              write flat-77-simpflat-202 =
-                ExceptNotAnError
-              write flat-77-simpflat-203 =
-                sub#
-                  conv-76-aval-3-simpflat-151
-                  flat-47-simpflat-195
+                conv-25 = sub#
+                            conv-11-aval-1-simpflat-54
+                            s-reify-6-conv-12-aval-0-simpflat-60
+                flat-35-simpflat-70 =i ExceptNotAnError : Error
+                flat-35-simpflat-71 =i 0.0 : Double
+                
+                if (doubleIsValid# conv-25)
+                {
+                    flat-35-simpflat-70 =w ExceptNotAnError
+                    flat-35-simpflat-71 =w sub#
+                                             conv-11-aval-1-simpflat-54
+                                             s-reify-6-conv-12-aval-0-simpflat-60
+                }
+                else
+                {
+                    flat-35-simpflat-70 =w ExceptCannotCompute
+                    flat-35-simpflat-71 =w 0.0
+                }
+                
+                flat-35-simpflat-72 =r flat-35-simpflat-70
+                flat-35-simpflat-73 =r flat-35-simpflat-71
+                flat-13-simpflat-68 =w flat-35-simpflat-72
+                flat-13-simpflat-69 =w flat-35-simpflat-73
             }
             else
             {
-              write flat-77-simpflat-202 =
-                ExceptCannotCompute
-              write flat-77-simpflat-203 =
-                0.0
+                flat-13-simpflat-68 =w conv-11-aval-1-simpflat-53
+                flat-13-simpflat-69 =w 0.0
             }
-            read flat-77-simpflat-204 =
-              flat-77-simpflat-202
-            read flat-77-simpflat-205 =
-              flat-77-simpflat-203
-            write flat-74-simpflat-200 =
-              flat-77-simpflat-204
-            write flat-74-simpflat-201 =
-              flat-77-simpflat-205
-          }
-          else
-          {
-            write flat-74-simpflat-200 =
-              flat-47-simpflat-194
-            write flat-74-simpflat-201 =
-              0.0
-          }
-          read flat-74-simpflat-206 =
-            flat-74-simpflat-200
-          read flat-74-simpflat-207 =
-            flat-74-simpflat-201
-          write flat-67-simpflat-198 =
-            flat-74-simpflat-206
-          write flat-67-simpflat-199 =
-            flat-74-simpflat-207
+            
+            flat-13-simpflat-74 =r flat-13-simpflat-68
+            flat-13-simpflat-75 =r flat-13-simpflat-69
+            flat-14-simpflat-76 =i ExceptNotAnError : Error
+            flat-14-simpflat-77 =i 0.0 : Double
+            
+            if (eq#
+                  flat-13-simpflat-74
+                  ExceptNotAnError)
+            {
+                conv-30 = add#
+                            s-reify-6-conv-12-aval-0-simpflat-61
+                            1.0
+                flat-28-simpflat-78 =i ExceptNotAnError : Error
+                flat-28-simpflat-79 =i 0.0 : Double
+                
+                if (doubleIsValid# conv-30)
+                {
+                    flat-28-simpflat-78 =w ExceptNotAnError
+                    flat-28-simpflat-79 =w add#
+                                             s-reify-6-conv-12-aval-0-simpflat-61
+                                             1.0
+                }
+                else
+                {
+                    flat-28-simpflat-78 =w ExceptCannotCompute
+                    flat-28-simpflat-79 =w 0.0
+                }
+                
+                flat-28-simpflat-80 =r flat-28-simpflat-78
+                flat-28-simpflat-81 =r flat-28-simpflat-79
+                flat-29-simpflat-82 =i ExceptNotAnError : Error
+                flat-29-simpflat-83 =i 0.0 : Double
+                
+                if (eq#
+                      flat-28-simpflat-80
+                      ExceptNotAnError)
+                {
+                    conv-34 = div#
+                                flat-13-simpflat-75
+                                flat-28-simpflat-81
+                    flat-32-simpflat-84 =i ExceptNotAnError : Error
+                    flat-32-simpflat-85 =i 0.0 : Double
+                    
+                    if (doubleIsValid# conv-34)
+                    {
+                        flat-32-simpflat-84 =w ExceptNotAnError
+                        flat-32-simpflat-85 =w div#
+                                                 flat-13-simpflat-75
+                                                 flat-28-simpflat-81
+                    }
+                    else
+                    {
+                        flat-32-simpflat-84 =w ExceptCannotCompute
+                        flat-32-simpflat-85 =w 0.0
+                    }
+                    
+                    flat-32-simpflat-86 =r flat-32-simpflat-84
+                    flat-32-simpflat-87 =r flat-32-simpflat-85
+                    flat-29-simpflat-82 =w flat-32-simpflat-86
+                    flat-29-simpflat-83 =w flat-32-simpflat-87
+                }
+                else
+                {
+                    flat-29-simpflat-82 =w flat-28-simpflat-80
+                    flat-29-simpflat-83 =w 0.0
+                }
+                
+                flat-29-simpflat-88 =r flat-29-simpflat-82
+                flat-29-simpflat-89 =r flat-29-simpflat-83
+                flat-14-simpflat-76 =w flat-29-simpflat-88
+                flat-14-simpflat-77 =w flat-29-simpflat-89
+            }
+            else
+            {
+                flat-14-simpflat-76 =w flat-13-simpflat-74
+                flat-14-simpflat-77 =w 0.0
+            }
+            
+            flat-14-simpflat-90 =r flat-14-simpflat-76
+            flat-14-simpflat-91 =r flat-14-simpflat-77
+            flat-15-simpflat-92 =i ExceptNotAnError : Error
+            flat-15-simpflat-93 =i 0.0 : Double
+            
+            if (eq#
+                  flat-14-simpflat-90
+                  ExceptNotAnError)
+            {
+                conv-40 = add#
+                            s-reify-6-conv-12-aval-0-simpflat-60
+                            flat-14-simpflat-91
+                flat-25-simpflat-94 =i ExceptNotAnError : Error
+                flat-25-simpflat-95 =i 0.0 : Double
+                
+                if (doubleIsValid# conv-40)
+                {
+                    flat-25-simpflat-94 =w ExceptNotAnError
+                    flat-25-simpflat-95 =w add#
+                                             s-reify-6-conv-12-aval-0-simpflat-60
+                                             flat-14-simpflat-91
+                }
+                else
+                {
+                    flat-25-simpflat-94 =w ExceptCannotCompute
+                    flat-25-simpflat-95 =w 0.0
+                }
+                
+                flat-25-simpflat-96 =r flat-25-simpflat-94
+                flat-25-simpflat-97 =r flat-25-simpflat-95
+                flat-15-simpflat-92 =w flat-25-simpflat-96
+                flat-15-simpflat-93 =w flat-25-simpflat-97
+            }
+            else
+            {
+                flat-15-simpflat-92 =w flat-14-simpflat-90
+                flat-15-simpflat-93 =w 0.0
+            }
+            
+            flat-15-simpflat-98 =r flat-15-simpflat-92
+            flat-15-simpflat-99 =r flat-15-simpflat-93
+            flat-16-simpflat-100 =i ExceptNotAnError : Error
+            flat-16-simpflat-101 =i 0.0 : Double
+            flat-16-simpflat-102 =i 0.0 : Double
+            
+            if (eq#
+                  flat-15-simpflat-98
+                  ExceptNotAnError)
+            {
+                conv-45 = add#
+                            s-reify-6-conv-12-aval-0-simpflat-61
+                            1.0
+                flat-19-simpflat-103 =i ExceptNotAnError : Error
+                flat-19-simpflat-104 =i 0.0 : Double
+                
+                if (doubleIsValid# conv-45)
+                {
+                    flat-19-simpflat-103 =w ExceptNotAnError
+                    flat-19-simpflat-104 =w add#
+                                              s-reify-6-conv-12-aval-0-simpflat-61
+                                              1.0
+                }
+                else
+                {
+                    flat-19-simpflat-103 =w ExceptCannotCompute
+                    flat-19-simpflat-104 =w 0.0
+                }
+                
+                flat-19-simpflat-105 =r flat-19-simpflat-103
+                flat-19-simpflat-106 =r flat-19-simpflat-104
+                flat-20-simpflat-107 =i ExceptNotAnError : Error
+                flat-20-simpflat-108 =i 0.0 : Double
+                flat-20-simpflat-109 =i 0.0 : Double
+                
+                if (eq#
+                      flat-19-simpflat-105
+                      ExceptNotAnError)
+                {
+                    flat-20-simpflat-107 =w ExceptNotAnError
+                    flat-20-simpflat-108 =w flat-15-simpflat-99
+                    flat-20-simpflat-109 =w flat-19-simpflat-106
+                }
+                else
+                {
+                    flat-20-simpflat-107 =w flat-19-simpflat-105
+                    flat-20-simpflat-108 =w 0.0
+                    flat-20-simpflat-109 =w 0.0
+                }
+                
+                flat-20-simpflat-110 =r flat-20-simpflat-107
+                flat-20-simpflat-111 =r flat-20-simpflat-108
+                flat-20-simpflat-112 =r flat-20-simpflat-109
+                flat-16-simpflat-100 =w flat-20-simpflat-110
+                flat-16-simpflat-101 =w flat-20-simpflat-111
+                flat-16-simpflat-102 =w flat-20-simpflat-112
+            }
+            else
+            {
+                flat-16-simpflat-100 =w flat-15-simpflat-98
+                flat-16-simpflat-101 =w 0.0
+                flat-16-simpflat-102 =w 0.0
+            }
+            
+            flat-16-simpflat-113 =r flat-16-simpflat-100
+            flat-16-simpflat-114 =r flat-16-simpflat-101
+            flat-16-simpflat-115 =r flat-16-simpflat-102
+            flat-10-simpflat-65 =w flat-16-simpflat-113
+            flat-10-simpflat-66 =w flat-16-simpflat-114
+            flat-10-simpflat-67 =w flat-16-simpflat-115
         }
         else
         {
-          write flat-67-simpflat-198 =
-            conv-76-aval-3-simpflat-150
-          write flat-67-simpflat-199 =
-            0.0
+            flat-10-simpflat-65 =w s-reify-6-conv-12-aval-0-simpflat-59
+            flat-10-simpflat-66 =w 0.0
+            flat-10-simpflat-67 =w 0.0
         }
-        read flat-67-simpflat-208 =
-          flat-67-simpflat-198
-        read flat-67-simpflat-209 =
-          flat-67-simpflat-199
-        init flat-68-simpflat-210 : Error =
-          ExceptNotAnError
-        init flat-68-simpflat-211 : Double =
-          0.0
-        if (eq#
-              flat-67-simpflat-208
-              ExceptNotAnError)
-        {
-          let conv-119 =
-            mul#
-              flat-45-simpflat-175
-              flat-67-simpflat-209
-          init flat-71-simpflat-212 : Error =
-            ExceptNotAnError
-          init flat-71-simpflat-213 : Double =
-            0.0
-          if (doubleIsValid# conv-119)
-          {
-            write flat-71-simpflat-212 =
-              ExceptNotAnError
-            write flat-71-simpflat-213 =
-              mul#
-                flat-45-simpflat-175
-                flat-67-simpflat-209
-          }
-          else
-          {
-            write flat-71-simpflat-212 =
-              ExceptCannotCompute
-            write flat-71-simpflat-213 =
-              0.0
-          }
-          read flat-71-simpflat-214 =
-            flat-71-simpflat-212
-          read flat-71-simpflat-215 =
-            flat-71-simpflat-213
-          write flat-68-simpflat-210 =
-            flat-71-simpflat-214
-          write flat-68-simpflat-211 =
-            flat-71-simpflat-215
-        }
-        else
-        {
-          write flat-68-simpflat-210 =
-            flat-67-simpflat-208
-          write flat-68-simpflat-211 =
-            0.0
-        }
-        read flat-68-simpflat-216 =
-          flat-68-simpflat-210
-        read flat-68-simpflat-217 =
-          flat-68-simpflat-211
-        write flat-48-simpflat-196 =
-          flat-68-simpflat-216
-        write flat-48-simpflat-197 =
-          flat-68-simpflat-217
-      }
-      else
-      {
-        write flat-48-simpflat-196 =
-          flat-45-simpflat-174
-        write flat-48-simpflat-197 =
-          0.0
-      }
-      read flat-48-simpflat-218 =
-        flat-48-simpflat-196
-      read flat-48-simpflat-219 =
-        flat-48-simpflat-197
-      init flat-49-simpflat-220 : Error =
-        ExceptNotAnError
-      init flat-49-simpflat-221 : Double =
-        0.0
-      if (eq#
-            flat-48-simpflat-218
-            ExceptNotAnError)
-      {
-        let conv-125 =
-          add#
-            a-conv-77-aval-2-simpflat-159
-            flat-48-simpflat-219
-        init flat-64-simpflat-222 : Error =
-          ExceptNotAnError
-        init flat-64-simpflat-223 : Double =
-          0.0
-        if (doubleIsValid# conv-125)
-        {
-          write flat-64-simpflat-222 =
-            ExceptNotAnError
-          write flat-64-simpflat-223 =
-            add#
-              a-conv-77-aval-2-simpflat-159
-              flat-48-simpflat-219
-        }
-        else
-        {
-          write flat-64-simpflat-222 =
-            ExceptCannotCompute
-          write flat-64-simpflat-223 =
-            0.0
-        }
-        read flat-64-simpflat-224 =
-          flat-64-simpflat-222
-        read flat-64-simpflat-225 =
-          flat-64-simpflat-223
-        write flat-49-simpflat-220 =
-          flat-64-simpflat-224
-        write flat-49-simpflat-221 =
-          flat-64-simpflat-225
-      }
-      else
-      {
-        write flat-49-simpflat-220 =
-          flat-48-simpflat-218
-        write flat-49-simpflat-221 =
-          0.0
-      }
-      read flat-49-simpflat-226 =
-        flat-49-simpflat-220
-      read flat-49-simpflat-227 =
-        flat-49-simpflat-221
-      init flat-50-simpflat-228 : Error =
-        ExceptNotAnError
-      init flat-50-simpflat-229 : Double =
-        0.0
-      init flat-50-simpflat-230 : Double =
-        0.0
-      if (eq#
-            flat-44-simpflat-166
-            ExceptNotAnError)
-      {
-        init flat-59-simpflat-231 : Error =
-          ExceptNotAnError
-        init flat-59-simpflat-232 : Double =
-          0.0
-        init flat-59-simpflat-233 : Double =
-          0.0
-        if (eq#
-              flat-47-simpflat-194
-              ExceptNotAnError)
-        {
-          write flat-59-simpflat-231 =
-            ExceptNotAnError
-          write flat-59-simpflat-232 =
-            flat-44-simpflat-167
-          write flat-59-simpflat-233 =
-            flat-47-simpflat-195
-        }
-        else
-        {
-          write flat-59-simpflat-231 =
-            flat-47-simpflat-194
-          write flat-59-simpflat-232 =
-            0.0
-          write flat-59-simpflat-233 =
-            0.0
-        }
-        read flat-59-simpflat-234 =
-          flat-59-simpflat-231
-        read flat-59-simpflat-235 =
-          flat-59-simpflat-232
-        read flat-59-simpflat-236 =
-          flat-59-simpflat-233
-        write flat-50-simpflat-228 =
-          flat-59-simpflat-234
-        write flat-50-simpflat-229 =
-          flat-59-simpflat-235
-        write flat-50-simpflat-230 =
-          flat-59-simpflat-236
-      }
-      else
-      {
-        write flat-50-simpflat-228 =
-          flat-44-simpflat-166
-        write flat-50-simpflat-229 =
-          0.0
-        write flat-50-simpflat-230 =
-          0.0
-      }
-      read flat-50-simpflat-237 =
-        flat-50-simpflat-228
-      read flat-50-simpflat-238 =
-        flat-50-simpflat-229
-      read flat-50-simpflat-239 =
-        flat-50-simpflat-230
-      init flat-51-simpflat-240 : Error =
-        ExceptNotAnError
-      init flat-51-simpflat-241 : Double =
-        0.0
-      init flat-51-simpflat-242 : Double =
-        0.0
-      init flat-51-simpflat-243 : Double =
-        0.0
-      if (eq#
-            flat-50-simpflat-237
-            ExceptNotAnError)
-      {
-        init flat-54-simpflat-244 : Error =
-          ExceptNotAnError
-        init flat-54-simpflat-245 : Double =
-          0.0
-        init flat-54-simpflat-246 : Double =
-          0.0
-        init flat-54-simpflat-247 : Double =
-          0.0
-        if (eq#
-              flat-49-simpflat-226
-              ExceptNotAnError)
-        {
-          write flat-54-simpflat-244 =
-            ExceptNotAnError
-          write flat-54-simpflat-245 =
-            flat-50-simpflat-238
-          write flat-54-simpflat-246 =
-            flat-50-simpflat-239
-          write flat-54-simpflat-247 =
-            flat-49-simpflat-227
-        }
-        else
-        {
-          write flat-54-simpflat-244 =
-            flat-49-simpflat-226
-          write flat-54-simpflat-245 =
-            0.0
-          write flat-54-simpflat-246 =
-            0.0
-          write flat-54-simpflat-247 =
-            0.0
-        }
-        read flat-54-simpflat-248 =
-          flat-54-simpflat-244
-        read flat-54-simpflat-249 =
-          flat-54-simpflat-245
-        read flat-54-simpflat-250 =
-          flat-54-simpflat-246
-        read flat-54-simpflat-251 =
-          flat-54-simpflat-247
-        write flat-51-simpflat-240 =
-          flat-54-simpflat-248
-        write flat-51-simpflat-241 =
-          flat-54-simpflat-249
-        write flat-51-simpflat-242 =
-          flat-54-simpflat-250
-        write flat-51-simpflat-243 =
-          flat-54-simpflat-251
-      }
-      else
-      {
-        write flat-51-simpflat-240 =
-          flat-50-simpflat-237
-        write flat-51-simpflat-241 =
-          0.0
-        write flat-51-simpflat-242 =
-          0.0
-        write flat-51-simpflat-243 =
-          0.0
-      }
-      read flat-51-simpflat-252 =
-        flat-51-simpflat-240
-      read flat-51-simpflat-253 =
-        flat-51-simpflat-241
-      read flat-51-simpflat-254 =
-        flat-51-simpflat-242
-      read flat-51-simpflat-255 =
-        flat-51-simpflat-243
-      write flat-41-simpflat-160 =
-        flat-51-simpflat-252
-      write flat-41-simpflat-161 =
-        flat-51-simpflat-253
-      write flat-41-simpflat-162 =
-        flat-51-simpflat-254
-      write flat-41-simpflat-163 =
-        flat-51-simpflat-255
+        
+        flat-10-simpflat-116 =r flat-10-simpflat-65
+        flat-10-simpflat-117 =r flat-10-simpflat-66
+        flat-10-simpflat-118 =r flat-10-simpflat-67
+        flat-3-simpflat-62 =w flat-10-simpflat-116
+        flat-3-simpflat-63 =w flat-10-simpflat-117
+        flat-3-simpflat-64 =w flat-10-simpflat-118
     }
     else
     {
-      write flat-41-simpflat-160 =
-        a-conv-77-aval-2-simpflat-156
-      write flat-41-simpflat-161 =
-        0.0
-      write flat-41-simpflat-162 =
-        0.0
-      write flat-41-simpflat-163 =
-        0.0
+        flat-6-simpflat-119 =i ExceptNotAnError : Error
+        flat-6-simpflat-120 =i 0.0 : Double
+        flat-6-simpflat-121 =i 0.0 : Double
+        
+        if (eq#
+              ExceptFold1NoValue
+              s-reify-6-conv-12-aval-0-simpflat-59)
+        {
+            flat-7-simpflat-122 =i ExceptNotAnError : Error
+            flat-7-simpflat-123 =i 0.0 : Double
+            flat-7-simpflat-124 =i 0.0 : Double
+            
+            if (eq#
+                  conv-11-aval-1-simpflat-53
+                  ExceptNotAnError)
+            {
+                flat-7-simpflat-122 =w ExceptNotAnError
+                flat-7-simpflat-123 =w conv-11-aval-1-simpflat-54
+                flat-7-simpflat-124 =w 1.0
+            }
+            else
+            {
+                flat-7-simpflat-122 =w conv-11-aval-1-simpflat-53
+                flat-7-simpflat-123 =w 0.0
+                flat-7-simpflat-124 =w 0.0
+            }
+            
+            flat-7-simpflat-125 =r flat-7-simpflat-122
+            flat-7-simpflat-126 =r flat-7-simpflat-123
+            flat-7-simpflat-127 =r flat-7-simpflat-124
+            flat-6-simpflat-119 =w flat-7-simpflat-125
+            flat-6-simpflat-120 =w flat-7-simpflat-126
+            flat-6-simpflat-121 =w flat-7-simpflat-127
+        }
+        else
+        {
+            flat-6-simpflat-119 =w s-reify-6-conv-12-aval-0-simpflat-59
+            flat-6-simpflat-120 =w 0.0
+            flat-6-simpflat-121 =w 0.0
+        }
+        
+        flat-6-simpflat-128 =r flat-6-simpflat-119
+        flat-6-simpflat-129 =r flat-6-simpflat-120
+        flat-6-simpflat-130 =r flat-6-simpflat-121
+        flat-3-simpflat-62 =w flat-6-simpflat-128
+        flat-3-simpflat-63 =w flat-6-simpflat-129
+        flat-3-simpflat-64 =w flat-6-simpflat-130
     }
-    read flat-41-simpflat-256 =
-      flat-41-simpflat-160
-    read flat-41-simpflat-257 =
-      flat-41-simpflat-161
-    read flat-41-simpflat-258 =
-      flat-41-simpflat-162
-    read flat-41-simpflat-259 =
-      flat-41-simpflat-163
-    write acc-a-conv-77-simpflat-37 =
-      flat-41-simpflat-256
-    write acc-a-conv-77-simpflat-38 =
-      flat-41-simpflat-257
-    write acc-a-conv-77-simpflat-39 =
-      flat-41-simpflat-258
-    write acc-a-conv-77-simpflat-40 =
-      flat-41-simpflat-259
-  }
+    
+    flat-3-simpflat-131 =r flat-3-simpflat-62
+    flat-3-simpflat-132 =r flat-3-simpflat-63
+    flat-3-simpflat-133 =r flat-3-simpflat-64
+    acc-s-reify-6-conv-12-simpflat-28 =w flat-3-simpflat-131
+    acc-s-reify-6-conv-12-simpflat-29 =w flat-3-simpflat-132
+    acc-s-reify-6-conv-12-simpflat-30 =w flat-3-simpflat-133
+    flat-36-simpflat-134 =i ExceptNotAnError : Error
+    flat-36-simpflat-135 =i "" : String
+    
+    if (eq#
+          conv-0-simpflat-307
+          ExceptNotAnError)
+    {
+        flat-36-simpflat-134 =w ExceptNotAnError
+        flat-36-simpflat-135 =w conv-0-simpflat-308
+    }
+    else
+    {
+        flat-36-simpflat-134 =w conv-0-simpflat-307
+        flat-36-simpflat-135 =w ""
+    }
+    
+    flat-36-simpflat-136 =r flat-36-simpflat-134
+    flat-36-simpflat-137 =r flat-36-simpflat-135
+    flat-37-simpflat-138 =i ExceptNotAnError : Error
+    flat-37-simpflat-139 =i False : Bool
+    
+    if (eq#
+          flat-36-simpflat-136
+          ExceptNotAnError)
+    {
+        flat-37-simpflat-138 =w ExceptNotAnError
+        flat-37-simpflat-139 =w eq#
+                                  flat-36-simpflat-137
+                                  "torso"
+    }
+    else
+    {
+        flat-37-simpflat-138 =w flat-36-simpflat-136
+        flat-37-simpflat-139 =w False
+    }
+    
+    flat-37-simpflat-140 =r flat-37-simpflat-138
+    flat-37-simpflat-141 =r flat-37-simpflat-139
+    flat-38 =i False : Bool
+    
+    if (eq#
+          flat-37-simpflat-140
+          ExceptNotAnError)
+    {
+        flat-38 =w flat-37-simpflat-141
+    }
+    else
+    {
+        flat-38 =w True
+    }
+    
+    flat-38 =r flat-38
+    
+    if (flat-38)
+    {
+        flat-39-simpflat-142 =i ExceptNotAnError : Error
+        flat-39-simpflat-143 =i 0 : Int
+        
+        if (eq#
+              conv-0-simpflat-307
+              ExceptNotAnError)
+        {
+            flat-39-simpflat-142 =w ExceptNotAnError
+            flat-39-simpflat-143 =w conv-0-simpflat-309
+        }
+        else
+        {
+            flat-39-simpflat-142 =w conv-0-simpflat-307
+            flat-39-simpflat-143 =w 0
+        }
+        
+        flat-39-simpflat-144 =r flat-39-simpflat-142
+        flat-39-simpflat-145 =r flat-39-simpflat-143
+        flat-40-simpflat-146 =i ExceptNotAnError : Error
+        flat-40-simpflat-147 =i 0.0 : Double
+        
+        if (eq#
+              flat-39-simpflat-144
+              ExceptNotAnError)
+        {
+            flat-40-simpflat-146 =w ExceptNotAnError
+            flat-40-simpflat-147 =w doubleOfInt#
+                                      flat-39-simpflat-145
+        }
+        else
+        {
+            flat-40-simpflat-146 =w flat-39-simpflat-144
+            flat-40-simpflat-147 =w 0.0
+        }
+        
+        flat-40-simpflat-148 =r flat-40-simpflat-146
+        flat-40-simpflat-149 =r flat-40-simpflat-147
+        acc-conv-76-simpflat-31 =w flat-40-simpflat-148
+        acc-conv-76-simpflat-32 =w flat-40-simpflat-149
+        conv-76-aval-3-simpflat-150 =r acc-conv-76-simpflat-31
+        conv-76-aval-3-simpflat-151 =r acc-conv-76-simpflat-32
+        a-conv-77-aval-2-simpflat-156 =r acc-a-conv-77-simpflat-37
+        a-conv-77-aval-2-simpflat-157 =r acc-a-conv-77-simpflat-38
+        a-conv-77-aval-2-simpflat-158 =r acc-a-conv-77-simpflat-39
+        a-conv-77-aval-2-simpflat-159 =r acc-a-conv-77-simpflat-40
+        flat-41-simpflat-160 =i ExceptNotAnError : Error
+        flat-41-simpflat-161 =i 0.0 : Double
+        flat-41-simpflat-162 =i 0.0 : Double
+        flat-41-simpflat-163 =i 0.0 : Double
+        
+        if (eq#
+              a-conv-77-aval-2-simpflat-156
+              ExceptNotAnError)
+        {
+            conv-84 = add#
+                        a-conv-77-aval-2-simpflat-157
+                        1.0
+            flat-44-simpflat-164 =i ExceptNotAnError : Error
+            flat-44-simpflat-165 =i 0.0 : Double
+            
+            if (doubleIsValid# conv-84)
+            {
+                flat-44-simpflat-164 =w ExceptNotAnError
+                flat-44-simpflat-165 =w add#
+                                          a-conv-77-aval-2-simpflat-157
+                                          1.0
+            }
+            else
+            {
+                flat-44-simpflat-164 =w ExceptCannotCompute
+                flat-44-simpflat-165 =w 0.0
+            }
+            
+            flat-44-simpflat-166 =r flat-44-simpflat-164
+            flat-44-simpflat-167 =r flat-44-simpflat-165
+            flat-45-simpflat-168 =i ExceptNotAnError : Error
+            flat-45-simpflat-169 =i 0.0 : Double
+            
+            if (eq#
+                  conv-76-aval-3-simpflat-150
+                  ExceptNotAnError)
+            {
+                conv-89 = sub#
+                            conv-76-aval-3-simpflat-151
+                            a-conv-77-aval-2-simpflat-158
+                flat-89-simpflat-170 =i ExceptNotAnError : Error
+                flat-89-simpflat-171 =i 0.0 : Double
+                
+                if (doubleIsValid# conv-89)
+                {
+                    flat-89-simpflat-170 =w ExceptNotAnError
+                    flat-89-simpflat-171 =w sub#
+                                              conv-76-aval-3-simpflat-151
+                                              a-conv-77-aval-2-simpflat-158
+                }
+                else
+                {
+                    flat-89-simpflat-170 =w ExceptCannotCompute
+                    flat-89-simpflat-171 =w 0.0
+                }
+                
+                flat-89-simpflat-172 =r flat-89-simpflat-170
+                flat-89-simpflat-173 =r flat-89-simpflat-171
+                flat-45-simpflat-168 =w flat-89-simpflat-172
+                flat-45-simpflat-169 =w flat-89-simpflat-173
+            }
+            else
+            {
+                flat-45-simpflat-168 =w conv-76-aval-3-simpflat-150
+                flat-45-simpflat-169 =w 0.0
+            }
+            
+            flat-45-simpflat-174 =r flat-45-simpflat-168
+            flat-45-simpflat-175 =r flat-45-simpflat-169
+            flat-46-simpflat-176 =i ExceptNotAnError : Error
+            flat-46-simpflat-177 =i 0.0 : Double
+            
+            if (eq#
+                  flat-45-simpflat-174
+                  ExceptNotAnError)
+            {
+                flat-83-simpflat-178 =i ExceptNotAnError : Error
+                flat-83-simpflat-179 =i 0.0 : Double
+                
+                if (eq#
+                      flat-44-simpflat-166
+                      ExceptNotAnError)
+                {
+                    conv-97 = div#
+                                flat-45-simpflat-175
+                                flat-44-simpflat-167
+                    flat-86-simpflat-180 =i ExceptNotAnError : Error
+                    flat-86-simpflat-181 =i 0.0 : Double
+                    
+                    if (doubleIsValid# conv-97)
+                    {
+                        flat-86-simpflat-180 =w ExceptNotAnError
+                        flat-86-simpflat-181 =w div#
+                                                  flat-45-simpflat-175
+                                                  flat-44-simpflat-167
+                    }
+                    else
+                    {
+                        flat-86-simpflat-180 =w ExceptCannotCompute
+                        flat-86-simpflat-181 =w 0.0
+                    }
+                    
+                    flat-86-simpflat-182 =r flat-86-simpflat-180
+                    flat-86-simpflat-183 =r flat-86-simpflat-181
+                    flat-83-simpflat-178 =w flat-86-simpflat-182
+                    flat-83-simpflat-179 =w flat-86-simpflat-183
+                }
+                else
+                {
+                    flat-83-simpflat-178 =w flat-44-simpflat-166
+                    flat-83-simpflat-179 =w 0.0
+                }
+                
+                flat-83-simpflat-184 =r flat-83-simpflat-178
+                flat-83-simpflat-185 =r flat-83-simpflat-179
+                flat-46-simpflat-176 =w flat-83-simpflat-184
+                flat-46-simpflat-177 =w flat-83-simpflat-185
+            }
+            else
+            {
+                flat-46-simpflat-176 =w flat-45-simpflat-174
+                flat-46-simpflat-177 =w 0.0
+            }
+            
+            flat-46-simpflat-186 =r flat-46-simpflat-176
+            flat-46-simpflat-187 =r flat-46-simpflat-177
+            flat-47-simpflat-188 =i ExceptNotAnError : Error
+            flat-47-simpflat-189 =i 0.0 : Double
+            
+            if (eq#
+                  flat-46-simpflat-186
+                  ExceptNotAnError)
+            {
+                conv-103 = add#
+                             a-conv-77-aval-2-simpflat-158
+                             flat-46-simpflat-187
+                flat-80-simpflat-190 =i ExceptNotAnError : Error
+                flat-80-simpflat-191 =i 0.0 : Double
+                
+                if (doubleIsValid# conv-103)
+                {
+                    flat-80-simpflat-190 =w ExceptNotAnError
+                    flat-80-simpflat-191 =w add#
+                                              a-conv-77-aval-2-simpflat-158
+                                              flat-46-simpflat-187
+                }
+                else
+                {
+                    flat-80-simpflat-190 =w ExceptCannotCompute
+                    flat-80-simpflat-191 =w 0.0
+                }
+                
+                flat-80-simpflat-192 =r flat-80-simpflat-190
+                flat-80-simpflat-193 =r flat-80-simpflat-191
+                flat-47-simpflat-188 =w flat-80-simpflat-192
+                flat-47-simpflat-189 =w flat-80-simpflat-193
+            }
+            else
+            {
+                flat-47-simpflat-188 =w flat-46-simpflat-186
+                flat-47-simpflat-189 =w 0.0
+            }
+            
+            flat-47-simpflat-194 =r flat-47-simpflat-188
+            flat-47-simpflat-195 =r flat-47-simpflat-189
+            flat-48-simpflat-196 =i ExceptNotAnError : Error
+            flat-48-simpflat-197 =i 0.0 : Double
+            
+            if (eq#
+                  flat-45-simpflat-174
+                  ExceptNotAnError)
+            {
+                flat-67-simpflat-198 =i ExceptNotAnError : Error
+                flat-67-simpflat-199 =i 0.0 : Double
+                
+                if (eq#
+                      conv-76-aval-3-simpflat-150
+                      ExceptNotAnError)
+                {
+                    flat-74-simpflat-200 =i ExceptNotAnError : Error
+                    flat-74-simpflat-201 =i 0.0 : Double
+                    
+                    if (eq#
+                          flat-47-simpflat-194
+                          ExceptNotAnError)
+                    {
+                        conv-113 = sub#
+                                     conv-76-aval-3-simpflat-151
+                                     flat-47-simpflat-195
+                        flat-77-simpflat-202 =i ExceptNotAnError : Error
+                        flat-77-simpflat-203 =i 0.0 : Double
+                        
+                        if (doubleIsValid# conv-113)
+                        {
+                            flat-77-simpflat-202 =w ExceptNotAnError
+                            flat-77-simpflat-203 =w sub#
+                                                      conv-76-aval-3-simpflat-151
+                                                      flat-47-simpflat-195
+                        }
+                        else
+                        {
+                            flat-77-simpflat-202 =w ExceptCannotCompute
+                            flat-77-simpflat-203 =w 0.0
+                        }
+                        
+                        flat-77-simpflat-204 =r flat-77-simpflat-202
+                        flat-77-simpflat-205 =r flat-77-simpflat-203
+                        flat-74-simpflat-200 =w flat-77-simpflat-204
+                        flat-74-simpflat-201 =w flat-77-simpflat-205
+                    }
+                    else
+                    {
+                        flat-74-simpflat-200 =w flat-47-simpflat-194
+                        flat-74-simpflat-201 =w 0.0
+                    }
+                    
+                    flat-74-simpflat-206 =r flat-74-simpflat-200
+                    flat-74-simpflat-207 =r flat-74-simpflat-201
+                    flat-67-simpflat-198 =w flat-74-simpflat-206
+                    flat-67-simpflat-199 =w flat-74-simpflat-207
+                }
+                else
+                {
+                    flat-67-simpflat-198 =w conv-76-aval-3-simpflat-150
+                    flat-67-simpflat-199 =w 0.0
+                }
+                
+                flat-67-simpflat-208 =r flat-67-simpflat-198
+                flat-67-simpflat-209 =r flat-67-simpflat-199
+                flat-68-simpflat-210 =i ExceptNotAnError : Error
+                flat-68-simpflat-211 =i 0.0 : Double
+                
+                if (eq#
+                      flat-67-simpflat-208
+                      ExceptNotAnError)
+                {
+                    conv-119 = mul#
+                                 flat-45-simpflat-175
+                                 flat-67-simpflat-209
+                    flat-71-simpflat-212 =i ExceptNotAnError : Error
+                    flat-71-simpflat-213 =i 0.0 : Double
+                    
+                    if (doubleIsValid# conv-119)
+                    {
+                        flat-71-simpflat-212 =w ExceptNotAnError
+                        flat-71-simpflat-213 =w mul#
+                                                  flat-45-simpflat-175
+                                                  flat-67-simpflat-209
+                    }
+                    else
+                    {
+                        flat-71-simpflat-212 =w ExceptCannotCompute
+                        flat-71-simpflat-213 =w 0.0
+                    }
+                    
+                    flat-71-simpflat-214 =r flat-71-simpflat-212
+                    flat-71-simpflat-215 =r flat-71-simpflat-213
+                    flat-68-simpflat-210 =w flat-71-simpflat-214
+                    flat-68-simpflat-211 =w flat-71-simpflat-215
+                }
+                else
+                {
+                    flat-68-simpflat-210 =w flat-67-simpflat-208
+                    flat-68-simpflat-211 =w 0.0
+                }
+                
+                flat-68-simpflat-216 =r flat-68-simpflat-210
+                flat-68-simpflat-217 =r flat-68-simpflat-211
+                flat-48-simpflat-196 =w flat-68-simpflat-216
+                flat-48-simpflat-197 =w flat-68-simpflat-217
+            }
+            else
+            {
+                flat-48-simpflat-196 =w flat-45-simpflat-174
+                flat-48-simpflat-197 =w 0.0
+            }
+            
+            flat-48-simpflat-218 =r flat-48-simpflat-196
+            flat-48-simpflat-219 =r flat-48-simpflat-197
+            flat-49-simpflat-220 =i ExceptNotAnError : Error
+            flat-49-simpflat-221 =i 0.0 : Double
+            
+            if (eq#
+                  flat-48-simpflat-218
+                  ExceptNotAnError)
+            {
+                conv-125 = add#
+                             a-conv-77-aval-2-simpflat-159
+                             flat-48-simpflat-219
+                flat-64-simpflat-222 =i ExceptNotAnError : Error
+                flat-64-simpflat-223 =i 0.0 : Double
+                
+                if (doubleIsValid# conv-125)
+                {
+                    flat-64-simpflat-222 =w ExceptNotAnError
+                    flat-64-simpflat-223 =w add#
+                                              a-conv-77-aval-2-simpflat-159
+                                              flat-48-simpflat-219
+                }
+                else
+                {
+                    flat-64-simpflat-222 =w ExceptCannotCompute
+                    flat-64-simpflat-223 =w 0.0
+                }
+                
+                flat-64-simpflat-224 =r flat-64-simpflat-222
+                flat-64-simpflat-225 =r flat-64-simpflat-223
+                flat-49-simpflat-220 =w flat-64-simpflat-224
+                flat-49-simpflat-221 =w flat-64-simpflat-225
+            }
+            else
+            {
+                flat-49-simpflat-220 =w flat-48-simpflat-218
+                flat-49-simpflat-221 =w 0.0
+            }
+            
+            flat-49-simpflat-226 =r flat-49-simpflat-220
+            flat-49-simpflat-227 =r flat-49-simpflat-221
+            flat-50-simpflat-228 =i ExceptNotAnError : Error
+            flat-50-simpflat-229 =i 0.0 : Double
+            flat-50-simpflat-230 =i 0.0 : Double
+            
+            if (eq#
+                  flat-44-simpflat-166
+                  ExceptNotAnError)
+            {
+                flat-59-simpflat-231 =i ExceptNotAnError : Error
+                flat-59-simpflat-232 =i 0.0 : Double
+                flat-59-simpflat-233 =i 0.0 : Double
+                
+                if (eq#
+                      flat-47-simpflat-194
+                      ExceptNotAnError)
+                {
+                    flat-59-simpflat-231 =w ExceptNotAnError
+                    flat-59-simpflat-232 =w flat-44-simpflat-167
+                    flat-59-simpflat-233 =w flat-47-simpflat-195
+                }
+                else
+                {
+                    flat-59-simpflat-231 =w flat-47-simpflat-194
+                    flat-59-simpflat-232 =w 0.0
+                    flat-59-simpflat-233 =w 0.0
+                }
+                
+                flat-59-simpflat-234 =r flat-59-simpflat-231
+                flat-59-simpflat-235 =r flat-59-simpflat-232
+                flat-59-simpflat-236 =r flat-59-simpflat-233
+                flat-50-simpflat-228 =w flat-59-simpflat-234
+                flat-50-simpflat-229 =w flat-59-simpflat-235
+                flat-50-simpflat-230 =w flat-59-simpflat-236
+            }
+            else
+            {
+                flat-50-simpflat-228 =w flat-44-simpflat-166
+                flat-50-simpflat-229 =w 0.0
+                flat-50-simpflat-230 =w 0.0
+            }
+            
+            flat-50-simpflat-237 =r flat-50-simpflat-228
+            flat-50-simpflat-238 =r flat-50-simpflat-229
+            flat-50-simpflat-239 =r flat-50-simpflat-230
+            flat-51-simpflat-240 =i ExceptNotAnError : Error
+            flat-51-simpflat-241 =i 0.0 : Double
+            flat-51-simpflat-242 =i 0.0 : Double
+            flat-51-simpflat-243 =i 0.0 : Double
+            
+            if (eq#
+                  flat-50-simpflat-237
+                  ExceptNotAnError)
+            {
+                flat-54-simpflat-244 =i ExceptNotAnError : Error
+                flat-54-simpflat-245 =i 0.0 : Double
+                flat-54-simpflat-246 =i 0.0 : Double
+                flat-54-simpflat-247 =i 0.0 : Double
+                
+                if (eq#
+                      flat-49-simpflat-226
+                      ExceptNotAnError)
+                {
+                    flat-54-simpflat-244 =w ExceptNotAnError
+                    flat-54-simpflat-245 =w flat-50-simpflat-238
+                    flat-54-simpflat-246 =w flat-50-simpflat-239
+                    flat-54-simpflat-247 =w flat-49-simpflat-227
+                }
+                else
+                {
+                    flat-54-simpflat-244 =w flat-49-simpflat-226
+                    flat-54-simpflat-245 =w 0.0
+                    flat-54-simpflat-246 =w 0.0
+                    flat-54-simpflat-247 =w 0.0
+                }
+                
+                flat-54-simpflat-248 =r flat-54-simpflat-244
+                flat-54-simpflat-249 =r flat-54-simpflat-245
+                flat-54-simpflat-250 =r flat-54-simpflat-246
+                flat-54-simpflat-251 =r flat-54-simpflat-247
+                flat-51-simpflat-240 =w flat-54-simpflat-248
+                flat-51-simpflat-241 =w flat-54-simpflat-249
+                flat-51-simpflat-242 =w flat-54-simpflat-250
+                flat-51-simpflat-243 =w flat-54-simpflat-251
+            }
+            else
+            {
+                flat-51-simpflat-240 =w flat-50-simpflat-237
+                flat-51-simpflat-241 =w 0.0
+                flat-51-simpflat-242 =w 0.0
+                flat-51-simpflat-243 =w 0.0
+            }
+            
+            flat-51-simpflat-252 =r flat-51-simpflat-240
+            flat-51-simpflat-253 =r flat-51-simpflat-241
+            flat-51-simpflat-254 =r flat-51-simpflat-242
+            flat-51-simpflat-255 =r flat-51-simpflat-243
+            flat-41-simpflat-160 =w flat-51-simpflat-252
+            flat-41-simpflat-161 =w flat-51-simpflat-253
+            flat-41-simpflat-162 =w flat-51-simpflat-254
+            flat-41-simpflat-163 =w flat-51-simpflat-255
+        }
+        else
+        {
+            flat-41-simpflat-160 =w a-conv-77-aval-2-simpflat-156
+            flat-41-simpflat-161 =w 0.0
+            flat-41-simpflat-162 =w 0.0
+            flat-41-simpflat-163 =w 0.0
+        }
+        
+        flat-41-simpflat-256 =r flat-41-simpflat-160
+        flat-41-simpflat-257 =r flat-41-simpflat-161
+        flat-41-simpflat-258 =r flat-41-simpflat-162
+        flat-41-simpflat-259 =r flat-41-simpflat-163
+        acc-a-conv-77-simpflat-37 =w flat-41-simpflat-256
+        acc-a-conv-77-simpflat-38 =w flat-41-simpflat-257
+        acc-a-conv-77-simpflat-39 =w flat-41-simpflat-258
+        acc-a-conv-77-simpflat-40 =w flat-41-simpflat-259
+    }
+    
 }
+
 save_resumable acc-a-conv-77-simpflat-37
 save_resumable acc-a-conv-77-simpflat-38
 save_resumable acc-a-conv-77-simpflat-39
@@ -1340,268 +983,202 @@ save_resumable acc-s-reify-6-conv-12-simpflat-29
 save_resumable acc-s-reify-6-conv-12-simpflat-30
 save_resumable acc-conv-11-simpflat-22
 save_resumable acc-conv-11-simpflat-23
-read a-conv-77-simpflat-260 =
-  acc-a-conv-77-simpflat-37
-read a-conv-77-simpflat-261 =
-  acc-a-conv-77-simpflat-38
-read a-conv-77-simpflat-263 =
-  acc-a-conv-77-simpflat-40
-read s-reify-6-conv-12-simpflat-264 =
-  acc-s-reify-6-conv-12-simpflat-28
-read s-reify-6-conv-12-simpflat-265 =
-  acc-s-reify-6-conv-12-simpflat-29
-init flat-110-simpflat-267 : Error =
-  ExceptNotAnError
-init flat-110-simpflat-268 : Double =
-  0.0
+a-conv-77-simpflat-260 =r acc-a-conv-77-simpflat-37
+a-conv-77-simpflat-261 =r acc-a-conv-77-simpflat-38
+a-conv-77-simpflat-263 =r acc-a-conv-77-simpflat-40
+s-reify-6-conv-12-simpflat-264 =r acc-s-reify-6-conv-12-simpflat-28
+s-reify-6-conv-12-simpflat-265 =r acc-s-reify-6-conv-12-simpflat-29
+flat-110-simpflat-267 =i ExceptNotAnError : Error
+flat-110-simpflat-268 =i 0.0 : Double
+
 if (eq#
       s-reify-6-conv-12-simpflat-264
       ExceptNotAnError)
 {
-  write flat-110-simpflat-267 =
-    ExceptNotAnError
-  write flat-110-simpflat-268 =
-    s-reify-6-conv-12-simpflat-265
+    flat-110-simpflat-267 =w ExceptNotAnError
+    flat-110-simpflat-268 =w s-reify-6-conv-12-simpflat-265
 }
 else
 {
-  write flat-110-simpflat-267 =
-    s-reify-6-conv-12-simpflat-264
-  write flat-110-simpflat-268 =
-    0.0
+    flat-110-simpflat-267 =w s-reify-6-conv-12-simpflat-264
+    flat-110-simpflat-268 =w 0.0
 }
-read flat-110-simpflat-269 =
-  flat-110-simpflat-267
-read flat-110-simpflat-270 =
-  flat-110-simpflat-268
-init flat-111-simpflat-271 : Error =
-  ExceptNotAnError
-init flat-111-simpflat-272 : Double =
-  0.0
+
+flat-110-simpflat-269 =r flat-110-simpflat-267
+flat-110-simpflat-270 =r flat-110-simpflat-268
+flat-111-simpflat-271 =i ExceptNotAnError : Error
+flat-111-simpflat-272 =i 0.0 : Double
+
 if (eq#
       flat-110-simpflat-269
       ExceptNotAnError)
 {
-  init flat-114-simpflat-273 : Error =
-    ExceptNotAnError
-  init flat-114-simpflat-274 : Double =
-    0.0
-  if (eq#
-        a-conv-77-simpflat-260
-        ExceptNotAnError)
-  {
-    let conv-152 =
-      sub#
-        a-conv-77-simpflat-261
-        1.0
-    init flat-125-simpflat-275 : Error =
-      ExceptNotAnError
-    init flat-125-simpflat-276 : Double =
-      0.0
-    if (doubleIsValid# conv-152)
-    {
-      write flat-125-simpflat-275 =
-        ExceptNotAnError
-      write flat-125-simpflat-276 =
-        sub#
-          a-conv-77-simpflat-261
-          1.0
-    }
-    else
-    {
-      write flat-125-simpflat-275 =
-        ExceptCannotCompute
-      write flat-125-simpflat-276 =
-        0.0
-    }
-    read flat-125-simpflat-277 =
-      flat-125-simpflat-275
-    read flat-125-simpflat-278 =
-      flat-125-simpflat-276
-    init flat-126-simpflat-279 : Error =
-      ExceptNotAnError
-    init flat-126-simpflat-280 : Double =
-      0.0
+    flat-114-simpflat-273 =i ExceptNotAnError : Error
+    flat-114-simpflat-274 =i 0.0 : Double
+    
     if (eq#
-          flat-125-simpflat-277
+          a-conv-77-simpflat-260
           ExceptNotAnError)
     {
-      let conv-158 =
-        div#
-          a-conv-77-simpflat-263
-          flat-125-simpflat-278
-      init flat-129-simpflat-281 : Error =
-        ExceptNotAnError
-      init flat-129-simpflat-282 : Double =
-        0.0
-      if (doubleIsValid# conv-158)
-      {
-        write flat-129-simpflat-281 =
-          ExceptNotAnError
-        write flat-129-simpflat-282 =
-          div#
-            a-conv-77-simpflat-263
-            flat-125-simpflat-278
-      }
-      else
-      {
-        write flat-129-simpflat-281 =
-          ExceptCannotCompute
-        write flat-129-simpflat-282 =
-          0.0
-      }
-      read flat-129-simpflat-283 =
-        flat-129-simpflat-281
-      read flat-129-simpflat-284 =
-        flat-129-simpflat-282
-      write flat-126-simpflat-279 =
-        flat-129-simpflat-283
-      write flat-126-simpflat-280 =
-        flat-129-simpflat-284
+        conv-152 = sub#
+                     a-conv-77-simpflat-261
+                     1.0
+        flat-125-simpflat-275 =i ExceptNotAnError : Error
+        flat-125-simpflat-276 =i 0.0 : Double
+        
+        if (doubleIsValid# conv-152)
+        {
+            flat-125-simpflat-275 =w ExceptNotAnError
+            flat-125-simpflat-276 =w sub#
+                                       a-conv-77-simpflat-261
+                                       1.0
+        }
+        else
+        {
+            flat-125-simpflat-275 =w ExceptCannotCompute
+            flat-125-simpflat-276 =w 0.0
+        }
+        
+        flat-125-simpflat-277 =r flat-125-simpflat-275
+        flat-125-simpflat-278 =r flat-125-simpflat-276
+        flat-126-simpflat-279 =i ExceptNotAnError : Error
+        flat-126-simpflat-280 =i 0.0 : Double
+        
+        if (eq#
+              flat-125-simpflat-277
+              ExceptNotAnError)
+        {
+            conv-158 = div#
+                         a-conv-77-simpflat-263
+                         flat-125-simpflat-278
+            flat-129-simpflat-281 =i ExceptNotAnError : Error
+            flat-129-simpflat-282 =i 0.0 : Double
+            
+            if (doubleIsValid# conv-158)
+            {
+                flat-129-simpflat-281 =w ExceptNotAnError
+                flat-129-simpflat-282 =w div#
+                                           a-conv-77-simpflat-263
+                                           flat-125-simpflat-278
+            }
+            else
+            {
+                flat-129-simpflat-281 =w ExceptCannotCompute
+                flat-129-simpflat-282 =w 0.0
+            }
+            
+            flat-129-simpflat-283 =r flat-129-simpflat-281
+            flat-129-simpflat-284 =r flat-129-simpflat-282
+            flat-126-simpflat-279 =w flat-129-simpflat-283
+            flat-126-simpflat-280 =w flat-129-simpflat-284
+        }
+        else
+        {
+            flat-126-simpflat-279 =w flat-125-simpflat-277
+            flat-126-simpflat-280 =w 0.0
+        }
+        
+        flat-126-simpflat-285 =r flat-126-simpflat-279
+        flat-126-simpflat-286 =r flat-126-simpflat-280
+        flat-114-simpflat-273 =w flat-126-simpflat-285
+        flat-114-simpflat-274 =w flat-126-simpflat-286
     }
     else
     {
-      write flat-126-simpflat-279 =
-        flat-125-simpflat-277
-      write flat-126-simpflat-280 =
-        0.0
+        flat-114-simpflat-273 =w a-conv-77-simpflat-260
+        flat-114-simpflat-274 =w 0.0
     }
-    read flat-126-simpflat-285 =
-      flat-126-simpflat-279
-    read flat-126-simpflat-286 =
-      flat-126-simpflat-280
-    write flat-114-simpflat-273 =
-      flat-126-simpflat-285
-    write flat-114-simpflat-274 =
-      flat-126-simpflat-286
-  }
-  else
-  {
-    write flat-114-simpflat-273 =
-      a-conv-77-simpflat-260
-    write flat-114-simpflat-274 =
-      0.0
-  }
-  read flat-114-simpflat-287 =
-    flat-114-simpflat-273
-  read flat-114-simpflat-288 =
-    flat-114-simpflat-274
-  init flat-115-simpflat-289 : Error =
-    ExceptNotAnError
-  init flat-115-simpflat-290 : Double =
-    0.0
-  if (eq#
-        flat-114-simpflat-287
-        ExceptNotAnError)
-  {
-    let conv-172 =
-      sqrt# flat-114-simpflat-288
-    init flat-122-simpflat-291 : Error =
-      ExceptNotAnError
-    init flat-122-simpflat-292 : Double =
-      0.0
-    if (doubleIsValid# conv-172)
+    
+    flat-114-simpflat-287 =r flat-114-simpflat-273
+    flat-114-simpflat-288 =r flat-114-simpflat-274
+    flat-115-simpflat-289 =i ExceptNotAnError : Error
+    flat-115-simpflat-290 =i 0.0 : Double
+    
+    if (eq#
+          flat-114-simpflat-287
+          ExceptNotAnError)
     {
-      write flat-122-simpflat-291 =
-        ExceptNotAnError
-      write flat-122-simpflat-292 =
-        sqrt# flat-114-simpflat-288
+        conv-172 = sqrt#
+                     flat-114-simpflat-288
+        flat-122-simpflat-291 =i ExceptNotAnError : Error
+        flat-122-simpflat-292 =i 0.0 : Double
+        
+        if (doubleIsValid# conv-172)
+        {
+            flat-122-simpflat-291 =w ExceptNotAnError
+            flat-122-simpflat-292 =w sqrt#
+                                       flat-114-simpflat-288
+        }
+        else
+        {
+            flat-122-simpflat-291 =w ExceptCannotCompute
+            flat-122-simpflat-292 =w 0.0
+        }
+        
+        flat-122-simpflat-293 =r flat-122-simpflat-291
+        flat-122-simpflat-294 =r flat-122-simpflat-292
+        flat-115-simpflat-289 =w flat-122-simpflat-293
+        flat-115-simpflat-290 =w flat-122-simpflat-294
     }
     else
     {
-      write flat-122-simpflat-291 =
-        ExceptCannotCompute
-      write flat-122-simpflat-292 =
-        0.0
+        flat-115-simpflat-289 =w flat-114-simpflat-287
+        flat-115-simpflat-290 =w 0.0
     }
-    read flat-122-simpflat-293 =
-      flat-122-simpflat-291
-    read flat-122-simpflat-294 =
-      flat-122-simpflat-292
-    write flat-115-simpflat-289 =
-      flat-122-simpflat-293
-    write flat-115-simpflat-290 =
-      flat-122-simpflat-294
-  }
-  else
-  {
-    write flat-115-simpflat-289 =
-      flat-114-simpflat-287
-    write flat-115-simpflat-290 =
-      0.0
-  }
-  read flat-115-simpflat-295 =
-    flat-115-simpflat-289
-  read flat-115-simpflat-296 =
-    flat-115-simpflat-290
-  init flat-116-simpflat-297 : Error =
-    ExceptNotAnError
-  init flat-116-simpflat-298 : Double =
-    0.0
-  if (eq#
-        flat-115-simpflat-295
-        ExceptNotAnError)
-  {
-    let conv-180 =
-      mul#
-        flat-110-simpflat-270
-        flat-115-simpflat-296
-    init flat-119-simpflat-299 : Error =
-      ExceptNotAnError
-    init flat-119-simpflat-300 : Double =
-      0.0
-    if (doubleIsValid# conv-180)
+    
+    flat-115-simpflat-295 =r flat-115-simpflat-289
+    flat-115-simpflat-296 =r flat-115-simpflat-290
+    flat-116-simpflat-297 =i ExceptNotAnError : Error
+    flat-116-simpflat-298 =i 0.0 : Double
+    
+    if (eq#
+          flat-115-simpflat-295
+          ExceptNotAnError)
     {
-      write flat-119-simpflat-299 =
-        ExceptNotAnError
-      write flat-119-simpflat-300 =
-        mul#
-          flat-110-simpflat-270
-          flat-115-simpflat-296
+        conv-180 = mul#
+                     flat-110-simpflat-270
+                     flat-115-simpflat-296
+        flat-119-simpflat-299 =i ExceptNotAnError : Error
+        flat-119-simpflat-300 =i 0.0 : Double
+        
+        if (doubleIsValid# conv-180)
+        {
+            flat-119-simpflat-299 =w ExceptNotAnError
+            flat-119-simpflat-300 =w mul#
+                                       flat-110-simpflat-270
+                                       flat-115-simpflat-296
+        }
+        else
+        {
+            flat-119-simpflat-299 =w ExceptCannotCompute
+            flat-119-simpflat-300 =w 0.0
+        }
+        
+        flat-119-simpflat-301 =r flat-119-simpflat-299
+        flat-119-simpflat-302 =r flat-119-simpflat-300
+        flat-116-simpflat-297 =w flat-119-simpflat-301
+        flat-116-simpflat-298 =w flat-119-simpflat-302
     }
     else
     {
-      write flat-119-simpflat-299 =
-        ExceptCannotCompute
-      write flat-119-simpflat-300 =
-        0.0
+        flat-116-simpflat-297 =w flat-115-simpflat-295
+        flat-116-simpflat-298 =w 0.0
     }
-    read flat-119-simpflat-301 =
-      flat-119-simpflat-299
-    read flat-119-simpflat-302 =
-      flat-119-simpflat-300
-    write flat-116-simpflat-297 =
-      flat-119-simpflat-301
-    write flat-116-simpflat-298 =
-      flat-119-simpflat-302
-  }
-  else
-  {
-    write flat-116-simpflat-297 =
-      flat-115-simpflat-295
-    write flat-116-simpflat-298 =
-      0.0
-  }
-  read flat-116-simpflat-303 =
-    flat-116-simpflat-297
-  read flat-116-simpflat-304 =
-    flat-116-simpflat-298
-  write flat-111-simpflat-271 =
-    flat-116-simpflat-303
-  write flat-111-simpflat-272 =
-    flat-116-simpflat-304
+    
+    flat-116-simpflat-303 =r flat-116-simpflat-297
+    flat-116-simpflat-304 =r flat-116-simpflat-298
+    flat-111-simpflat-271 =w flat-116-simpflat-303
+    flat-111-simpflat-272 =w flat-116-simpflat-304
 }
 else
 {
-  write flat-111-simpflat-271 =
-    flat-110-simpflat-269
-  write flat-111-simpflat-272 =
-    0.0
+    flat-111-simpflat-271 =w flat-110-simpflat-269
+    flat-111-simpflat-272 =w 0.0
 }
-read flat-111-simpflat-305 =
-  flat-111-simpflat-271
-read flat-111-simpflat-306 =
-  flat-111-simpflat-272
+
+flat-111-simpflat-305 =r flat-111-simpflat-271
+flat-111-simpflat-306 =r flat-111-simpflat-272
+
 output repl:output : Sum Error Double =
     flat-111-simpflat-305 : Error
   , flat-111-simpflat-306 : Double
@@ -1614,28 +1191,17 @@ conv-3 : Time =
 conv-4 : Int =
   MAX_MAP_SIZE
 
-init acc-conv-11-simpflat-22 : Error =
-  ExceptNotAnError
-init acc-conv-11-simpflat-23 : Double =
-  0.0
-init acc-s-reify-6-conv-12-simpflat-28 : Error =
-  ExceptFold1NoValue
-init acc-s-reify-6-conv-12-simpflat-29 : Double =
-  0.0
-init acc-s-reify-6-conv-12-simpflat-30 : Double =
-  0.0
-init acc-conv-76-simpflat-31 : Error =
-  ExceptNotAnError
-init acc-conv-76-simpflat-32 : Double =
-  0.0
-init acc-a-conv-77-simpflat-37 : Error =
-  ExceptNotAnError
-init acc-a-conv-77-simpflat-38 : Double =
-  0.0
-init acc-a-conv-77-simpflat-39 : Double =
-  0.0
-init acc-a-conv-77-simpflat-40 : Double =
-  0.0
+acc-conv-11-simpflat-22 =i ExceptNotAnError : Error
+acc-conv-11-simpflat-23 =i 0.0 : Double
+acc-s-reify-6-conv-12-simpflat-28 =i ExceptFold1NoValue : Error
+acc-s-reify-6-conv-12-simpflat-29 =i 0.0 : Double
+acc-s-reify-6-conv-12-simpflat-30 =i 0.0 : Double
+acc-conv-76-simpflat-31 =i ExceptNotAnError : Error
+acc-conv-76-simpflat-32 =i 0.0 : Double
+acc-a-conv-77-simpflat-37 =i ExceptNotAnError : Error
+acc-a-conv-77-simpflat-38 =i 0.0 : Double
+acc-a-conv-77-simpflat-39 =i 0.0 : Double
+acc-a-conv-77-simpflat-40 =i 0.0 : Double
 load_resumable acc-a-conv-77-simpflat-37
 load_resumable acc-a-conv-77-simpflat-38
 load_resumable acc-a-conv-77-simpflat-39
@@ -1647,6 +1213,7 @@ load_resumable acc-s-reify-6-conv-12-simpflat-29
 load_resumable acc-s-reify-6-conv-12-simpflat-30
 load_resumable acc-conv-11-simpflat-22
 load_resumable acc-conv-11-simpflat-23
+
 for_facts conv-2 : Time
         , conv-1 : FactIdentifier
         , conv-0-simpflat-307 : Error
@@ -1654,1266 +1221,919 @@ for_facts conv-2 : Time
         , conv-0-simpflat-309 : Int
         , conv-0-simpflat-310 : Time in new
 {
-  init flat-0-simpflat-41 : Error =
-    ExceptNotAnError
-  init flat-0-simpflat-42 : Int =
-    0
-  if (eq#
-        conv-0-simpflat-307
-        ExceptNotAnError)
-  {
-    write flat-0-simpflat-41 =
-      ExceptNotAnError
-    write flat-0-simpflat-42 =
-      conv-0-simpflat-309
-  }
-  else
-  {
-    write flat-0-simpflat-41 =
-      conv-0-simpflat-307
-    write flat-0-simpflat-42 =
-      0
-  }
-  read flat-0-simpflat-43 =
-    flat-0-simpflat-41
-  read flat-0-simpflat-44 =
-    flat-0-simpflat-42
-  init flat-1-simpflat-45 : Error =
-    ExceptNotAnError
-  init flat-1-simpflat-46 : Double =
-    0.0
-  if (eq#
-        flat-0-simpflat-43
-        ExceptNotAnError)
-  {
-    write flat-1-simpflat-45 =
-      ExceptNotAnError
-    write flat-1-simpflat-46 =
-      doubleOfInt#
-        flat-0-simpflat-44
-  }
-  else
-  {
-    write flat-1-simpflat-45 =
-      flat-0-simpflat-43
-    write flat-1-simpflat-46 =
-      0.0
-  }
-  read flat-1-simpflat-47 =
-    flat-1-simpflat-45
-  read flat-1-simpflat-48 =
-    flat-1-simpflat-46
-  init flat-2-simpflat-49 : Error =
-    ExceptNotAnError
-  init flat-2-simpflat-50 : Double =
-    0.0
-  if (eq#
-        flat-1-simpflat-47
-        ExceptNotAnError)
-  {
-    write flat-2-simpflat-49 =
-      ExceptNotAnError
-    write flat-2-simpflat-50 =
-      flat-1-simpflat-48
-  }
-  else
-  {
-    write flat-2-simpflat-49 =
-      flat-1-simpflat-47
-    write flat-2-simpflat-50 =
-      0.0
-  }
-  read flat-2-simpflat-51 =
-    flat-2-simpflat-49
-  read flat-2-simpflat-52 =
-    flat-2-simpflat-50
-  write acc-conv-11-simpflat-22 =
-    flat-2-simpflat-51
-  write acc-conv-11-simpflat-23 =
-    flat-2-simpflat-52
-  read conv-11-aval-1-simpflat-53 =
-    acc-conv-11-simpflat-22
-  read conv-11-aval-1-simpflat-54 =
-    acc-conv-11-simpflat-23
-  read s-reify-6-conv-12-aval-0-simpflat-59 =
-    acc-s-reify-6-conv-12-simpflat-28
-  read s-reify-6-conv-12-aval-0-simpflat-60 =
-    acc-s-reify-6-conv-12-simpflat-29
-  read s-reify-6-conv-12-aval-0-simpflat-61 =
-    acc-s-reify-6-conv-12-simpflat-30
-  init flat-3-simpflat-62 : Error =
-    ExceptNotAnError
-  init flat-3-simpflat-63 : Double =
-    0.0
-  init flat-3-simpflat-64 : Double =
-    0.0
-  if (eq#
-        s-reify-6-conv-12-aval-0-simpflat-59
-        ExceptNotAnError)
-  {
-    init flat-10-simpflat-65 : Error =
-      ExceptNotAnError
-    init flat-10-simpflat-66 : Double =
-      0.0
-    init flat-10-simpflat-67 : Double =
-      0.0
-    if (eq#
-          s-reify-6-conv-12-aval-0-simpflat-59
-          ExceptNotAnError)
-    {
-      init flat-13-simpflat-68 : Error =
-        ExceptNotAnError
-      init flat-13-simpflat-69 : Double =
-        0.0
-      if (eq#
-            conv-11-aval-1-simpflat-53
-            ExceptNotAnError)
-      {
-        let conv-25 =
-          sub#
-            conv-11-aval-1-simpflat-54
-            s-reify-6-conv-12-aval-0-simpflat-60
-        init flat-35-simpflat-70 : Error =
-          ExceptNotAnError
-        init flat-35-simpflat-71 : Double =
-          0.0
-        if (doubleIsValid# conv-25)
-        {
-          write flat-35-simpflat-70 =
-            ExceptNotAnError
-          write flat-35-simpflat-71 =
-            sub#
-              conv-11-aval-1-simpflat-54
-              s-reify-6-conv-12-aval-0-simpflat-60
-        }
-        else
-        {
-          write flat-35-simpflat-70 =
-            ExceptCannotCompute
-          write flat-35-simpflat-71 =
-            0.0
-        }
-        read flat-35-simpflat-72 =
-          flat-35-simpflat-70
-        read flat-35-simpflat-73 =
-          flat-35-simpflat-71
-        write flat-13-simpflat-68 =
-          flat-35-simpflat-72
-        write flat-13-simpflat-69 =
-          flat-35-simpflat-73
-      }
-      else
-      {
-        write flat-13-simpflat-68 =
-          conv-11-aval-1-simpflat-53
-        write flat-13-simpflat-69 =
-          0.0
-      }
-      read flat-13-simpflat-74 =
-        flat-13-simpflat-68
-      read flat-13-simpflat-75 =
-        flat-13-simpflat-69
-      init flat-14-simpflat-76 : Error =
-        ExceptNotAnError
-      init flat-14-simpflat-77 : Double =
-        0.0
-      if (eq#
-            flat-13-simpflat-74
-            ExceptNotAnError)
-      {
-        let conv-30 =
-          add#
-            s-reify-6-conv-12-aval-0-simpflat-61
-            1.0
-        init flat-28-simpflat-78 : Error =
-          ExceptNotAnError
-        init flat-28-simpflat-79 : Double =
-          0.0
-        if (doubleIsValid# conv-30)
-        {
-          write flat-28-simpflat-78 =
-            ExceptNotAnError
-          write flat-28-simpflat-79 =
-            add#
-              s-reify-6-conv-12-aval-0-simpflat-61
-              1.0
-        }
-        else
-        {
-          write flat-28-simpflat-78 =
-            ExceptCannotCompute
-          write flat-28-simpflat-79 =
-            0.0
-        }
-        read flat-28-simpflat-80 =
-          flat-28-simpflat-78
-        read flat-28-simpflat-81 =
-          flat-28-simpflat-79
-        init flat-29-simpflat-82 : Error =
-          ExceptNotAnError
-        init flat-29-simpflat-83 : Double =
-          0.0
-        if (eq#
-              flat-28-simpflat-80
-              ExceptNotAnError)
-        {
-          let conv-34 =
-            div#
-              flat-13-simpflat-75
-              flat-28-simpflat-81
-          init flat-32-simpflat-84 : Error =
-            ExceptNotAnError
-          init flat-32-simpflat-85 : Double =
-            0.0
-          if (doubleIsValid# conv-34)
-          {
-            write flat-32-simpflat-84 =
-              ExceptNotAnError
-            write flat-32-simpflat-85 =
-              div#
-                flat-13-simpflat-75
-                flat-28-simpflat-81
-          }
-          else
-          {
-            write flat-32-simpflat-84 =
-              ExceptCannotCompute
-            write flat-32-simpflat-85 =
-              0.0
-          }
-          read flat-32-simpflat-86 =
-            flat-32-simpflat-84
-          read flat-32-simpflat-87 =
-            flat-32-simpflat-85
-          write flat-29-simpflat-82 =
-            flat-32-simpflat-86
-          write flat-29-simpflat-83 =
-            flat-32-simpflat-87
-        }
-        else
-        {
-          write flat-29-simpflat-82 =
-            flat-28-simpflat-80
-          write flat-29-simpflat-83 =
-            0.0
-        }
-        read flat-29-simpflat-88 =
-          flat-29-simpflat-82
-        read flat-29-simpflat-89 =
-          flat-29-simpflat-83
-        write flat-14-simpflat-76 =
-          flat-29-simpflat-88
-        write flat-14-simpflat-77 =
-          flat-29-simpflat-89
-      }
-      else
-      {
-        write flat-14-simpflat-76 =
-          flat-13-simpflat-74
-        write flat-14-simpflat-77 =
-          0.0
-      }
-      read flat-14-simpflat-90 =
-        flat-14-simpflat-76
-      read flat-14-simpflat-91 =
-        flat-14-simpflat-77
-      init flat-15-simpflat-92 : Error =
-        ExceptNotAnError
-      init flat-15-simpflat-93 : Double =
-        0.0
-      if (eq#
-            flat-14-simpflat-90
-            ExceptNotAnError)
-      {
-        let conv-40 =
-          add#
-            s-reify-6-conv-12-aval-0-simpflat-60
-            flat-14-simpflat-91
-        init flat-25-simpflat-94 : Error =
-          ExceptNotAnError
-        init flat-25-simpflat-95 : Double =
-          0.0
-        if (doubleIsValid# conv-40)
-        {
-          write flat-25-simpflat-94 =
-            ExceptNotAnError
-          write flat-25-simpflat-95 =
-            add#
-              s-reify-6-conv-12-aval-0-simpflat-60
-              flat-14-simpflat-91
-        }
-        else
-        {
-          write flat-25-simpflat-94 =
-            ExceptCannotCompute
-          write flat-25-simpflat-95 =
-            0.0
-        }
-        read flat-25-simpflat-96 =
-          flat-25-simpflat-94
-        read flat-25-simpflat-97 =
-          flat-25-simpflat-95
-        write flat-15-simpflat-92 =
-          flat-25-simpflat-96
-        write flat-15-simpflat-93 =
-          flat-25-simpflat-97
-      }
-      else
-      {
-        write flat-15-simpflat-92 =
-          flat-14-simpflat-90
-        write flat-15-simpflat-93 =
-          0.0
-      }
-      read flat-15-simpflat-98 =
-        flat-15-simpflat-92
-      read flat-15-simpflat-99 =
-        flat-15-simpflat-93
-      init flat-16-simpflat-100 : Error =
-        ExceptNotAnError
-      init flat-16-simpflat-101 : Double =
-        0.0
-      init flat-16-simpflat-102 : Double =
-        0.0
-      if (eq#
-            flat-15-simpflat-98
-            ExceptNotAnError)
-      {
-        let conv-45 =
-          add#
-            s-reify-6-conv-12-aval-0-simpflat-61
-            1.0
-        init flat-19-simpflat-103 : Error =
-          ExceptNotAnError
-        init flat-19-simpflat-104 : Double =
-          0.0
-        if (doubleIsValid# conv-45)
-        {
-          write flat-19-simpflat-103 =
-            ExceptNotAnError
-          write flat-19-simpflat-104 =
-            add#
-              s-reify-6-conv-12-aval-0-simpflat-61
-              1.0
-        }
-        else
-        {
-          write flat-19-simpflat-103 =
-            ExceptCannotCompute
-          write flat-19-simpflat-104 =
-            0.0
-        }
-        read flat-19-simpflat-105 =
-          flat-19-simpflat-103
-        read flat-19-simpflat-106 =
-          flat-19-simpflat-104
-        init flat-20-simpflat-107 : Error =
-          ExceptNotAnError
-        init flat-20-simpflat-108 : Double =
-          0.0
-        init flat-20-simpflat-109 : Double =
-          0.0
-        if (eq#
-              flat-19-simpflat-105
-              ExceptNotAnError)
-        {
-          write flat-20-simpflat-107 =
-            ExceptNotAnError
-          write flat-20-simpflat-108 =
-            flat-15-simpflat-99
-          write flat-20-simpflat-109 =
-            flat-19-simpflat-106
-        }
-        else
-        {
-          write flat-20-simpflat-107 =
-            flat-19-simpflat-105
-          write flat-20-simpflat-108 =
-            0.0
-          write flat-20-simpflat-109 =
-            0.0
-        }
-        read flat-20-simpflat-110 =
-          flat-20-simpflat-107
-        read flat-20-simpflat-111 =
-          flat-20-simpflat-108
-        read flat-20-simpflat-112 =
-          flat-20-simpflat-109
-        write flat-16-simpflat-100 =
-          flat-20-simpflat-110
-        write flat-16-simpflat-101 =
-          flat-20-simpflat-111
-        write flat-16-simpflat-102 =
-          flat-20-simpflat-112
-      }
-      else
-      {
-        write flat-16-simpflat-100 =
-          flat-15-simpflat-98
-        write flat-16-simpflat-101 =
-          0.0
-        write flat-16-simpflat-102 =
-          0.0
-      }
-      read flat-16-simpflat-113 =
-        flat-16-simpflat-100
-      read flat-16-simpflat-114 =
-        flat-16-simpflat-101
-      read flat-16-simpflat-115 =
-        flat-16-simpflat-102
-      write flat-10-simpflat-65 =
-        flat-16-simpflat-113
-      write flat-10-simpflat-66 =
-        flat-16-simpflat-114
-      write flat-10-simpflat-67 =
-        flat-16-simpflat-115
-    }
-    else
-    {
-      write flat-10-simpflat-65 =
-        s-reify-6-conv-12-aval-0-simpflat-59
-      write flat-10-simpflat-66 =
-        0.0
-      write flat-10-simpflat-67 =
-        0.0
-    }
-    read flat-10-simpflat-116 =
-      flat-10-simpflat-65
-    read flat-10-simpflat-117 =
-      flat-10-simpflat-66
-    read flat-10-simpflat-118 =
-      flat-10-simpflat-67
-    write flat-3-simpflat-62 =
-      flat-10-simpflat-116
-    write flat-3-simpflat-63 =
-      flat-10-simpflat-117
-    write flat-3-simpflat-64 =
-      flat-10-simpflat-118
-  }
-  else
-  {
-    init flat-6-simpflat-119 : Error =
-      ExceptNotAnError
-    init flat-6-simpflat-120 : Double =
-      0.0
-    init flat-6-simpflat-121 : Double =
-      0.0
-    if (eq#
-          ExceptFold1NoValue
-          s-reify-6-conv-12-aval-0-simpflat-59)
-    {
-      init flat-7-simpflat-122 : Error =
-        ExceptNotAnError
-      init flat-7-simpflat-123 : Double =
-        0.0
-      init flat-7-simpflat-124 : Double =
-        0.0
-      if (eq#
-            conv-11-aval-1-simpflat-53
-            ExceptNotAnError)
-      {
-        write flat-7-simpflat-122 =
-          ExceptNotAnError
-        write flat-7-simpflat-123 =
-          conv-11-aval-1-simpflat-54
-        write flat-7-simpflat-124 =
-          1.0
-      }
-      else
-      {
-        write flat-7-simpflat-122 =
-          conv-11-aval-1-simpflat-53
-        write flat-7-simpflat-123 =
-          0.0
-        write flat-7-simpflat-124 =
-          0.0
-      }
-      read flat-7-simpflat-125 =
-        flat-7-simpflat-122
-      read flat-7-simpflat-126 =
-        flat-7-simpflat-123
-      read flat-7-simpflat-127 =
-        flat-7-simpflat-124
-      write flat-6-simpflat-119 =
-        flat-7-simpflat-125
-      write flat-6-simpflat-120 =
-        flat-7-simpflat-126
-      write flat-6-simpflat-121 =
-        flat-7-simpflat-127
-    }
-    else
-    {
-      write flat-6-simpflat-119 =
-        s-reify-6-conv-12-aval-0-simpflat-59
-      write flat-6-simpflat-120 =
-        0.0
-      write flat-6-simpflat-121 =
-        0.0
-    }
-    read flat-6-simpflat-128 =
-      flat-6-simpflat-119
-    read flat-6-simpflat-129 =
-      flat-6-simpflat-120
-    read flat-6-simpflat-130 =
-      flat-6-simpflat-121
-    write flat-3-simpflat-62 =
-      flat-6-simpflat-128
-    write flat-3-simpflat-63 =
-      flat-6-simpflat-129
-    write flat-3-simpflat-64 =
-      flat-6-simpflat-130
-  }
-  read flat-3-simpflat-131 =
-    flat-3-simpflat-62
-  read flat-3-simpflat-132 =
-    flat-3-simpflat-63
-  read flat-3-simpflat-133 =
-    flat-3-simpflat-64
-  write acc-s-reify-6-conv-12-simpflat-28 =
-    flat-3-simpflat-131
-  write acc-s-reify-6-conv-12-simpflat-29 =
-    flat-3-simpflat-132
-  write acc-s-reify-6-conv-12-simpflat-30 =
-    flat-3-simpflat-133
-  init flat-36-simpflat-134 : Error =
-    ExceptNotAnError
-  init flat-36-simpflat-135 : String =
-    ""
-  if (eq#
-        conv-0-simpflat-307
-        ExceptNotAnError)
-  {
-    write flat-36-simpflat-134 =
-      ExceptNotAnError
-    write flat-36-simpflat-135 =
-      conv-0-simpflat-308
-  }
-  else
-  {
-    write flat-36-simpflat-134 =
-      conv-0-simpflat-307
-    write flat-36-simpflat-135 =
-      ""
-  }
-  read flat-36-simpflat-136 =
-    flat-36-simpflat-134
-  read flat-36-simpflat-137 =
-    flat-36-simpflat-135
-  init flat-37-simpflat-138 : Error =
-    ExceptNotAnError
-  init flat-37-simpflat-139 : Bool =
-    False
-  if (eq#
-        flat-36-simpflat-136
-        ExceptNotAnError)
-  {
-    write flat-37-simpflat-138 =
-      ExceptNotAnError
-    write flat-37-simpflat-139 =
-      eq#
-        flat-36-simpflat-137
-        "torso"
-  }
-  else
-  {
-    write flat-37-simpflat-138 =
-      flat-36-simpflat-136
-    write flat-37-simpflat-139 =
-      False
-  }
-  read flat-37-simpflat-140 =
-    flat-37-simpflat-138
-  read flat-37-simpflat-141 =
-    flat-37-simpflat-139
-  init flat-38 : Bool =
-    False
-  if (eq#
-        flat-37-simpflat-140
-        ExceptNotAnError)
-  {
-    write flat-38 =
-      flat-37-simpflat-141
-  }
-  else
-  {
-    write flat-38 =
-      True
-  }
-  read flat-38 =
-    flat-38
-  if (flat-38)
-  {
-    init flat-39-simpflat-142 : Error =
-      ExceptNotAnError
-    init flat-39-simpflat-143 : Int =
-      0
+    flat-0-simpflat-41 =i ExceptNotAnError : Error
+    flat-0-simpflat-42 =i 0 : Int
+    
     if (eq#
           conv-0-simpflat-307
           ExceptNotAnError)
     {
-      write flat-39-simpflat-142 =
-        ExceptNotAnError
-      write flat-39-simpflat-143 =
-        conv-0-simpflat-309
+        flat-0-simpflat-41 =w ExceptNotAnError
+        flat-0-simpflat-42 =w conv-0-simpflat-309
     }
     else
     {
-      write flat-39-simpflat-142 =
-        conv-0-simpflat-307
-      write flat-39-simpflat-143 =
-        0
+        flat-0-simpflat-41 =w conv-0-simpflat-307
+        flat-0-simpflat-42 =w 0
     }
-    read flat-39-simpflat-144 =
-      flat-39-simpflat-142
-    read flat-39-simpflat-145 =
-      flat-39-simpflat-143
-    init flat-40-simpflat-146 : Error =
-      ExceptNotAnError
-    init flat-40-simpflat-147 : Double =
-      0.0
+    
+    flat-0-simpflat-43 =r flat-0-simpflat-41
+    flat-0-simpflat-44 =r flat-0-simpflat-42
+    flat-1-simpflat-45 =i ExceptNotAnError : Error
+    flat-1-simpflat-46 =i 0.0 : Double
+    
     if (eq#
-          flat-39-simpflat-144
+          flat-0-simpflat-43
           ExceptNotAnError)
     {
-      write flat-40-simpflat-146 =
-        ExceptNotAnError
-      write flat-40-simpflat-147 =
-        doubleOfInt#
-          flat-39-simpflat-145
+        flat-1-simpflat-45 =w ExceptNotAnError
+        flat-1-simpflat-46 =w doubleOfInt#
+                                flat-0-simpflat-44
     }
     else
     {
-      write flat-40-simpflat-146 =
-        flat-39-simpflat-144
-      write flat-40-simpflat-147 =
-        0.0
+        flat-1-simpflat-45 =w flat-0-simpflat-43
+        flat-1-simpflat-46 =w 0.0
     }
-    read flat-40-simpflat-148 =
-      flat-40-simpflat-146
-    read flat-40-simpflat-149 =
-      flat-40-simpflat-147
-    write acc-conv-76-simpflat-31 =
-      flat-40-simpflat-148
-    write acc-conv-76-simpflat-32 =
-      flat-40-simpflat-149
-    read conv-76-aval-3-simpflat-150 =
-      acc-conv-76-simpflat-31
-    read conv-76-aval-3-simpflat-151 =
-      acc-conv-76-simpflat-32
-    read a-conv-77-aval-2-simpflat-156 =
-      acc-a-conv-77-simpflat-37
-    read a-conv-77-aval-2-simpflat-157 =
-      acc-a-conv-77-simpflat-38
-    read a-conv-77-aval-2-simpflat-158 =
-      acc-a-conv-77-simpflat-39
-    read a-conv-77-aval-2-simpflat-159 =
-      acc-a-conv-77-simpflat-40
-    init flat-41-simpflat-160 : Error =
-      ExceptNotAnError
-    init flat-41-simpflat-161 : Double =
-      0.0
-    init flat-41-simpflat-162 : Double =
-      0.0
-    init flat-41-simpflat-163 : Double =
-      0.0
+    
+    flat-1-simpflat-47 =r flat-1-simpflat-45
+    flat-1-simpflat-48 =r flat-1-simpflat-46
+    flat-2-simpflat-49 =i ExceptNotAnError : Error
+    flat-2-simpflat-50 =i 0.0 : Double
+    
     if (eq#
-          a-conv-77-aval-2-simpflat-156
+          flat-1-simpflat-47
           ExceptNotAnError)
     {
-      let conv-84 =
-        add#
-          a-conv-77-aval-2-simpflat-157
-          1.0
-      init flat-44-simpflat-164 : Error =
-        ExceptNotAnError
-      init flat-44-simpflat-165 : Double =
-        0.0
-      if (doubleIsValid# conv-84)
-      {
-        write flat-44-simpflat-164 =
-          ExceptNotAnError
-        write flat-44-simpflat-165 =
-          add#
-            a-conv-77-aval-2-simpflat-157
-            1.0
-      }
-      else
-      {
-        write flat-44-simpflat-164 =
-          ExceptCannotCompute
-        write flat-44-simpflat-165 =
-          0.0
-      }
-      read flat-44-simpflat-166 =
-        flat-44-simpflat-164
-      read flat-44-simpflat-167 =
-        flat-44-simpflat-165
-      init flat-45-simpflat-168 : Error =
-        ExceptNotAnError
-      init flat-45-simpflat-169 : Double =
-        0.0
-      if (eq#
-            conv-76-aval-3-simpflat-150
-            ExceptNotAnError)
-      {
-        let conv-89 =
-          sub#
-            conv-76-aval-3-simpflat-151
-            a-conv-77-aval-2-simpflat-158
-        init flat-89-simpflat-170 : Error =
-          ExceptNotAnError
-        init flat-89-simpflat-171 : Double =
-          0.0
-        if (doubleIsValid# conv-89)
-        {
-          write flat-89-simpflat-170 =
-            ExceptNotAnError
-          write flat-89-simpflat-171 =
-            sub#
-              conv-76-aval-3-simpflat-151
-              a-conv-77-aval-2-simpflat-158
-        }
-        else
-        {
-          write flat-89-simpflat-170 =
-            ExceptCannotCompute
-          write flat-89-simpflat-171 =
-            0.0
-        }
-        read flat-89-simpflat-172 =
-          flat-89-simpflat-170
-        read flat-89-simpflat-173 =
-          flat-89-simpflat-171
-        write flat-45-simpflat-168 =
-          flat-89-simpflat-172
-        write flat-45-simpflat-169 =
-          flat-89-simpflat-173
-      }
-      else
-      {
-        write flat-45-simpflat-168 =
-          conv-76-aval-3-simpflat-150
-        write flat-45-simpflat-169 =
-          0.0
-      }
-      read flat-45-simpflat-174 =
-        flat-45-simpflat-168
-      read flat-45-simpflat-175 =
-        flat-45-simpflat-169
-      init flat-46-simpflat-176 : Error =
-        ExceptNotAnError
-      init flat-46-simpflat-177 : Double =
-        0.0
-      if (eq#
-            flat-45-simpflat-174
-            ExceptNotAnError)
-      {
-        init flat-83-simpflat-178 : Error =
-          ExceptNotAnError
-        init flat-83-simpflat-179 : Double =
-          0.0
+        flat-2-simpflat-49 =w ExceptNotAnError
+        flat-2-simpflat-50 =w flat-1-simpflat-48
+    }
+    else
+    {
+        flat-2-simpflat-49 =w flat-1-simpflat-47
+        flat-2-simpflat-50 =w 0.0
+    }
+    
+    flat-2-simpflat-51 =r flat-2-simpflat-49
+    flat-2-simpflat-52 =r flat-2-simpflat-50
+    acc-conv-11-simpflat-22 =w flat-2-simpflat-51
+    acc-conv-11-simpflat-23 =w flat-2-simpflat-52
+    conv-11-aval-1-simpflat-53 =r acc-conv-11-simpflat-22
+    conv-11-aval-1-simpflat-54 =r acc-conv-11-simpflat-23
+    s-reify-6-conv-12-aval-0-simpflat-59 =r acc-s-reify-6-conv-12-simpflat-28
+    s-reify-6-conv-12-aval-0-simpflat-60 =r acc-s-reify-6-conv-12-simpflat-29
+    s-reify-6-conv-12-aval-0-simpflat-61 =r acc-s-reify-6-conv-12-simpflat-30
+    flat-3-simpflat-62 =i ExceptNotAnError : Error
+    flat-3-simpflat-63 =i 0.0 : Double
+    flat-3-simpflat-64 =i 0.0 : Double
+    
+    if (eq#
+          s-reify-6-conv-12-aval-0-simpflat-59
+          ExceptNotAnError)
+    {
+        flat-10-simpflat-65 =i ExceptNotAnError : Error
+        flat-10-simpflat-66 =i 0.0 : Double
+        flat-10-simpflat-67 =i 0.0 : Double
+        
         if (eq#
-              flat-44-simpflat-166
+              s-reify-6-conv-12-aval-0-simpflat-59
               ExceptNotAnError)
         {
-          let conv-97 =
-            div#
-              flat-45-simpflat-175
-              flat-44-simpflat-167
-          init flat-86-simpflat-180 : Error =
-            ExceptNotAnError
-          init flat-86-simpflat-181 : Double =
-            0.0
-          if (doubleIsValid# conv-97)
-          {
-            write flat-86-simpflat-180 =
-              ExceptNotAnError
-            write flat-86-simpflat-181 =
-              div#
-                flat-45-simpflat-175
-                flat-44-simpflat-167
-          }
-          else
-          {
-            write flat-86-simpflat-180 =
-              ExceptCannotCompute
-            write flat-86-simpflat-181 =
-              0.0
-          }
-          read flat-86-simpflat-182 =
-            flat-86-simpflat-180
-          read flat-86-simpflat-183 =
-            flat-86-simpflat-181
-          write flat-83-simpflat-178 =
-            flat-86-simpflat-182
-          write flat-83-simpflat-179 =
-            flat-86-simpflat-183
-        }
-        else
-        {
-          write flat-83-simpflat-178 =
-            flat-44-simpflat-166
-          write flat-83-simpflat-179 =
-            0.0
-        }
-        read flat-83-simpflat-184 =
-          flat-83-simpflat-178
-        read flat-83-simpflat-185 =
-          flat-83-simpflat-179
-        write flat-46-simpflat-176 =
-          flat-83-simpflat-184
-        write flat-46-simpflat-177 =
-          flat-83-simpflat-185
-      }
-      else
-      {
-        write flat-46-simpflat-176 =
-          flat-45-simpflat-174
-        write flat-46-simpflat-177 =
-          0.0
-      }
-      read flat-46-simpflat-186 =
-        flat-46-simpflat-176
-      read flat-46-simpflat-187 =
-        flat-46-simpflat-177
-      init flat-47-simpflat-188 : Error =
-        ExceptNotAnError
-      init flat-47-simpflat-189 : Double =
-        0.0
-      if (eq#
-            flat-46-simpflat-186
-            ExceptNotAnError)
-      {
-        let conv-103 =
-          add#
-            a-conv-77-aval-2-simpflat-158
-            flat-46-simpflat-187
-        init flat-80-simpflat-190 : Error =
-          ExceptNotAnError
-        init flat-80-simpflat-191 : Double =
-          0.0
-        if (doubleIsValid# conv-103)
-        {
-          write flat-80-simpflat-190 =
-            ExceptNotAnError
-          write flat-80-simpflat-191 =
-            add#
-              a-conv-77-aval-2-simpflat-158
-              flat-46-simpflat-187
-        }
-        else
-        {
-          write flat-80-simpflat-190 =
-            ExceptCannotCompute
-          write flat-80-simpflat-191 =
-            0.0
-        }
-        read flat-80-simpflat-192 =
-          flat-80-simpflat-190
-        read flat-80-simpflat-193 =
-          flat-80-simpflat-191
-        write flat-47-simpflat-188 =
-          flat-80-simpflat-192
-        write flat-47-simpflat-189 =
-          flat-80-simpflat-193
-      }
-      else
-      {
-        write flat-47-simpflat-188 =
-          flat-46-simpflat-186
-        write flat-47-simpflat-189 =
-          0.0
-      }
-      read flat-47-simpflat-194 =
-        flat-47-simpflat-188
-      read flat-47-simpflat-195 =
-        flat-47-simpflat-189
-      init flat-48-simpflat-196 : Error =
-        ExceptNotAnError
-      init flat-48-simpflat-197 : Double =
-        0.0
-      if (eq#
-            flat-45-simpflat-174
-            ExceptNotAnError)
-      {
-        init flat-67-simpflat-198 : Error =
-          ExceptNotAnError
-        init flat-67-simpflat-199 : Double =
-          0.0
-        if (eq#
-              conv-76-aval-3-simpflat-150
-              ExceptNotAnError)
-        {
-          init flat-74-simpflat-200 : Error =
-            ExceptNotAnError
-          init flat-74-simpflat-201 : Double =
-            0.0
-          if (eq#
-                flat-47-simpflat-194
-                ExceptNotAnError)
-          {
-            let conv-113 =
-              sub#
-                conv-76-aval-3-simpflat-151
-                flat-47-simpflat-195
-            init flat-77-simpflat-202 : Error =
-              ExceptNotAnError
-            init flat-77-simpflat-203 : Double =
-              0.0
-            if (doubleIsValid# conv-113)
+            flat-13-simpflat-68 =i ExceptNotAnError : Error
+            flat-13-simpflat-69 =i 0.0 : Double
+            
+            if (eq#
+                  conv-11-aval-1-simpflat-53
+                  ExceptNotAnError)
             {
-              write flat-77-simpflat-202 =
-                ExceptNotAnError
-              write flat-77-simpflat-203 =
-                sub#
-                  conv-76-aval-3-simpflat-151
-                  flat-47-simpflat-195
+                conv-25 = sub#
+                            conv-11-aval-1-simpflat-54
+                            s-reify-6-conv-12-aval-0-simpflat-60
+                flat-35-simpflat-70 =i ExceptNotAnError : Error
+                flat-35-simpflat-71 =i 0.0 : Double
+                
+                if (doubleIsValid# conv-25)
+                {
+                    flat-35-simpflat-70 =w ExceptNotAnError
+                    flat-35-simpflat-71 =w sub#
+                                             conv-11-aval-1-simpflat-54
+                                             s-reify-6-conv-12-aval-0-simpflat-60
+                }
+                else
+                {
+                    flat-35-simpflat-70 =w ExceptCannotCompute
+                    flat-35-simpflat-71 =w 0.0
+                }
+                
+                flat-35-simpflat-72 =r flat-35-simpflat-70
+                flat-35-simpflat-73 =r flat-35-simpflat-71
+                flat-13-simpflat-68 =w flat-35-simpflat-72
+                flat-13-simpflat-69 =w flat-35-simpflat-73
             }
             else
             {
-              write flat-77-simpflat-202 =
-                ExceptCannotCompute
-              write flat-77-simpflat-203 =
-                0.0
+                flat-13-simpflat-68 =w conv-11-aval-1-simpflat-53
+                flat-13-simpflat-69 =w 0.0
             }
-            read flat-77-simpflat-204 =
-              flat-77-simpflat-202
-            read flat-77-simpflat-205 =
-              flat-77-simpflat-203
-            write flat-74-simpflat-200 =
-              flat-77-simpflat-204
-            write flat-74-simpflat-201 =
-              flat-77-simpflat-205
-          }
-          else
-          {
-            write flat-74-simpflat-200 =
-              flat-47-simpflat-194
-            write flat-74-simpflat-201 =
-              0.0
-          }
-          read flat-74-simpflat-206 =
-            flat-74-simpflat-200
-          read flat-74-simpflat-207 =
-            flat-74-simpflat-201
-          write flat-67-simpflat-198 =
-            flat-74-simpflat-206
-          write flat-67-simpflat-199 =
-            flat-74-simpflat-207
+            
+            flat-13-simpflat-74 =r flat-13-simpflat-68
+            flat-13-simpflat-75 =r flat-13-simpflat-69
+            flat-14-simpflat-76 =i ExceptNotAnError : Error
+            flat-14-simpflat-77 =i 0.0 : Double
+            
+            if (eq#
+                  flat-13-simpflat-74
+                  ExceptNotAnError)
+            {
+                conv-30 = add#
+                            s-reify-6-conv-12-aval-0-simpflat-61
+                            1.0
+                flat-28-simpflat-78 =i ExceptNotAnError : Error
+                flat-28-simpflat-79 =i 0.0 : Double
+                
+                if (doubleIsValid# conv-30)
+                {
+                    flat-28-simpflat-78 =w ExceptNotAnError
+                    flat-28-simpflat-79 =w add#
+                                             s-reify-6-conv-12-aval-0-simpflat-61
+                                             1.0
+                }
+                else
+                {
+                    flat-28-simpflat-78 =w ExceptCannotCompute
+                    flat-28-simpflat-79 =w 0.0
+                }
+                
+                flat-28-simpflat-80 =r flat-28-simpflat-78
+                flat-28-simpflat-81 =r flat-28-simpflat-79
+                flat-29-simpflat-82 =i ExceptNotAnError : Error
+                flat-29-simpflat-83 =i 0.0 : Double
+                
+                if (eq#
+                      flat-28-simpflat-80
+                      ExceptNotAnError)
+                {
+                    conv-34 = div#
+                                flat-13-simpflat-75
+                                flat-28-simpflat-81
+                    flat-32-simpflat-84 =i ExceptNotAnError : Error
+                    flat-32-simpflat-85 =i 0.0 : Double
+                    
+                    if (doubleIsValid# conv-34)
+                    {
+                        flat-32-simpflat-84 =w ExceptNotAnError
+                        flat-32-simpflat-85 =w div#
+                                                 flat-13-simpflat-75
+                                                 flat-28-simpflat-81
+                    }
+                    else
+                    {
+                        flat-32-simpflat-84 =w ExceptCannotCompute
+                        flat-32-simpflat-85 =w 0.0
+                    }
+                    
+                    flat-32-simpflat-86 =r flat-32-simpflat-84
+                    flat-32-simpflat-87 =r flat-32-simpflat-85
+                    flat-29-simpflat-82 =w flat-32-simpflat-86
+                    flat-29-simpflat-83 =w flat-32-simpflat-87
+                }
+                else
+                {
+                    flat-29-simpflat-82 =w flat-28-simpflat-80
+                    flat-29-simpflat-83 =w 0.0
+                }
+                
+                flat-29-simpflat-88 =r flat-29-simpflat-82
+                flat-29-simpflat-89 =r flat-29-simpflat-83
+                flat-14-simpflat-76 =w flat-29-simpflat-88
+                flat-14-simpflat-77 =w flat-29-simpflat-89
+            }
+            else
+            {
+                flat-14-simpflat-76 =w flat-13-simpflat-74
+                flat-14-simpflat-77 =w 0.0
+            }
+            
+            flat-14-simpflat-90 =r flat-14-simpflat-76
+            flat-14-simpflat-91 =r flat-14-simpflat-77
+            flat-15-simpflat-92 =i ExceptNotAnError : Error
+            flat-15-simpflat-93 =i 0.0 : Double
+            
+            if (eq#
+                  flat-14-simpflat-90
+                  ExceptNotAnError)
+            {
+                conv-40 = add#
+                            s-reify-6-conv-12-aval-0-simpflat-60
+                            flat-14-simpflat-91
+                flat-25-simpflat-94 =i ExceptNotAnError : Error
+                flat-25-simpflat-95 =i 0.0 : Double
+                
+                if (doubleIsValid# conv-40)
+                {
+                    flat-25-simpflat-94 =w ExceptNotAnError
+                    flat-25-simpflat-95 =w add#
+                                             s-reify-6-conv-12-aval-0-simpflat-60
+                                             flat-14-simpflat-91
+                }
+                else
+                {
+                    flat-25-simpflat-94 =w ExceptCannotCompute
+                    flat-25-simpflat-95 =w 0.0
+                }
+                
+                flat-25-simpflat-96 =r flat-25-simpflat-94
+                flat-25-simpflat-97 =r flat-25-simpflat-95
+                flat-15-simpflat-92 =w flat-25-simpflat-96
+                flat-15-simpflat-93 =w flat-25-simpflat-97
+            }
+            else
+            {
+                flat-15-simpflat-92 =w flat-14-simpflat-90
+                flat-15-simpflat-93 =w 0.0
+            }
+            
+            flat-15-simpflat-98 =r flat-15-simpflat-92
+            flat-15-simpflat-99 =r flat-15-simpflat-93
+            flat-16-simpflat-100 =i ExceptNotAnError : Error
+            flat-16-simpflat-101 =i 0.0 : Double
+            flat-16-simpflat-102 =i 0.0 : Double
+            
+            if (eq#
+                  flat-15-simpflat-98
+                  ExceptNotAnError)
+            {
+                conv-45 = add#
+                            s-reify-6-conv-12-aval-0-simpflat-61
+                            1.0
+                flat-19-simpflat-103 =i ExceptNotAnError : Error
+                flat-19-simpflat-104 =i 0.0 : Double
+                
+                if (doubleIsValid# conv-45)
+                {
+                    flat-19-simpflat-103 =w ExceptNotAnError
+                    flat-19-simpflat-104 =w add#
+                                              s-reify-6-conv-12-aval-0-simpflat-61
+                                              1.0
+                }
+                else
+                {
+                    flat-19-simpflat-103 =w ExceptCannotCompute
+                    flat-19-simpflat-104 =w 0.0
+                }
+                
+                flat-19-simpflat-105 =r flat-19-simpflat-103
+                flat-19-simpflat-106 =r flat-19-simpflat-104
+                flat-20-simpflat-107 =i ExceptNotAnError : Error
+                flat-20-simpflat-108 =i 0.0 : Double
+                flat-20-simpflat-109 =i 0.0 : Double
+                
+                if (eq#
+                      flat-19-simpflat-105
+                      ExceptNotAnError)
+                {
+                    flat-20-simpflat-107 =w ExceptNotAnError
+                    flat-20-simpflat-108 =w flat-15-simpflat-99
+                    flat-20-simpflat-109 =w flat-19-simpflat-106
+                }
+                else
+                {
+                    flat-20-simpflat-107 =w flat-19-simpflat-105
+                    flat-20-simpflat-108 =w 0.0
+                    flat-20-simpflat-109 =w 0.0
+                }
+                
+                flat-20-simpflat-110 =r flat-20-simpflat-107
+                flat-20-simpflat-111 =r flat-20-simpflat-108
+                flat-20-simpflat-112 =r flat-20-simpflat-109
+                flat-16-simpflat-100 =w flat-20-simpflat-110
+                flat-16-simpflat-101 =w flat-20-simpflat-111
+                flat-16-simpflat-102 =w flat-20-simpflat-112
+            }
+            else
+            {
+                flat-16-simpflat-100 =w flat-15-simpflat-98
+                flat-16-simpflat-101 =w 0.0
+                flat-16-simpflat-102 =w 0.0
+            }
+            
+            flat-16-simpflat-113 =r flat-16-simpflat-100
+            flat-16-simpflat-114 =r flat-16-simpflat-101
+            flat-16-simpflat-115 =r flat-16-simpflat-102
+            flat-10-simpflat-65 =w flat-16-simpflat-113
+            flat-10-simpflat-66 =w flat-16-simpflat-114
+            flat-10-simpflat-67 =w flat-16-simpflat-115
         }
         else
         {
-          write flat-67-simpflat-198 =
-            conv-76-aval-3-simpflat-150
-          write flat-67-simpflat-199 =
-            0.0
+            flat-10-simpflat-65 =w s-reify-6-conv-12-aval-0-simpflat-59
+            flat-10-simpflat-66 =w 0.0
+            flat-10-simpflat-67 =w 0.0
         }
-        read flat-67-simpflat-208 =
-          flat-67-simpflat-198
-        read flat-67-simpflat-209 =
-          flat-67-simpflat-199
-        init flat-68-simpflat-210 : Error =
-          ExceptNotAnError
-        init flat-68-simpflat-211 : Double =
-          0.0
-        if (eq#
-              flat-67-simpflat-208
-              ExceptNotAnError)
-        {
-          let conv-119 =
-            mul#
-              flat-45-simpflat-175
-              flat-67-simpflat-209
-          init flat-71-simpflat-212 : Error =
-            ExceptNotAnError
-          init flat-71-simpflat-213 : Double =
-            0.0
-          if (doubleIsValid# conv-119)
-          {
-            write flat-71-simpflat-212 =
-              ExceptNotAnError
-            write flat-71-simpflat-213 =
-              mul#
-                flat-45-simpflat-175
-                flat-67-simpflat-209
-          }
-          else
-          {
-            write flat-71-simpflat-212 =
-              ExceptCannotCompute
-            write flat-71-simpflat-213 =
-              0.0
-          }
-          read flat-71-simpflat-214 =
-            flat-71-simpflat-212
-          read flat-71-simpflat-215 =
-            flat-71-simpflat-213
-          write flat-68-simpflat-210 =
-            flat-71-simpflat-214
-          write flat-68-simpflat-211 =
-            flat-71-simpflat-215
-        }
-        else
-        {
-          write flat-68-simpflat-210 =
-            flat-67-simpflat-208
-          write flat-68-simpflat-211 =
-            0.0
-        }
-        read flat-68-simpflat-216 =
-          flat-68-simpflat-210
-        read flat-68-simpflat-217 =
-          flat-68-simpflat-211
-        write flat-48-simpflat-196 =
-          flat-68-simpflat-216
-        write flat-48-simpflat-197 =
-          flat-68-simpflat-217
-      }
-      else
-      {
-        write flat-48-simpflat-196 =
-          flat-45-simpflat-174
-        write flat-48-simpflat-197 =
-          0.0
-      }
-      read flat-48-simpflat-218 =
-        flat-48-simpflat-196
-      read flat-48-simpflat-219 =
-        flat-48-simpflat-197
-      init flat-49-simpflat-220 : Error =
-        ExceptNotAnError
-      init flat-49-simpflat-221 : Double =
-        0.0
-      if (eq#
-            flat-48-simpflat-218
-            ExceptNotAnError)
-      {
-        let conv-125 =
-          add#
-            a-conv-77-aval-2-simpflat-159
-            flat-48-simpflat-219
-        init flat-64-simpflat-222 : Error =
-          ExceptNotAnError
-        init flat-64-simpflat-223 : Double =
-          0.0
-        if (doubleIsValid# conv-125)
-        {
-          write flat-64-simpflat-222 =
-            ExceptNotAnError
-          write flat-64-simpflat-223 =
-            add#
-              a-conv-77-aval-2-simpflat-159
-              flat-48-simpflat-219
-        }
-        else
-        {
-          write flat-64-simpflat-222 =
-            ExceptCannotCompute
-          write flat-64-simpflat-223 =
-            0.0
-        }
-        read flat-64-simpflat-224 =
-          flat-64-simpflat-222
-        read flat-64-simpflat-225 =
-          flat-64-simpflat-223
-        write flat-49-simpflat-220 =
-          flat-64-simpflat-224
-        write flat-49-simpflat-221 =
-          flat-64-simpflat-225
-      }
-      else
-      {
-        write flat-49-simpflat-220 =
-          flat-48-simpflat-218
-        write flat-49-simpflat-221 =
-          0.0
-      }
-      read flat-49-simpflat-226 =
-        flat-49-simpflat-220
-      read flat-49-simpflat-227 =
-        flat-49-simpflat-221
-      init flat-50-simpflat-228 : Error =
-        ExceptNotAnError
-      init flat-50-simpflat-229 : Double =
-        0.0
-      init flat-50-simpflat-230 : Double =
-        0.0
-      if (eq#
-            flat-44-simpflat-166
-            ExceptNotAnError)
-      {
-        init flat-59-simpflat-231 : Error =
-          ExceptNotAnError
-        init flat-59-simpflat-232 : Double =
-          0.0
-        init flat-59-simpflat-233 : Double =
-          0.0
-        if (eq#
-              flat-47-simpflat-194
-              ExceptNotAnError)
-        {
-          write flat-59-simpflat-231 =
-            ExceptNotAnError
-          write flat-59-simpflat-232 =
-            flat-44-simpflat-167
-          write flat-59-simpflat-233 =
-            flat-47-simpflat-195
-        }
-        else
-        {
-          write flat-59-simpflat-231 =
-            flat-47-simpflat-194
-          write flat-59-simpflat-232 =
-            0.0
-          write flat-59-simpflat-233 =
-            0.0
-        }
-        read flat-59-simpflat-234 =
-          flat-59-simpflat-231
-        read flat-59-simpflat-235 =
-          flat-59-simpflat-232
-        read flat-59-simpflat-236 =
-          flat-59-simpflat-233
-        write flat-50-simpflat-228 =
-          flat-59-simpflat-234
-        write flat-50-simpflat-229 =
-          flat-59-simpflat-235
-        write flat-50-simpflat-230 =
-          flat-59-simpflat-236
-      }
-      else
-      {
-        write flat-50-simpflat-228 =
-          flat-44-simpflat-166
-        write flat-50-simpflat-229 =
-          0.0
-        write flat-50-simpflat-230 =
-          0.0
-      }
-      read flat-50-simpflat-237 =
-        flat-50-simpflat-228
-      read flat-50-simpflat-238 =
-        flat-50-simpflat-229
-      read flat-50-simpflat-239 =
-        flat-50-simpflat-230
-      init flat-51-simpflat-240 : Error =
-        ExceptNotAnError
-      init flat-51-simpflat-241 : Double =
-        0.0
-      init flat-51-simpflat-242 : Double =
-        0.0
-      init flat-51-simpflat-243 : Double =
-        0.0
-      if (eq#
-            flat-50-simpflat-237
-            ExceptNotAnError)
-      {
-        init flat-54-simpflat-244 : Error =
-          ExceptNotAnError
-        init flat-54-simpflat-245 : Double =
-          0.0
-        init flat-54-simpflat-246 : Double =
-          0.0
-        init flat-54-simpflat-247 : Double =
-          0.0
-        if (eq#
-              flat-49-simpflat-226
-              ExceptNotAnError)
-        {
-          write flat-54-simpflat-244 =
-            ExceptNotAnError
-          write flat-54-simpflat-245 =
-            flat-50-simpflat-238
-          write flat-54-simpflat-246 =
-            flat-50-simpflat-239
-          write flat-54-simpflat-247 =
-            flat-49-simpflat-227
-        }
-        else
-        {
-          write flat-54-simpflat-244 =
-            flat-49-simpflat-226
-          write flat-54-simpflat-245 =
-            0.0
-          write flat-54-simpflat-246 =
-            0.0
-          write flat-54-simpflat-247 =
-            0.0
-        }
-        read flat-54-simpflat-248 =
-          flat-54-simpflat-244
-        read flat-54-simpflat-249 =
-          flat-54-simpflat-245
-        read flat-54-simpflat-250 =
-          flat-54-simpflat-246
-        read flat-54-simpflat-251 =
-          flat-54-simpflat-247
-        write flat-51-simpflat-240 =
-          flat-54-simpflat-248
-        write flat-51-simpflat-241 =
-          flat-54-simpflat-249
-        write flat-51-simpflat-242 =
-          flat-54-simpflat-250
-        write flat-51-simpflat-243 =
-          flat-54-simpflat-251
-      }
-      else
-      {
-        write flat-51-simpflat-240 =
-          flat-50-simpflat-237
-        write flat-51-simpflat-241 =
-          0.0
-        write flat-51-simpflat-242 =
-          0.0
-        write flat-51-simpflat-243 =
-          0.0
-      }
-      read flat-51-simpflat-252 =
-        flat-51-simpflat-240
-      read flat-51-simpflat-253 =
-        flat-51-simpflat-241
-      read flat-51-simpflat-254 =
-        flat-51-simpflat-242
-      read flat-51-simpflat-255 =
-        flat-51-simpflat-243
-      write flat-41-simpflat-160 =
-        flat-51-simpflat-252
-      write flat-41-simpflat-161 =
-        flat-51-simpflat-253
-      write flat-41-simpflat-162 =
-        flat-51-simpflat-254
-      write flat-41-simpflat-163 =
-        flat-51-simpflat-255
+        
+        flat-10-simpflat-116 =r flat-10-simpflat-65
+        flat-10-simpflat-117 =r flat-10-simpflat-66
+        flat-10-simpflat-118 =r flat-10-simpflat-67
+        flat-3-simpflat-62 =w flat-10-simpflat-116
+        flat-3-simpflat-63 =w flat-10-simpflat-117
+        flat-3-simpflat-64 =w flat-10-simpflat-118
     }
     else
     {
-      write flat-41-simpflat-160 =
-        a-conv-77-aval-2-simpflat-156
-      write flat-41-simpflat-161 =
-        0.0
-      write flat-41-simpflat-162 =
-        0.0
-      write flat-41-simpflat-163 =
-        0.0
+        flat-6-simpflat-119 =i ExceptNotAnError : Error
+        flat-6-simpflat-120 =i 0.0 : Double
+        flat-6-simpflat-121 =i 0.0 : Double
+        
+        if (eq#
+              ExceptFold1NoValue
+              s-reify-6-conv-12-aval-0-simpflat-59)
+        {
+            flat-7-simpflat-122 =i ExceptNotAnError : Error
+            flat-7-simpflat-123 =i 0.0 : Double
+            flat-7-simpflat-124 =i 0.0 : Double
+            
+            if (eq#
+                  conv-11-aval-1-simpflat-53
+                  ExceptNotAnError)
+            {
+                flat-7-simpflat-122 =w ExceptNotAnError
+                flat-7-simpflat-123 =w conv-11-aval-1-simpflat-54
+                flat-7-simpflat-124 =w 1.0
+            }
+            else
+            {
+                flat-7-simpflat-122 =w conv-11-aval-1-simpflat-53
+                flat-7-simpflat-123 =w 0.0
+                flat-7-simpflat-124 =w 0.0
+            }
+            
+            flat-7-simpflat-125 =r flat-7-simpflat-122
+            flat-7-simpflat-126 =r flat-7-simpflat-123
+            flat-7-simpflat-127 =r flat-7-simpflat-124
+            flat-6-simpflat-119 =w flat-7-simpflat-125
+            flat-6-simpflat-120 =w flat-7-simpflat-126
+            flat-6-simpflat-121 =w flat-7-simpflat-127
+        }
+        else
+        {
+            flat-6-simpflat-119 =w s-reify-6-conv-12-aval-0-simpflat-59
+            flat-6-simpflat-120 =w 0.0
+            flat-6-simpflat-121 =w 0.0
+        }
+        
+        flat-6-simpflat-128 =r flat-6-simpflat-119
+        flat-6-simpflat-129 =r flat-6-simpflat-120
+        flat-6-simpflat-130 =r flat-6-simpflat-121
+        flat-3-simpflat-62 =w flat-6-simpflat-128
+        flat-3-simpflat-63 =w flat-6-simpflat-129
+        flat-3-simpflat-64 =w flat-6-simpflat-130
     }
-    read flat-41-simpflat-256 =
-      flat-41-simpflat-160
-    read flat-41-simpflat-257 =
-      flat-41-simpflat-161
-    read flat-41-simpflat-258 =
-      flat-41-simpflat-162
-    read flat-41-simpflat-259 =
-      flat-41-simpflat-163
-    write acc-a-conv-77-simpflat-37 =
-      flat-41-simpflat-256
-    write acc-a-conv-77-simpflat-38 =
-      flat-41-simpflat-257
-    write acc-a-conv-77-simpflat-39 =
-      flat-41-simpflat-258
-    write acc-a-conv-77-simpflat-40 =
-      flat-41-simpflat-259
-  }
+    
+    flat-3-simpflat-131 =r flat-3-simpflat-62
+    flat-3-simpflat-132 =r flat-3-simpflat-63
+    flat-3-simpflat-133 =r flat-3-simpflat-64
+    acc-s-reify-6-conv-12-simpflat-28 =w flat-3-simpflat-131
+    acc-s-reify-6-conv-12-simpflat-29 =w flat-3-simpflat-132
+    acc-s-reify-6-conv-12-simpflat-30 =w flat-3-simpflat-133
+    flat-36-simpflat-134 =i ExceptNotAnError : Error
+    flat-36-simpflat-135 =i "" : String
+    
+    if (eq#
+          conv-0-simpflat-307
+          ExceptNotAnError)
+    {
+        flat-36-simpflat-134 =w ExceptNotAnError
+        flat-36-simpflat-135 =w conv-0-simpflat-308
+    }
+    else
+    {
+        flat-36-simpflat-134 =w conv-0-simpflat-307
+        flat-36-simpflat-135 =w ""
+    }
+    
+    flat-36-simpflat-136 =r flat-36-simpflat-134
+    flat-36-simpflat-137 =r flat-36-simpflat-135
+    flat-37-simpflat-138 =i ExceptNotAnError : Error
+    flat-37-simpflat-139 =i False : Bool
+    
+    if (eq#
+          flat-36-simpflat-136
+          ExceptNotAnError)
+    {
+        flat-37-simpflat-138 =w ExceptNotAnError
+        flat-37-simpflat-139 =w eq#
+                                  flat-36-simpflat-137
+                                  "torso"
+    }
+    else
+    {
+        flat-37-simpflat-138 =w flat-36-simpflat-136
+        flat-37-simpflat-139 =w False
+    }
+    
+    flat-37-simpflat-140 =r flat-37-simpflat-138
+    flat-37-simpflat-141 =r flat-37-simpflat-139
+    flat-38 =i False : Bool
+    
+    if (eq#
+          flat-37-simpflat-140
+          ExceptNotAnError)
+    {
+        flat-38 =w flat-37-simpflat-141
+    }
+    else
+    {
+        flat-38 =w True
+    }
+    
+    flat-38 =r flat-38
+    
+    if (flat-38)
+    {
+        flat-39-simpflat-142 =i ExceptNotAnError : Error
+        flat-39-simpflat-143 =i 0 : Int
+        
+        if (eq#
+              conv-0-simpflat-307
+              ExceptNotAnError)
+        {
+            flat-39-simpflat-142 =w ExceptNotAnError
+            flat-39-simpflat-143 =w conv-0-simpflat-309
+        }
+        else
+        {
+            flat-39-simpflat-142 =w conv-0-simpflat-307
+            flat-39-simpflat-143 =w 0
+        }
+        
+        flat-39-simpflat-144 =r flat-39-simpflat-142
+        flat-39-simpflat-145 =r flat-39-simpflat-143
+        flat-40-simpflat-146 =i ExceptNotAnError : Error
+        flat-40-simpflat-147 =i 0.0 : Double
+        
+        if (eq#
+              flat-39-simpflat-144
+              ExceptNotAnError)
+        {
+            flat-40-simpflat-146 =w ExceptNotAnError
+            flat-40-simpflat-147 =w doubleOfInt#
+                                      flat-39-simpflat-145
+        }
+        else
+        {
+            flat-40-simpflat-146 =w flat-39-simpflat-144
+            flat-40-simpflat-147 =w 0.0
+        }
+        
+        flat-40-simpflat-148 =r flat-40-simpflat-146
+        flat-40-simpflat-149 =r flat-40-simpflat-147
+        acc-conv-76-simpflat-31 =w flat-40-simpflat-148
+        acc-conv-76-simpflat-32 =w flat-40-simpflat-149
+        conv-76-aval-3-simpflat-150 =r acc-conv-76-simpflat-31
+        conv-76-aval-3-simpflat-151 =r acc-conv-76-simpflat-32
+        a-conv-77-aval-2-simpflat-156 =r acc-a-conv-77-simpflat-37
+        a-conv-77-aval-2-simpflat-157 =r acc-a-conv-77-simpflat-38
+        a-conv-77-aval-2-simpflat-158 =r acc-a-conv-77-simpflat-39
+        a-conv-77-aval-2-simpflat-159 =r acc-a-conv-77-simpflat-40
+        flat-41-simpflat-160 =i ExceptNotAnError : Error
+        flat-41-simpflat-161 =i 0.0 : Double
+        flat-41-simpflat-162 =i 0.0 : Double
+        flat-41-simpflat-163 =i 0.0 : Double
+        
+        if (eq#
+              a-conv-77-aval-2-simpflat-156
+              ExceptNotAnError)
+        {
+            conv-84 = add#
+                        a-conv-77-aval-2-simpflat-157
+                        1.0
+            flat-44-simpflat-164 =i ExceptNotAnError : Error
+            flat-44-simpflat-165 =i 0.0 : Double
+            
+            if (doubleIsValid# conv-84)
+            {
+                flat-44-simpflat-164 =w ExceptNotAnError
+                flat-44-simpflat-165 =w add#
+                                          a-conv-77-aval-2-simpflat-157
+                                          1.0
+            }
+            else
+            {
+                flat-44-simpflat-164 =w ExceptCannotCompute
+                flat-44-simpflat-165 =w 0.0
+            }
+            
+            flat-44-simpflat-166 =r flat-44-simpflat-164
+            flat-44-simpflat-167 =r flat-44-simpflat-165
+            flat-45-simpflat-168 =i ExceptNotAnError : Error
+            flat-45-simpflat-169 =i 0.0 : Double
+            
+            if (eq#
+                  conv-76-aval-3-simpflat-150
+                  ExceptNotAnError)
+            {
+                conv-89 = sub#
+                            conv-76-aval-3-simpflat-151
+                            a-conv-77-aval-2-simpflat-158
+                flat-89-simpflat-170 =i ExceptNotAnError : Error
+                flat-89-simpflat-171 =i 0.0 : Double
+                
+                if (doubleIsValid# conv-89)
+                {
+                    flat-89-simpflat-170 =w ExceptNotAnError
+                    flat-89-simpflat-171 =w sub#
+                                              conv-76-aval-3-simpflat-151
+                                              a-conv-77-aval-2-simpflat-158
+                }
+                else
+                {
+                    flat-89-simpflat-170 =w ExceptCannotCompute
+                    flat-89-simpflat-171 =w 0.0
+                }
+                
+                flat-89-simpflat-172 =r flat-89-simpflat-170
+                flat-89-simpflat-173 =r flat-89-simpflat-171
+                flat-45-simpflat-168 =w flat-89-simpflat-172
+                flat-45-simpflat-169 =w flat-89-simpflat-173
+            }
+            else
+            {
+                flat-45-simpflat-168 =w conv-76-aval-3-simpflat-150
+                flat-45-simpflat-169 =w 0.0
+            }
+            
+            flat-45-simpflat-174 =r flat-45-simpflat-168
+            flat-45-simpflat-175 =r flat-45-simpflat-169
+            flat-46-simpflat-176 =i ExceptNotAnError : Error
+            flat-46-simpflat-177 =i 0.0 : Double
+            
+            if (eq#
+                  flat-45-simpflat-174
+                  ExceptNotAnError)
+            {
+                flat-83-simpflat-178 =i ExceptNotAnError : Error
+                flat-83-simpflat-179 =i 0.0 : Double
+                
+                if (eq#
+                      flat-44-simpflat-166
+                      ExceptNotAnError)
+                {
+                    conv-97 = div#
+                                flat-45-simpflat-175
+                                flat-44-simpflat-167
+                    flat-86-simpflat-180 =i ExceptNotAnError : Error
+                    flat-86-simpflat-181 =i 0.0 : Double
+                    
+                    if (doubleIsValid# conv-97)
+                    {
+                        flat-86-simpflat-180 =w ExceptNotAnError
+                        flat-86-simpflat-181 =w div#
+                                                  flat-45-simpflat-175
+                                                  flat-44-simpflat-167
+                    }
+                    else
+                    {
+                        flat-86-simpflat-180 =w ExceptCannotCompute
+                        flat-86-simpflat-181 =w 0.0
+                    }
+                    
+                    flat-86-simpflat-182 =r flat-86-simpflat-180
+                    flat-86-simpflat-183 =r flat-86-simpflat-181
+                    flat-83-simpflat-178 =w flat-86-simpflat-182
+                    flat-83-simpflat-179 =w flat-86-simpflat-183
+                }
+                else
+                {
+                    flat-83-simpflat-178 =w flat-44-simpflat-166
+                    flat-83-simpflat-179 =w 0.0
+                }
+                
+                flat-83-simpflat-184 =r flat-83-simpflat-178
+                flat-83-simpflat-185 =r flat-83-simpflat-179
+                flat-46-simpflat-176 =w flat-83-simpflat-184
+                flat-46-simpflat-177 =w flat-83-simpflat-185
+            }
+            else
+            {
+                flat-46-simpflat-176 =w flat-45-simpflat-174
+                flat-46-simpflat-177 =w 0.0
+            }
+            
+            flat-46-simpflat-186 =r flat-46-simpflat-176
+            flat-46-simpflat-187 =r flat-46-simpflat-177
+            flat-47-simpflat-188 =i ExceptNotAnError : Error
+            flat-47-simpflat-189 =i 0.0 : Double
+            
+            if (eq#
+                  flat-46-simpflat-186
+                  ExceptNotAnError)
+            {
+                conv-103 = add#
+                             a-conv-77-aval-2-simpflat-158
+                             flat-46-simpflat-187
+                flat-80-simpflat-190 =i ExceptNotAnError : Error
+                flat-80-simpflat-191 =i 0.0 : Double
+                
+                if (doubleIsValid# conv-103)
+                {
+                    flat-80-simpflat-190 =w ExceptNotAnError
+                    flat-80-simpflat-191 =w add#
+                                              a-conv-77-aval-2-simpflat-158
+                                              flat-46-simpflat-187
+                }
+                else
+                {
+                    flat-80-simpflat-190 =w ExceptCannotCompute
+                    flat-80-simpflat-191 =w 0.0
+                }
+                
+                flat-80-simpflat-192 =r flat-80-simpflat-190
+                flat-80-simpflat-193 =r flat-80-simpflat-191
+                flat-47-simpflat-188 =w flat-80-simpflat-192
+                flat-47-simpflat-189 =w flat-80-simpflat-193
+            }
+            else
+            {
+                flat-47-simpflat-188 =w flat-46-simpflat-186
+                flat-47-simpflat-189 =w 0.0
+            }
+            
+            flat-47-simpflat-194 =r flat-47-simpflat-188
+            flat-47-simpflat-195 =r flat-47-simpflat-189
+            flat-48-simpflat-196 =i ExceptNotAnError : Error
+            flat-48-simpflat-197 =i 0.0 : Double
+            
+            if (eq#
+                  flat-45-simpflat-174
+                  ExceptNotAnError)
+            {
+                flat-67-simpflat-198 =i ExceptNotAnError : Error
+                flat-67-simpflat-199 =i 0.0 : Double
+                
+                if (eq#
+                      conv-76-aval-3-simpflat-150
+                      ExceptNotAnError)
+                {
+                    flat-74-simpflat-200 =i ExceptNotAnError : Error
+                    flat-74-simpflat-201 =i 0.0 : Double
+                    
+                    if (eq#
+                          flat-47-simpflat-194
+                          ExceptNotAnError)
+                    {
+                        conv-113 = sub#
+                                     conv-76-aval-3-simpflat-151
+                                     flat-47-simpflat-195
+                        flat-77-simpflat-202 =i ExceptNotAnError : Error
+                        flat-77-simpflat-203 =i 0.0 : Double
+                        
+                        if (doubleIsValid# conv-113)
+                        {
+                            flat-77-simpflat-202 =w ExceptNotAnError
+                            flat-77-simpflat-203 =w sub#
+                                                      conv-76-aval-3-simpflat-151
+                                                      flat-47-simpflat-195
+                        }
+                        else
+                        {
+                            flat-77-simpflat-202 =w ExceptCannotCompute
+                            flat-77-simpflat-203 =w 0.0
+                        }
+                        
+                        flat-77-simpflat-204 =r flat-77-simpflat-202
+                        flat-77-simpflat-205 =r flat-77-simpflat-203
+                        flat-74-simpflat-200 =w flat-77-simpflat-204
+                        flat-74-simpflat-201 =w flat-77-simpflat-205
+                    }
+                    else
+                    {
+                        flat-74-simpflat-200 =w flat-47-simpflat-194
+                        flat-74-simpflat-201 =w 0.0
+                    }
+                    
+                    flat-74-simpflat-206 =r flat-74-simpflat-200
+                    flat-74-simpflat-207 =r flat-74-simpflat-201
+                    flat-67-simpflat-198 =w flat-74-simpflat-206
+                    flat-67-simpflat-199 =w flat-74-simpflat-207
+                }
+                else
+                {
+                    flat-67-simpflat-198 =w conv-76-aval-3-simpflat-150
+                    flat-67-simpflat-199 =w 0.0
+                }
+                
+                flat-67-simpflat-208 =r flat-67-simpflat-198
+                flat-67-simpflat-209 =r flat-67-simpflat-199
+                flat-68-simpflat-210 =i ExceptNotAnError : Error
+                flat-68-simpflat-211 =i 0.0 : Double
+                
+                if (eq#
+                      flat-67-simpflat-208
+                      ExceptNotAnError)
+                {
+                    conv-119 = mul#
+                                 flat-45-simpflat-175
+                                 flat-67-simpflat-209
+                    flat-71-simpflat-212 =i ExceptNotAnError : Error
+                    flat-71-simpflat-213 =i 0.0 : Double
+                    
+                    if (doubleIsValid# conv-119)
+                    {
+                        flat-71-simpflat-212 =w ExceptNotAnError
+                        flat-71-simpflat-213 =w mul#
+                                                  flat-45-simpflat-175
+                                                  flat-67-simpflat-209
+                    }
+                    else
+                    {
+                        flat-71-simpflat-212 =w ExceptCannotCompute
+                        flat-71-simpflat-213 =w 0.0
+                    }
+                    
+                    flat-71-simpflat-214 =r flat-71-simpflat-212
+                    flat-71-simpflat-215 =r flat-71-simpflat-213
+                    flat-68-simpflat-210 =w flat-71-simpflat-214
+                    flat-68-simpflat-211 =w flat-71-simpflat-215
+                }
+                else
+                {
+                    flat-68-simpflat-210 =w flat-67-simpflat-208
+                    flat-68-simpflat-211 =w 0.0
+                }
+                
+                flat-68-simpflat-216 =r flat-68-simpflat-210
+                flat-68-simpflat-217 =r flat-68-simpflat-211
+                flat-48-simpflat-196 =w flat-68-simpflat-216
+                flat-48-simpflat-197 =w flat-68-simpflat-217
+            }
+            else
+            {
+                flat-48-simpflat-196 =w flat-45-simpflat-174
+                flat-48-simpflat-197 =w 0.0
+            }
+            
+            flat-48-simpflat-218 =r flat-48-simpflat-196
+            flat-48-simpflat-219 =r flat-48-simpflat-197
+            flat-49-simpflat-220 =i ExceptNotAnError : Error
+            flat-49-simpflat-221 =i 0.0 : Double
+            
+            if (eq#
+                  flat-48-simpflat-218
+                  ExceptNotAnError)
+            {
+                conv-125 = add#
+                             a-conv-77-aval-2-simpflat-159
+                             flat-48-simpflat-219
+                flat-64-simpflat-222 =i ExceptNotAnError : Error
+                flat-64-simpflat-223 =i 0.0 : Double
+                
+                if (doubleIsValid# conv-125)
+                {
+                    flat-64-simpflat-222 =w ExceptNotAnError
+                    flat-64-simpflat-223 =w add#
+                                              a-conv-77-aval-2-simpflat-159
+                                              flat-48-simpflat-219
+                }
+                else
+                {
+                    flat-64-simpflat-222 =w ExceptCannotCompute
+                    flat-64-simpflat-223 =w 0.0
+                }
+                
+                flat-64-simpflat-224 =r flat-64-simpflat-222
+                flat-64-simpflat-225 =r flat-64-simpflat-223
+                flat-49-simpflat-220 =w flat-64-simpflat-224
+                flat-49-simpflat-221 =w flat-64-simpflat-225
+            }
+            else
+            {
+                flat-49-simpflat-220 =w flat-48-simpflat-218
+                flat-49-simpflat-221 =w 0.0
+            }
+            
+            flat-49-simpflat-226 =r flat-49-simpflat-220
+            flat-49-simpflat-227 =r flat-49-simpflat-221
+            flat-50-simpflat-228 =i ExceptNotAnError : Error
+            flat-50-simpflat-229 =i 0.0 : Double
+            flat-50-simpflat-230 =i 0.0 : Double
+            
+            if (eq#
+                  flat-44-simpflat-166
+                  ExceptNotAnError)
+            {
+                flat-59-simpflat-231 =i ExceptNotAnError : Error
+                flat-59-simpflat-232 =i 0.0 : Double
+                flat-59-simpflat-233 =i 0.0 : Double
+                
+                if (eq#
+                      flat-47-simpflat-194
+                      ExceptNotAnError)
+                {
+                    flat-59-simpflat-231 =w ExceptNotAnError
+                    flat-59-simpflat-232 =w flat-44-simpflat-167
+                    flat-59-simpflat-233 =w flat-47-simpflat-195
+                }
+                else
+                {
+                    flat-59-simpflat-231 =w flat-47-simpflat-194
+                    flat-59-simpflat-232 =w 0.0
+                    flat-59-simpflat-233 =w 0.0
+                }
+                
+                flat-59-simpflat-234 =r flat-59-simpflat-231
+                flat-59-simpflat-235 =r flat-59-simpflat-232
+                flat-59-simpflat-236 =r flat-59-simpflat-233
+                flat-50-simpflat-228 =w flat-59-simpflat-234
+                flat-50-simpflat-229 =w flat-59-simpflat-235
+                flat-50-simpflat-230 =w flat-59-simpflat-236
+            }
+            else
+            {
+                flat-50-simpflat-228 =w flat-44-simpflat-166
+                flat-50-simpflat-229 =w 0.0
+                flat-50-simpflat-230 =w 0.0
+            }
+            
+            flat-50-simpflat-237 =r flat-50-simpflat-228
+            flat-50-simpflat-238 =r flat-50-simpflat-229
+            flat-50-simpflat-239 =r flat-50-simpflat-230
+            flat-51-simpflat-240 =i ExceptNotAnError : Error
+            flat-51-simpflat-241 =i 0.0 : Double
+            flat-51-simpflat-242 =i 0.0 : Double
+            flat-51-simpflat-243 =i 0.0 : Double
+            
+            if (eq#
+                  flat-50-simpflat-237
+                  ExceptNotAnError)
+            {
+                flat-54-simpflat-244 =i ExceptNotAnError : Error
+                flat-54-simpflat-245 =i 0.0 : Double
+                flat-54-simpflat-246 =i 0.0 : Double
+                flat-54-simpflat-247 =i 0.0 : Double
+                
+                if (eq#
+                      flat-49-simpflat-226
+                      ExceptNotAnError)
+                {
+                    flat-54-simpflat-244 =w ExceptNotAnError
+                    flat-54-simpflat-245 =w flat-50-simpflat-238
+                    flat-54-simpflat-246 =w flat-50-simpflat-239
+                    flat-54-simpflat-247 =w flat-49-simpflat-227
+                }
+                else
+                {
+                    flat-54-simpflat-244 =w flat-49-simpflat-226
+                    flat-54-simpflat-245 =w 0.0
+                    flat-54-simpflat-246 =w 0.0
+                    flat-54-simpflat-247 =w 0.0
+                }
+                
+                flat-54-simpflat-248 =r flat-54-simpflat-244
+                flat-54-simpflat-249 =r flat-54-simpflat-245
+                flat-54-simpflat-250 =r flat-54-simpflat-246
+                flat-54-simpflat-251 =r flat-54-simpflat-247
+                flat-51-simpflat-240 =w flat-54-simpflat-248
+                flat-51-simpflat-241 =w flat-54-simpflat-249
+                flat-51-simpflat-242 =w flat-54-simpflat-250
+                flat-51-simpflat-243 =w flat-54-simpflat-251
+            }
+            else
+            {
+                flat-51-simpflat-240 =w flat-50-simpflat-237
+                flat-51-simpflat-241 =w 0.0
+                flat-51-simpflat-242 =w 0.0
+                flat-51-simpflat-243 =w 0.0
+            }
+            
+            flat-51-simpflat-252 =r flat-51-simpflat-240
+            flat-51-simpflat-253 =r flat-51-simpflat-241
+            flat-51-simpflat-254 =r flat-51-simpflat-242
+            flat-51-simpflat-255 =r flat-51-simpflat-243
+            flat-41-simpflat-160 =w flat-51-simpflat-252
+            flat-41-simpflat-161 =w flat-51-simpflat-253
+            flat-41-simpflat-162 =w flat-51-simpflat-254
+            flat-41-simpflat-163 =w flat-51-simpflat-255
+        }
+        else
+        {
+            flat-41-simpflat-160 =w a-conv-77-aval-2-simpflat-156
+            flat-41-simpflat-161 =w 0.0
+            flat-41-simpflat-162 =w 0.0
+            flat-41-simpflat-163 =w 0.0
+        }
+        
+        flat-41-simpflat-256 =r flat-41-simpflat-160
+        flat-41-simpflat-257 =r flat-41-simpflat-161
+        flat-41-simpflat-258 =r flat-41-simpflat-162
+        flat-41-simpflat-259 =r flat-41-simpflat-163
+        acc-a-conv-77-simpflat-37 =w flat-41-simpflat-256
+        acc-a-conv-77-simpflat-38 =w flat-41-simpflat-257
+        acc-a-conv-77-simpflat-39 =w flat-41-simpflat-258
+        acc-a-conv-77-simpflat-40 =w flat-41-simpflat-259
+    }
+    
 }
+
 save_resumable acc-a-conv-77-simpflat-37
 save_resumable acc-a-conv-77-simpflat-38
 save_resumable acc-a-conv-77-simpflat-39
@@ -2925,268 +2145,202 @@ save_resumable acc-s-reify-6-conv-12-simpflat-29
 save_resumable acc-s-reify-6-conv-12-simpflat-30
 save_resumable acc-conv-11-simpflat-22
 save_resumable acc-conv-11-simpflat-23
-read a-conv-77-simpflat-260 =
-  acc-a-conv-77-simpflat-37
-read a-conv-77-simpflat-261 =
-  acc-a-conv-77-simpflat-38
-read a-conv-77-simpflat-263 =
-  acc-a-conv-77-simpflat-40
-read s-reify-6-conv-12-simpflat-264 =
-  acc-s-reify-6-conv-12-simpflat-28
-read s-reify-6-conv-12-simpflat-265 =
-  acc-s-reify-6-conv-12-simpflat-29
-init flat-110-simpflat-267 : Error =
-  ExceptNotAnError
-init flat-110-simpflat-268 : Double =
-  0.0
+a-conv-77-simpflat-260 =r acc-a-conv-77-simpflat-37
+a-conv-77-simpflat-261 =r acc-a-conv-77-simpflat-38
+a-conv-77-simpflat-263 =r acc-a-conv-77-simpflat-40
+s-reify-6-conv-12-simpflat-264 =r acc-s-reify-6-conv-12-simpflat-28
+s-reify-6-conv-12-simpflat-265 =r acc-s-reify-6-conv-12-simpflat-29
+flat-110-simpflat-267 =i ExceptNotAnError : Error
+flat-110-simpflat-268 =i 0.0 : Double
+
 if (eq#
       s-reify-6-conv-12-simpflat-264
       ExceptNotAnError)
 {
-  write flat-110-simpflat-267 =
-    ExceptNotAnError
-  write flat-110-simpflat-268 =
-    s-reify-6-conv-12-simpflat-265
+    flat-110-simpflat-267 =w ExceptNotAnError
+    flat-110-simpflat-268 =w s-reify-6-conv-12-simpflat-265
 }
 else
 {
-  write flat-110-simpflat-267 =
-    s-reify-6-conv-12-simpflat-264
-  write flat-110-simpflat-268 =
-    0.0
+    flat-110-simpflat-267 =w s-reify-6-conv-12-simpflat-264
+    flat-110-simpflat-268 =w 0.0
 }
-read flat-110-simpflat-269 =
-  flat-110-simpflat-267
-read flat-110-simpflat-270 =
-  flat-110-simpflat-268
-init flat-111-simpflat-271 : Error =
-  ExceptNotAnError
-init flat-111-simpflat-272 : Double =
-  0.0
+
+flat-110-simpflat-269 =r flat-110-simpflat-267
+flat-110-simpflat-270 =r flat-110-simpflat-268
+flat-111-simpflat-271 =i ExceptNotAnError : Error
+flat-111-simpflat-272 =i 0.0 : Double
+
 if (eq#
       flat-110-simpflat-269
       ExceptNotAnError)
 {
-  init flat-114-simpflat-273 : Error =
-    ExceptNotAnError
-  init flat-114-simpflat-274 : Double =
-    0.0
-  if (eq#
-        a-conv-77-simpflat-260
-        ExceptNotAnError)
-  {
-    let conv-152 =
-      sub#
-        a-conv-77-simpflat-261
-        1.0
-    init flat-125-simpflat-275 : Error =
-      ExceptNotAnError
-    init flat-125-simpflat-276 : Double =
-      0.0
-    if (doubleIsValid# conv-152)
-    {
-      write flat-125-simpflat-275 =
-        ExceptNotAnError
-      write flat-125-simpflat-276 =
-        sub#
-          a-conv-77-simpflat-261
-          1.0
-    }
-    else
-    {
-      write flat-125-simpflat-275 =
-        ExceptCannotCompute
-      write flat-125-simpflat-276 =
-        0.0
-    }
-    read flat-125-simpflat-277 =
-      flat-125-simpflat-275
-    read flat-125-simpflat-278 =
-      flat-125-simpflat-276
-    init flat-126-simpflat-279 : Error =
-      ExceptNotAnError
-    init flat-126-simpflat-280 : Double =
-      0.0
+    flat-114-simpflat-273 =i ExceptNotAnError : Error
+    flat-114-simpflat-274 =i 0.0 : Double
+    
     if (eq#
-          flat-125-simpflat-277
+          a-conv-77-simpflat-260
           ExceptNotAnError)
     {
-      let conv-158 =
-        div#
-          a-conv-77-simpflat-263
-          flat-125-simpflat-278
-      init flat-129-simpflat-281 : Error =
-        ExceptNotAnError
-      init flat-129-simpflat-282 : Double =
-        0.0
-      if (doubleIsValid# conv-158)
-      {
-        write flat-129-simpflat-281 =
-          ExceptNotAnError
-        write flat-129-simpflat-282 =
-          div#
-            a-conv-77-simpflat-263
-            flat-125-simpflat-278
-      }
-      else
-      {
-        write flat-129-simpflat-281 =
-          ExceptCannotCompute
-        write flat-129-simpflat-282 =
-          0.0
-      }
-      read flat-129-simpflat-283 =
-        flat-129-simpflat-281
-      read flat-129-simpflat-284 =
-        flat-129-simpflat-282
-      write flat-126-simpflat-279 =
-        flat-129-simpflat-283
-      write flat-126-simpflat-280 =
-        flat-129-simpflat-284
+        conv-152 = sub#
+                     a-conv-77-simpflat-261
+                     1.0
+        flat-125-simpflat-275 =i ExceptNotAnError : Error
+        flat-125-simpflat-276 =i 0.0 : Double
+        
+        if (doubleIsValid# conv-152)
+        {
+            flat-125-simpflat-275 =w ExceptNotAnError
+            flat-125-simpflat-276 =w sub#
+                                       a-conv-77-simpflat-261
+                                       1.0
+        }
+        else
+        {
+            flat-125-simpflat-275 =w ExceptCannotCompute
+            flat-125-simpflat-276 =w 0.0
+        }
+        
+        flat-125-simpflat-277 =r flat-125-simpflat-275
+        flat-125-simpflat-278 =r flat-125-simpflat-276
+        flat-126-simpflat-279 =i ExceptNotAnError : Error
+        flat-126-simpflat-280 =i 0.0 : Double
+        
+        if (eq#
+              flat-125-simpflat-277
+              ExceptNotAnError)
+        {
+            conv-158 = div#
+                         a-conv-77-simpflat-263
+                         flat-125-simpflat-278
+            flat-129-simpflat-281 =i ExceptNotAnError : Error
+            flat-129-simpflat-282 =i 0.0 : Double
+            
+            if (doubleIsValid# conv-158)
+            {
+                flat-129-simpflat-281 =w ExceptNotAnError
+                flat-129-simpflat-282 =w div#
+                                           a-conv-77-simpflat-263
+                                           flat-125-simpflat-278
+            }
+            else
+            {
+                flat-129-simpflat-281 =w ExceptCannotCompute
+                flat-129-simpflat-282 =w 0.0
+            }
+            
+            flat-129-simpflat-283 =r flat-129-simpflat-281
+            flat-129-simpflat-284 =r flat-129-simpflat-282
+            flat-126-simpflat-279 =w flat-129-simpflat-283
+            flat-126-simpflat-280 =w flat-129-simpflat-284
+        }
+        else
+        {
+            flat-126-simpflat-279 =w flat-125-simpflat-277
+            flat-126-simpflat-280 =w 0.0
+        }
+        
+        flat-126-simpflat-285 =r flat-126-simpflat-279
+        flat-126-simpflat-286 =r flat-126-simpflat-280
+        flat-114-simpflat-273 =w flat-126-simpflat-285
+        flat-114-simpflat-274 =w flat-126-simpflat-286
     }
     else
     {
-      write flat-126-simpflat-279 =
-        flat-125-simpflat-277
-      write flat-126-simpflat-280 =
-        0.0
+        flat-114-simpflat-273 =w a-conv-77-simpflat-260
+        flat-114-simpflat-274 =w 0.0
     }
-    read flat-126-simpflat-285 =
-      flat-126-simpflat-279
-    read flat-126-simpflat-286 =
-      flat-126-simpflat-280
-    write flat-114-simpflat-273 =
-      flat-126-simpflat-285
-    write flat-114-simpflat-274 =
-      flat-126-simpflat-286
-  }
-  else
-  {
-    write flat-114-simpflat-273 =
-      a-conv-77-simpflat-260
-    write flat-114-simpflat-274 =
-      0.0
-  }
-  read flat-114-simpflat-287 =
-    flat-114-simpflat-273
-  read flat-114-simpflat-288 =
-    flat-114-simpflat-274
-  init flat-115-simpflat-289 : Error =
-    ExceptNotAnError
-  init flat-115-simpflat-290 : Double =
-    0.0
-  if (eq#
-        flat-114-simpflat-287
-        ExceptNotAnError)
-  {
-    let conv-172 =
-      sqrt# flat-114-simpflat-288
-    init flat-122-simpflat-291 : Error =
-      ExceptNotAnError
-    init flat-122-simpflat-292 : Double =
-      0.0
-    if (doubleIsValid# conv-172)
+    
+    flat-114-simpflat-287 =r flat-114-simpflat-273
+    flat-114-simpflat-288 =r flat-114-simpflat-274
+    flat-115-simpflat-289 =i ExceptNotAnError : Error
+    flat-115-simpflat-290 =i 0.0 : Double
+    
+    if (eq#
+          flat-114-simpflat-287
+          ExceptNotAnError)
     {
-      write flat-122-simpflat-291 =
-        ExceptNotAnError
-      write flat-122-simpflat-292 =
-        sqrt# flat-114-simpflat-288
+        conv-172 = sqrt#
+                     flat-114-simpflat-288
+        flat-122-simpflat-291 =i ExceptNotAnError : Error
+        flat-122-simpflat-292 =i 0.0 : Double
+        
+        if (doubleIsValid# conv-172)
+        {
+            flat-122-simpflat-291 =w ExceptNotAnError
+            flat-122-simpflat-292 =w sqrt#
+                                       flat-114-simpflat-288
+        }
+        else
+        {
+            flat-122-simpflat-291 =w ExceptCannotCompute
+            flat-122-simpflat-292 =w 0.0
+        }
+        
+        flat-122-simpflat-293 =r flat-122-simpflat-291
+        flat-122-simpflat-294 =r flat-122-simpflat-292
+        flat-115-simpflat-289 =w flat-122-simpflat-293
+        flat-115-simpflat-290 =w flat-122-simpflat-294
     }
     else
     {
-      write flat-122-simpflat-291 =
-        ExceptCannotCompute
-      write flat-122-simpflat-292 =
-        0.0
+        flat-115-simpflat-289 =w flat-114-simpflat-287
+        flat-115-simpflat-290 =w 0.0
     }
-    read flat-122-simpflat-293 =
-      flat-122-simpflat-291
-    read flat-122-simpflat-294 =
-      flat-122-simpflat-292
-    write flat-115-simpflat-289 =
-      flat-122-simpflat-293
-    write flat-115-simpflat-290 =
-      flat-122-simpflat-294
-  }
-  else
-  {
-    write flat-115-simpflat-289 =
-      flat-114-simpflat-287
-    write flat-115-simpflat-290 =
-      0.0
-  }
-  read flat-115-simpflat-295 =
-    flat-115-simpflat-289
-  read flat-115-simpflat-296 =
-    flat-115-simpflat-290
-  init flat-116-simpflat-297 : Error =
-    ExceptNotAnError
-  init flat-116-simpflat-298 : Double =
-    0.0
-  if (eq#
-        flat-115-simpflat-295
-        ExceptNotAnError)
-  {
-    let conv-180 =
-      mul#
-        flat-110-simpflat-270
-        flat-115-simpflat-296
-    init flat-119-simpflat-299 : Error =
-      ExceptNotAnError
-    init flat-119-simpflat-300 : Double =
-      0.0
-    if (doubleIsValid# conv-180)
+    
+    flat-115-simpflat-295 =r flat-115-simpflat-289
+    flat-115-simpflat-296 =r flat-115-simpflat-290
+    flat-116-simpflat-297 =i ExceptNotAnError : Error
+    flat-116-simpflat-298 =i 0.0 : Double
+    
+    if (eq#
+          flat-115-simpflat-295
+          ExceptNotAnError)
     {
-      write flat-119-simpflat-299 =
-        ExceptNotAnError
-      write flat-119-simpflat-300 =
-        mul#
-          flat-110-simpflat-270
-          flat-115-simpflat-296
+        conv-180 = mul#
+                     flat-110-simpflat-270
+                     flat-115-simpflat-296
+        flat-119-simpflat-299 =i ExceptNotAnError : Error
+        flat-119-simpflat-300 =i 0.0 : Double
+        
+        if (doubleIsValid# conv-180)
+        {
+            flat-119-simpflat-299 =w ExceptNotAnError
+            flat-119-simpflat-300 =w mul#
+                                       flat-110-simpflat-270
+                                       flat-115-simpflat-296
+        }
+        else
+        {
+            flat-119-simpflat-299 =w ExceptCannotCompute
+            flat-119-simpflat-300 =w 0.0
+        }
+        
+        flat-119-simpflat-301 =r flat-119-simpflat-299
+        flat-119-simpflat-302 =r flat-119-simpflat-300
+        flat-116-simpflat-297 =w flat-119-simpflat-301
+        flat-116-simpflat-298 =w flat-119-simpflat-302
     }
     else
     {
-      write flat-119-simpflat-299 =
-        ExceptCannotCompute
-      write flat-119-simpflat-300 =
-        0.0
+        flat-116-simpflat-297 =w flat-115-simpflat-295
+        flat-116-simpflat-298 =w 0.0
     }
-    read flat-119-simpflat-301 =
-      flat-119-simpflat-299
-    read flat-119-simpflat-302 =
-      flat-119-simpflat-300
-    write flat-116-simpflat-297 =
-      flat-119-simpflat-301
-    write flat-116-simpflat-298 =
-      flat-119-simpflat-302
-  }
-  else
-  {
-    write flat-116-simpflat-297 =
-      flat-115-simpflat-295
-    write flat-116-simpflat-298 =
-      0.0
-  }
-  read flat-116-simpflat-303 =
-    flat-116-simpflat-297
-  read flat-116-simpflat-304 =
-    flat-116-simpflat-298
-  write flat-111-simpflat-271 =
-    flat-116-simpflat-303
-  write flat-111-simpflat-272 =
-    flat-116-simpflat-304
+    
+    flat-116-simpflat-303 =r flat-116-simpflat-297
+    flat-116-simpflat-304 =r flat-116-simpflat-298
+    flat-111-simpflat-271 =w flat-116-simpflat-303
+    flat-111-simpflat-272 =w flat-116-simpflat-304
 }
 else
 {
-  write flat-111-simpflat-271 =
-    flat-110-simpflat-269
-  write flat-111-simpflat-272 =
-    0.0
+    flat-111-simpflat-271 =w flat-110-simpflat-269
+    flat-111-simpflat-272 =w 0.0
 }
-read flat-111-simpflat-305 =
-  flat-111-simpflat-271
-read flat-111-simpflat-306 =
-  flat-111-simpflat-272
+
+flat-111-simpflat-305 =r flat-111-simpflat-271
+flat-111-simpflat-306 =r flat-111-simpflat-272
+
 output repl:output : Sum Error Double =
     flat-111-simpflat-305 : Error
   , flat-111-simpflat-306 : Double
@@ -4455,123 +3609,100 @@ conv-3 : Time =
 conv-4 : Int =
   MAX_MAP_SIZE
 
-init acc-s-reify-2-conv-5-simpflat-11 : Error =
-  ExceptFold1NoValue
-init acc-s-reify-2-conv-5-simpflat-12 : Time =
-  1858-11-17T00:00:00Z
+acc-s-reify-2-conv-5-simpflat-11 =i ExceptFold1NoValue : Error
+acc-s-reify-2-conv-5-simpflat-12 =i 1858-11-17T00:00:00Z : Time
 load_resumable acc-s-reify-2-conv-5-simpflat-11
 load_resumable acc-s-reify-2-conv-5-simpflat-12
+
 for_facts conv-2 : Time
         , conv-1 : FactIdentifier
         , conv-0-simpflat-25 : Error
         , conv-0-simpflat-26 : Int
         , conv-0-simpflat-27 : Time in new
 {
-  read s-reify-2-conv-5-aval-0-simpflat-13 =
-    acc-s-reify-2-conv-5-simpflat-11
-  read s-reify-2-conv-5-aval-0-simpflat-14 =
-    acc-s-reify-2-conv-5-simpflat-12
-  init flat-0-simpflat-15 : Error =
-    ExceptNotAnError
-  init flat-0-simpflat-16 : Time =
-    1858-11-17T00:00:00Z
-  if (eq#
-        s-reify-2-conv-5-aval-0-simpflat-13
-        ExceptNotAnError)
-  {
-    init flat-4 : Time =
-      1858-11-17T00:00:00Z
-    let simpflat-32 =
-      Time_daysDifference#
-        1980-01-06T00:00:00Z
-        conv-0-simpflat-27
-    let simpflat-33 =
-      negate# simpflat-32
-    let simpflat-34 =
-      Time_minusDays#
-        2000-01-01T00:00:00Z
-        simpflat-33
-    if (gt#
-          simpflat-34
-          s-reify-2-conv-5-aval-0-simpflat-14)
-    {
-      let simpflat-37 =
-        Time_daysDifference#
-          1980-01-06T00:00:00Z
-          conv-0-simpflat-27
-      let simpflat-38 =
-        negate# simpflat-37
-      write flat-4 =
-        Time_minusDays#
-          2000-01-01T00:00:00Z
-          simpflat-38
-    }
-    else
-    {
-      write flat-4 =
-        s-reify-2-conv-5-aval-0-simpflat-14
-    }
-    read flat-4 =
-      flat-4
-    write flat-0-simpflat-15 =
-      ExceptNotAnError
-    write flat-0-simpflat-16 =
-      flat-4
-  }
-  else
-  {
-    init flat-3-simpflat-17 : Error =
-      ExceptNotAnError
-    init flat-3-simpflat-18 : Time =
-      1858-11-17T00:00:00Z
+    s-reify-2-conv-5-aval-0-simpflat-13 =r acc-s-reify-2-conv-5-simpflat-11
+    s-reify-2-conv-5-aval-0-simpflat-14 =r acc-s-reify-2-conv-5-simpflat-12
+    flat-0-simpflat-15 =i ExceptNotAnError : Error
+    flat-0-simpflat-16 =i 1858-11-17T00:00:00Z : Time
+    
     if (eq#
-          ExceptFold1NoValue
-          s-reify-2-conv-5-aval-0-simpflat-13)
+          s-reify-2-conv-5-aval-0-simpflat-13
+          ExceptNotAnError)
     {
-      write flat-3-simpflat-17 =
-        ExceptNotAnError
-      let simpflat-51 =
-        Time_daysDifference#
-          1980-01-06T00:00:00Z
-          conv-0-simpflat-27
-      let simpflat-52 =
-        negate# simpflat-51
-      write flat-3-simpflat-18 =
-        Time_minusDays#
-          2000-01-01T00:00:00Z
-          simpflat-52
+        flat-4 =i 1858-11-17T00:00:00Z : Time
+        simpflat-32 = Time_daysDifference#
+                        1980-01-06T00:00:00Z
+                        conv-0-simpflat-27
+        simpflat-33 = negate#
+                        simpflat-32
+        simpflat-34 = Time_minusDays#
+                        2000-01-01T00:00:00Z
+                        simpflat-33
+        
+        if (gt#
+              simpflat-34
+              s-reify-2-conv-5-aval-0-simpflat-14)
+        {
+            simpflat-37 = Time_daysDifference#
+                            1980-01-06T00:00:00Z
+                            conv-0-simpflat-27
+            simpflat-38 = negate#
+                            simpflat-37
+            flat-4 =w Time_minusDays#
+                        2000-01-01T00:00:00Z
+                        simpflat-38
+        }
+        else
+        {
+            flat-4 =w s-reify-2-conv-5-aval-0-simpflat-14
+        }
+        
+        flat-4 =r flat-4
+        flat-0-simpflat-15 =w ExceptNotAnError
+        flat-0-simpflat-16 =w flat-4
     }
     else
     {
-      write flat-3-simpflat-17 =
-        s-reify-2-conv-5-aval-0-simpflat-13
-      write flat-3-simpflat-18 =
-        1858-11-17T00:00:00Z
+        flat-3-simpflat-17 =i ExceptNotAnError : Error
+        flat-3-simpflat-18 =i 1858-11-17T00:00:00Z : Time
+        
+        if (eq#
+              ExceptFold1NoValue
+              s-reify-2-conv-5-aval-0-simpflat-13)
+        {
+            flat-3-simpflat-17 =w ExceptNotAnError
+            simpflat-51 = Time_daysDifference#
+                            1980-01-06T00:00:00Z
+                            conv-0-simpflat-27
+            simpflat-52 = negate#
+                            simpflat-51
+            flat-3-simpflat-18 =w Time_minusDays#
+                                    2000-01-01T00:00:00Z
+                                    simpflat-52
+        }
+        else
+        {
+            flat-3-simpflat-17 =w s-reify-2-conv-5-aval-0-simpflat-13
+            flat-3-simpflat-18 =w 1858-11-17T00:00:00Z
+        }
+        
+        flat-3-simpflat-19 =r flat-3-simpflat-17
+        flat-3-simpflat-20 =r flat-3-simpflat-18
+        flat-0-simpflat-15 =w flat-3-simpflat-19
+        flat-0-simpflat-16 =w flat-3-simpflat-20
     }
-    read flat-3-simpflat-19 =
-      flat-3-simpflat-17
-    read flat-3-simpflat-20 =
-      flat-3-simpflat-18
-    write flat-0-simpflat-15 =
-      flat-3-simpflat-19
-    write flat-0-simpflat-16 =
-      flat-3-simpflat-20
-  }
-  read flat-0-simpflat-21 =
-    flat-0-simpflat-15
-  read flat-0-simpflat-22 =
-    flat-0-simpflat-16
-  write acc-s-reify-2-conv-5-simpflat-11 =
-    flat-0-simpflat-21
-  write acc-s-reify-2-conv-5-simpflat-12 =
-    flat-0-simpflat-22
+    
+    flat-0-simpflat-21 =r flat-0-simpflat-15
+    flat-0-simpflat-22 =r flat-0-simpflat-16
+    acc-s-reify-2-conv-5-simpflat-11 =w flat-0-simpflat-21
+    acc-s-reify-2-conv-5-simpflat-12 =w flat-0-simpflat-22
 }
+
 save_resumable acc-s-reify-2-conv-5-simpflat-11
 save_resumable acc-s-reify-2-conv-5-simpflat-12
-read s-reify-2-conv-5-simpflat-23 =
-  acc-s-reify-2-conv-5-simpflat-11
-read s-reify-2-conv-5-simpflat-24 =
-  acc-s-reify-2-conv-5-simpflat-12
+s-reify-2-conv-5-simpflat-23 =r acc-s-reify-2-conv-5-simpflat-11
+s-reify-2-conv-5-simpflat-24 =r acc-s-reify-2-conv-5-simpflat-12
+
 output repl:output : Sum Error Time =
     s-reify-2-conv-5-simpflat-23 : Error
   , s-reify-2-conv-5-simpflat-24 : Time
@@ -4584,123 +3715,100 @@ conv-3 : Time =
 conv-4 : Int =
   MAX_MAP_SIZE
 
-init acc-s-reify-2-conv-5-simpflat-11 : Error =
-  ExceptFold1NoValue
-init acc-s-reify-2-conv-5-simpflat-12 : Time =
-  1858-11-17T00:00:00Z
+acc-s-reify-2-conv-5-simpflat-11 =i ExceptFold1NoValue : Error
+acc-s-reify-2-conv-5-simpflat-12 =i 1858-11-17T00:00:00Z : Time
 load_resumable acc-s-reify-2-conv-5-simpflat-11
 load_resumable acc-s-reify-2-conv-5-simpflat-12
+
 for_facts conv-2 : Time
         , conv-1 : FactIdentifier
         , conv-0-simpflat-25 : Error
         , conv-0-simpflat-26 : Int
         , conv-0-simpflat-27 : Time in new
 {
-  read s-reify-2-conv-5-aval-0-simpflat-13 =
-    acc-s-reify-2-conv-5-simpflat-11
-  read s-reify-2-conv-5-aval-0-simpflat-14 =
-    acc-s-reify-2-conv-5-simpflat-12
-  init flat-0-simpflat-15 : Error =
-    ExceptNotAnError
-  init flat-0-simpflat-16 : Time =
-    1858-11-17T00:00:00Z
-  if (eq#
-        s-reify-2-conv-5-aval-0-simpflat-13
-        ExceptNotAnError)
-  {
-    init flat-4 : Time =
-      1858-11-17T00:00:00Z
-    let simpflat-32 =
-      Time_daysDifference#
-        1980-01-06T00:00:00Z
-        conv-0-simpflat-27
-    let simpflat-33 =
-      negate# simpflat-32
-    let simpflat-34 =
-      Time_minusDays#
-        2000-01-01T00:00:00Z
-        simpflat-33
-    if (gt#
-          simpflat-34
-          s-reify-2-conv-5-aval-0-simpflat-14)
-    {
-      let simpflat-37 =
-        Time_daysDifference#
-          1980-01-06T00:00:00Z
-          conv-0-simpflat-27
-      let simpflat-38 =
-        negate# simpflat-37
-      write flat-4 =
-        Time_minusDays#
-          2000-01-01T00:00:00Z
-          simpflat-38
-    }
-    else
-    {
-      write flat-4 =
-        s-reify-2-conv-5-aval-0-simpflat-14
-    }
-    read flat-4 =
-      flat-4
-    write flat-0-simpflat-15 =
-      ExceptNotAnError
-    write flat-0-simpflat-16 =
-      flat-4
-  }
-  else
-  {
-    init flat-3-simpflat-17 : Error =
-      ExceptNotAnError
-    init flat-3-simpflat-18 : Time =
-      1858-11-17T00:00:00Z
+    s-reify-2-conv-5-aval-0-simpflat-13 =r acc-s-reify-2-conv-5-simpflat-11
+    s-reify-2-conv-5-aval-0-simpflat-14 =r acc-s-reify-2-conv-5-simpflat-12
+    flat-0-simpflat-15 =i ExceptNotAnError : Error
+    flat-0-simpflat-16 =i 1858-11-17T00:00:00Z : Time
+    
     if (eq#
-          ExceptFold1NoValue
-          s-reify-2-conv-5-aval-0-simpflat-13)
+          s-reify-2-conv-5-aval-0-simpflat-13
+          ExceptNotAnError)
     {
-      write flat-3-simpflat-17 =
-        ExceptNotAnError
-      let simpflat-51 =
-        Time_daysDifference#
-          1980-01-06T00:00:00Z
-          conv-0-simpflat-27
-      let simpflat-52 =
-        negate# simpflat-51
-      write flat-3-simpflat-18 =
-        Time_minusDays#
-          2000-01-01T00:00:00Z
-          simpflat-52
+        flat-4 =i 1858-11-17T00:00:00Z : Time
+        simpflat-32 = Time_daysDifference#
+                        1980-01-06T00:00:00Z
+                        conv-0-simpflat-27
+        simpflat-33 = negate#
+                        simpflat-32
+        simpflat-34 = Time_minusDays#
+                        2000-01-01T00:00:00Z
+                        simpflat-33
+        
+        if (gt#
+              simpflat-34
+              s-reify-2-conv-5-aval-0-simpflat-14)
+        {
+            simpflat-37 = Time_daysDifference#
+                            1980-01-06T00:00:00Z
+                            conv-0-simpflat-27
+            simpflat-38 = negate#
+                            simpflat-37
+            flat-4 =w Time_minusDays#
+                        2000-01-01T00:00:00Z
+                        simpflat-38
+        }
+        else
+        {
+            flat-4 =w s-reify-2-conv-5-aval-0-simpflat-14
+        }
+        
+        flat-4 =r flat-4
+        flat-0-simpflat-15 =w ExceptNotAnError
+        flat-0-simpflat-16 =w flat-4
     }
     else
     {
-      write flat-3-simpflat-17 =
-        s-reify-2-conv-5-aval-0-simpflat-13
-      write flat-3-simpflat-18 =
-        1858-11-17T00:00:00Z
+        flat-3-simpflat-17 =i ExceptNotAnError : Error
+        flat-3-simpflat-18 =i 1858-11-17T00:00:00Z : Time
+        
+        if (eq#
+              ExceptFold1NoValue
+              s-reify-2-conv-5-aval-0-simpflat-13)
+        {
+            flat-3-simpflat-17 =w ExceptNotAnError
+            simpflat-51 = Time_daysDifference#
+                            1980-01-06T00:00:00Z
+                            conv-0-simpflat-27
+            simpflat-52 = negate#
+                            simpflat-51
+            flat-3-simpflat-18 =w Time_minusDays#
+                                    2000-01-01T00:00:00Z
+                                    simpflat-52
+        }
+        else
+        {
+            flat-3-simpflat-17 =w s-reify-2-conv-5-aval-0-simpflat-13
+            flat-3-simpflat-18 =w 1858-11-17T00:00:00Z
+        }
+        
+        flat-3-simpflat-19 =r flat-3-simpflat-17
+        flat-3-simpflat-20 =r flat-3-simpflat-18
+        flat-0-simpflat-15 =w flat-3-simpflat-19
+        flat-0-simpflat-16 =w flat-3-simpflat-20
     }
-    read flat-3-simpflat-19 =
-      flat-3-simpflat-17
-    read flat-3-simpflat-20 =
-      flat-3-simpflat-18
-    write flat-0-simpflat-15 =
-      flat-3-simpflat-19
-    write flat-0-simpflat-16 =
-      flat-3-simpflat-20
-  }
-  read flat-0-simpflat-21 =
-    flat-0-simpflat-15
-  read flat-0-simpflat-22 =
-    flat-0-simpflat-16
-  write acc-s-reify-2-conv-5-simpflat-11 =
-    flat-0-simpflat-21
-  write acc-s-reify-2-conv-5-simpflat-12 =
-    flat-0-simpflat-22
+    
+    flat-0-simpflat-21 =r flat-0-simpflat-15
+    flat-0-simpflat-22 =r flat-0-simpflat-16
+    acc-s-reify-2-conv-5-simpflat-11 =w flat-0-simpflat-21
+    acc-s-reify-2-conv-5-simpflat-12 =w flat-0-simpflat-22
 }
+
 save_resumable acc-s-reify-2-conv-5-simpflat-11
 save_resumable acc-s-reify-2-conv-5-simpflat-12
-read s-reify-2-conv-5-simpflat-23 =
-  acc-s-reify-2-conv-5-simpflat-11
-read s-reify-2-conv-5-simpflat-24 =
-  acc-s-reify-2-conv-5-simpflat-12
+s-reify-2-conv-5-simpflat-23 =r acc-s-reify-2-conv-5-simpflat-11
+s-reify-2-conv-5-simpflat-24 =r acc-s-reify-2-conv-5-simpflat-12
+
 output repl:output : Sum Error Time =
     s-reify-2-conv-5-simpflat-23 : Error
   , s-reify-2-conv-5-simpflat-24 : Time
