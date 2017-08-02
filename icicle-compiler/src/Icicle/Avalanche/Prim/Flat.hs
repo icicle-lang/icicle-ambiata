@@ -13,6 +13,9 @@ module Icicle.Avalanche.Prim.Flat (
     , PrimMap     (..)
     , typeOfPrim
     , flatFragment
+    , MeltLogical (..)
+    , meltLogical
+    , repOfMelt
     , meltType
     , tryMeltType
     , typeOfUnpack
@@ -196,42 +199,53 @@ typeOfPrim p
     PrimBuf     (PrimBufRead i t)
      -> FunT [funOfVal (BufT i t)] (ArrayT t)
 
+-- We need to distinguish between an error and an error which is the tag in (Sum Error t)
+data MeltLogical = MeltRep ValType | MeltTagSumError -- | MeltTagSum | MeltTagOption
+ deriving Eq
 
+repOfMelt :: MeltLogical -> ValType
+repOfMelt (MeltRep v)     = v
+repOfMelt MeltTagSumError = ErrorT
 
-meltType :: ValType -> [ValType]
-meltType t
+meltLogical :: ValType -> [MeltLogical]
+meltLogical t
  = case t of
-    UnitT   -> [t]
-    IntT    -> [t]
-    DoubleT -> [t]
-    BoolT   -> [t]
-    TimeT   -> [t]
-    StringT -> [t]
-    ErrorT  -> [t]
+    UnitT   -> rep t
+    IntT    -> rep t
+    DoubleT -> rep t
+    BoolT   -> rep t
+    TimeT   -> rep t
+    StringT -> rep t
+    ErrorT  -> rep t
     FactIdentifierT
-            -> [t]
+            -> rep t
 
-    PairT   a b -> meltType a <> meltType b
+    PairT   a b -> meltLogical a <> meltLogical b
 
     SumT    a b
      | ErrorT <- a
-     -> [ErrorT]               <> meltType b
+     -> [MeltTagSumError]           <> meltLogical b
      | otherwise
-     -> [BoolT]  <> meltType a <> meltType b
+     -> rep BoolT  <> meltLogical a <> meltLogical b
 
-    OptionT a   -> [BoolT] <> meltType a
+    OptionT a   -> rep BoolT <> meltLogical a
 
-    ArrayT a -> fmap ArrayT   (meltType a)
-    BufT i a -> fmap (BufT i) (meltType a)
-    MapT k v -> meltType (ArrayT k) <> meltType (ArrayT v)
+    ArrayT a -> nested ArrayT   (meltLogical a)
+    BufT i a -> nested (BufT i) (meltLogical a)
+    MapT k v -> meltLogical (ArrayT k) <> meltLogical (ArrayT v)
 
     StructT (StructType fs)
      | Map.null fs
-     -> [UnitT]
+     -> rep UnitT
 
      | otherwise
-     -> concat $ fmap meltType (Map.elems fs)
+     -> concat $ fmap meltLogical (Map.elems fs)
+ where
+  rep t' = [MeltRep t']
+  nested f = fmap (MeltRep . f . repOfMelt)
 
+meltType :: ValType -> [ValType]
+meltType = fmap repOfMelt . meltLogical
 
 tryMeltType :: ValType -> Maybe [ValType]
 tryMeltType t
