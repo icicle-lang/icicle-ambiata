@@ -321,14 +321,17 @@ constructor a_fresh statements
      tis
 
    | (PrimMinimal (Min.PrimRelation op t), [nx, ny]) <- prima
-   , Just tis   <- withIndex tryMeltType t
-   = let with0 p tvi = withPrim p t nx ny tvi
+   , melts <- meltLogical t
+   , length melts /= 1
+   = let tis = List.zip melts [0..]
+         with0 p tvi = withPrim p t nx ny tvi
          mk = makeComparisons with0 tis
 
          -- init `join` prim x0 y0 `join` prim x1 y1 `join` ...
          simple init0 join0 prim0
             = primFold1 init0 join0
-            $ fmap (withPrim prim0 t nx ny) tis
+            $ fmap (withPrim prim0 t nx ny)
+            $ fmap (first repOfMelt) tis
      in Just $ case op of
           -- True && x0 == y0 && x1 == y1 && ...
           Min.PrimRelationEq -> simple xTrue  primAnd  primEq
@@ -386,10 +389,20 @@ constructor a_fresh statements
   --
   makeComparisons with0 tis0 lt eq gt
    = let go [] = eq
-         go (ti:tis) =
-          (with0 primLt ti `primAnd` lt) `primOr`
-          (with0 primEq ti `primAnd` go tis) `primOr`
-          (with0 primGt ti `primAnd` gt)
+
+         go ((MeltRep t, i) : tis) =
+          (with0 primLt (t,i) `primAnd` lt) `primOr`
+          (with0 primEq (t,i) `primAnd` go tis) `primOr`
+          (with0 primGt (t,i) `primAnd` gt)
+
+         -- Convert the faked error tag to an explicit boolean tag using (== NotAnError)
+         go ((MeltTagSumError,i) : tis) =
+          let tis'      = (MeltRep ErrorT, i) : tis
+              tag       = xValue ErrorT $ VError ExceptNotAnError
+              withTag p = with0 (\_ a b -> p BoolT (primEq ErrorT a tag) (primEq ErrorT b tag)) (ErrorT, i)
+          in (withTag primLt `primAnd` lt) `primOr`
+             (withTag primEq `primAnd` go tis') `primOr`
+             (withTag primGt `primAnd` gt)
      in go tis0
 
 
