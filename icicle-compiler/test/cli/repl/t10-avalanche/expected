@@ -33,9 +33,7 @@ load_resumable acc-conv-26
 load_resumable acc-c-conv-11
 
 for_facts conv-2 : Time
-        , conv-1 : FactIdentifier
-        , conv-0 : (Sum Error Int, Time) in new
-{
+        , conv-0 : (Sum Error Int, Time) {
     anf-0 = fst# conv-0
     anf-1 = Sum_fold#
               (\reify-0-conv-5 ->
@@ -73,7 +71,7 @@ for_facts conv-2 : Time
     anf-3 = anf-0
     acc-conv-26 =w Latest_push#
                      conv-26-aval-1
-                     conv-1
+                     FactIdentifier 0
                      anf-3
 }
 
@@ -117,9 +115,7 @@ acc-conv-37 =i Right (Map []) : Sum Error (Map Time (Buf 2 (Sum Error Int, Time)
 load_resumable acc-conv-37
 
 for_facts conv-2 : Time
-        , conv-1 : FactIdentifier
-        , conv-0 : (Sum Error Int, Time) in new
-{
+        , conv-0 : (Sum Error Int, Time) {
     conv-37-aval-0 =r acc-conv-37
     acc-conv-37 =w Sum_fold#
                      (\conv-30 -> left# conv-30)
@@ -133,11 +129,11 @@ for_facts conv-2 : Time
                              (\conv-31 ->
                                Latest_push#
                                  conv-31
-                                 conv-1
+                                 FactIdentifier 0
                                  conv-0)
                              (Latest_push#
                                (Buf [])
-                               conv-1
+                               FactIdentifier 0
                                conv-0)
                              conv-26
                              conv-27
