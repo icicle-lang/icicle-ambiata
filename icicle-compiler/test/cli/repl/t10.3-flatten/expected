@@ -22,23 +22,23 @@ The flattened avalanche will be shown during evaluation.
 λ Flattened (simplified), not typechecked
 ---------------------------------------
 
-conv-3 : Time =
+conv-2 : Time =
   TIME
-conv-4 : Int =
+conv-3 : Int =
   MAX_MAP_SIZE
 
-acc-c-conv-11-simpflat-2 =i ExceptNotAnError : Error
-acc-c-conv-11-simpflat-3 =i 0 : Int
-acc-conv-26-simpflat-4 =i Buf_make#
+acc-c-conv-10-simpflat-2 =i ExceptNotAnError : Error
+acc-c-conv-10-simpflat-3 =i 0 : Int
+acc-conv-25-simpflat-4 =i Buf_make#
                             () : Buf 3 Error
-acc-conv-26-simpflat-5 =i Buf_make#
+acc-conv-25-simpflat-5 =i Buf_make#
                             () : Buf 3 Int
-load_resumable acc-conv-26-simpflat-4
-load_resumable acc-conv-26-simpflat-5
-load_resumable acc-c-conv-11-simpflat-2
-load_resumable acc-c-conv-11-simpflat-3
+load_resumable acc-conv-25-simpflat-4
+load_resumable acc-conv-25-simpflat-5
+load_resumable acc-c-conv-10-simpflat-2
+load_resumable acc-c-conv-10-simpflat-3
 
-for_facts conv-2 : Time
+for_facts conv-1 : Time
         , conv-0-simpflat-38 : Error
         , conv-0-simpflat-39 : Int
         , conv-0-simpflat-40 : Time {
@@ -79,8 +79,8 @@ for_facts conv-2 : Time
     
     if (flat-1)
     {
-        c-conv-11-aval-0-simpflat-10 =r acc-c-conv-11-simpflat-2
-        c-conv-11-aval-0-simpflat-11 =r acc-c-conv-11-simpflat-3
+        c-conv-10-aval-0-simpflat-10 =r acc-c-conv-10-simpflat-2
+        c-conv-10-aval-0-simpflat-11 =r acc-c-conv-10-simpflat-3
         flat-2-simpflat-12 =i ExceptNotAnError : Error
         flat-2-simpflat-13 =i 0 : Int
         
@@ -92,17 +92,17 @@ for_facts conv-2 : Time
             flat-5-simpflat-15 =i 0 : Int
             
             if (eq#
-                  c-conv-11-aval-0-simpflat-10
+                  c-conv-10-aval-0-simpflat-10
                   ExceptNotAnError)
             {
                 flat-5-simpflat-14 =w ExceptNotAnError
                 flat-5-simpflat-15 =w add#
-                                        c-conv-11-aval-0-simpflat-11
+                                        c-conv-10-aval-0-simpflat-11
                                         1
             }
             else
             {
-                flat-5-simpflat-14 =w c-conv-11-aval-0-simpflat-10
+                flat-5-simpflat-14 =w c-conv-10-aval-0-simpflat-10
                 flat-5-simpflat-15 =w 0
             }
             
@@ -137,28 +137,28 @@ for_facts conv-2 : Time
         
         flat-2-simpflat-22 =r flat-2-simpflat-12
         flat-2-simpflat-23 =r flat-2-simpflat-13
-        acc-c-conv-11-simpflat-2 =w flat-2-simpflat-22
-        acc-c-conv-11-simpflat-3 =w flat-2-simpflat-23
+        acc-c-conv-10-simpflat-2 =w flat-2-simpflat-22
+        acc-c-conv-10-simpflat-3 =w flat-2-simpflat-23
     }
     
-    acc-conv-26-simpflat-4 =r acc-conv-26-simpflat-4
-    acc-conv-26-simpflat-4 =w Buf_push#
-                                acc-conv-26-simpflat-4
+    acc-conv-25-simpflat-4 =r acc-conv-25-simpflat-4
+    acc-conv-25-simpflat-4 =w Buf_push#
+                                acc-conv-25-simpflat-4
                                 conv-0-simpflat-38
-    acc-conv-26-simpflat-5 =r acc-conv-26-simpflat-5
-    acc-conv-26-simpflat-5 =w Buf_push#
-                                acc-conv-26-simpflat-5
+    acc-conv-25-simpflat-5 =r acc-conv-25-simpflat-5
+    acc-conv-25-simpflat-5 =w Buf_push#
+                                acc-conv-25-simpflat-5
                                 conv-0-simpflat-39
 }
 
-save_resumable acc-conv-26-simpflat-4
-save_resumable acc-conv-26-simpflat-5
-save_resumable acc-c-conv-11-simpflat-2
-save_resumable acc-c-conv-11-simpflat-3
-conv-26-simpflat-26 =r acc-conv-26-simpflat-4
-conv-26-simpflat-27 =r acc-conv-26-simpflat-5
-c-conv-11-simpflat-28 =r acc-c-conv-11-simpflat-2
-c-conv-11-simpflat-29 =r acc-c-conv-11-simpflat-3
+save_resumable acc-conv-25-simpflat-4
+save_resumable acc-conv-25-simpflat-5
+save_resumable acc-c-conv-10-simpflat-2
+save_resumable acc-c-conv-10-simpflat-3
+conv-25-simpflat-26 =r acc-conv-25-simpflat-4
+conv-25-simpflat-27 =r acc-conv-25-simpflat-5
+c-conv-10-simpflat-28 =r acc-c-conv-10-simpflat-2
+c-conv-10-simpflat-29 =r acc-c-conv-10-simpflat-3
 flat-16-simpflat-30 =i ExceptNotAnError : Error
 flat-16-simpflat-31 =i 0 : Int
 flat-16-simpflat-32 =i unsafe_Array_create#
@@ -167,19 +167,19 @@ flat-16-simpflat-33 =i unsafe_Array_create#
                          0 : Array Int
 
 if (eq#
-      c-conv-11-simpflat-28
+      c-conv-10-simpflat-28
       ExceptNotAnError)
 {
     flat-16-simpflat-30 =w ExceptNotAnError
-    flat-16-simpflat-31 =w c-conv-11-simpflat-29
+    flat-16-simpflat-31 =w c-conv-10-simpflat-29
     flat-16-simpflat-32 =w Buf_read#
-                             conv-26-simpflat-26
+                             conv-25-simpflat-26
     flat-16-simpflat-33 =w Buf_read#
-                             conv-26-simpflat-27
+                             conv-25-simpflat-27
 }
 else
 {
-    flat-16-simpflat-30 =w c-conv-11-simpflat-28
+    flat-16-simpflat-30 =w c-conv-10-simpflat-28
     flat-16-simpflat-31 =w 0
     flat-16-simpflat-32 =w unsafe_Array_create#
                              0
@@ -201,23 +201,23 @@ output repl:output : Sum Error (Int, Array (Sum Error Int)) =
 Flattened Avalanche (simplified), typechecked
 ---------------------------------------------
 
-conv-3 : Time =
+conv-2 : Time =
   TIME
-conv-4 : Int =
+conv-3 : Int =
   MAX_MAP_SIZE
 
-acc-c-conv-11-simpflat-2 =i ExceptNotAnError : Error
-acc-c-conv-11-simpflat-3 =i 0 : Int
-acc-conv-26-simpflat-4 =i Buf_make#
+acc-c-conv-10-simpflat-2 =i ExceptNotAnError : Error
+acc-c-conv-10-simpflat-3 =i 0 : Int
+acc-conv-25-simpflat-4 =i Buf_make#
                             () : Buf 3 Error
-acc-conv-26-simpflat-5 =i Buf_make#
+acc-conv-25-simpflat-5 =i Buf_make#
                             () : Buf 3 Int
-load_resumable acc-conv-26-simpflat-4
-load_resumable acc-conv-26-simpflat-5
-load_resumable acc-c-conv-11-simpflat-2
-load_resumable acc-c-conv-11-simpflat-3
+load_resumable acc-conv-25-simpflat-4
+load_resumable acc-conv-25-simpflat-5
+load_resumable acc-c-conv-10-simpflat-2
+load_resumable acc-c-conv-10-simpflat-3
 
-for_facts conv-2 : Time
+for_facts conv-1 : Time
         , conv-0-simpflat-38 : Error
         , conv-0-simpflat-39 : Int
         , conv-0-simpflat-40 : Time {
@@ -258,8 +258,8 @@ for_facts conv-2 : Time
     
     if (flat-1)
     {
-        c-conv-11-aval-0-simpflat-10 =r acc-c-conv-11-simpflat-2
-        c-conv-11-aval-0-simpflat-11 =r acc-c-conv-11-simpflat-3
+        c-conv-10-aval-0-simpflat-10 =r acc-c-conv-10-simpflat-2
+        c-conv-10-aval-0-simpflat-11 =r acc-c-conv-10-simpflat-3
         flat-2-simpflat-12 =i ExceptNotAnError : Error
         flat-2-simpflat-13 =i 0 : Int
         
@@ -271,17 +271,17 @@ for_facts conv-2 : Time
             flat-5-simpflat-15 =i 0 : Int
             
             if (eq#
-                  c-conv-11-aval-0-simpflat-10
+                  c-conv-10-aval-0-simpflat-10
                   ExceptNotAnError)
             {
                 flat-5-simpflat-14 =w ExceptNotAnError
                 flat-5-simpflat-15 =w add#
-                                        c-conv-11-aval-0-simpflat-11
+                                        c-conv-10-aval-0-simpflat-11
                                         1
             }
             else
             {
-                flat-5-simpflat-14 =w c-conv-11-aval-0-simpflat-10
+                flat-5-simpflat-14 =w c-conv-10-aval-0-simpflat-10
                 flat-5-simpflat-15 =w 0
             }
             
@@ -316,28 +316,28 @@ for_facts conv-2 : Time
         
         flat-2-simpflat-22 =r flat-2-simpflat-12
         flat-2-simpflat-23 =r flat-2-simpflat-13
-        acc-c-conv-11-simpflat-2 =w flat-2-simpflat-22
-        acc-c-conv-11-simpflat-3 =w flat-2-simpflat-23
+        acc-c-conv-10-simpflat-2 =w flat-2-simpflat-22
+        acc-c-conv-10-simpflat-3 =w flat-2-simpflat-23
     }
     
-    acc-conv-26-simpflat-4 =r acc-conv-26-simpflat-4
-    acc-conv-26-simpflat-4 =w Buf_push#
-                                acc-conv-26-simpflat-4
+    acc-conv-25-simpflat-4 =r acc-conv-25-simpflat-4
+    acc-conv-25-simpflat-4 =w Buf_push#
+                                acc-conv-25-simpflat-4
                                 conv-0-simpflat-38
-    acc-conv-26-simpflat-5 =r acc-conv-26-simpflat-5
-    acc-conv-26-simpflat-5 =w Buf_push#
-                                acc-conv-26-simpflat-5
+    acc-conv-25-simpflat-5 =r acc-conv-25-simpflat-5
+    acc-conv-25-simpflat-5 =w Buf_push#
+                                acc-conv-25-simpflat-5
                                 conv-0-simpflat-39
 }
 
-save_resumable acc-conv-26-simpflat-4
-save_resumable acc-conv-26-simpflat-5
-save_resumable acc-c-conv-11-simpflat-2
-save_resumable acc-c-conv-11-simpflat-3
-conv-26-simpflat-26 =r acc-conv-26-simpflat-4
-conv-26-simpflat-27 =r acc-conv-26-simpflat-5
-c-conv-11-simpflat-28 =r acc-c-conv-11-simpflat-2
-c-conv-11-simpflat-29 =r acc-c-conv-11-simpflat-3
+save_resumable acc-conv-25-simpflat-4
+save_resumable acc-conv-25-simpflat-5
+save_resumable acc-c-conv-10-simpflat-2
+save_resumable acc-c-conv-10-simpflat-3
+conv-25-simpflat-26 =r acc-conv-25-simpflat-4
+conv-25-simpflat-27 =r acc-conv-25-simpflat-5
+c-conv-10-simpflat-28 =r acc-c-conv-10-simpflat-2
+c-conv-10-simpflat-29 =r acc-c-conv-10-simpflat-3
 flat-16-simpflat-30 =i ExceptNotAnError : Error
 flat-16-simpflat-31 =i 0 : Int
 flat-16-simpflat-32 =i unsafe_Array_create#
@@ -346,19 +346,19 @@ flat-16-simpflat-33 =i unsafe_Array_create#
                          0 : Array Int
 
 if (eq#
-      c-conv-11-simpflat-28
+      c-conv-10-simpflat-28
       ExceptNotAnError)
 {
     flat-16-simpflat-30 =w ExceptNotAnError
-    flat-16-simpflat-31 =w c-conv-11-simpflat-29
+    flat-16-simpflat-31 =w c-conv-10-simpflat-29
     flat-16-simpflat-32 =w Buf_read#
-                             conv-26-simpflat-26
+                             conv-25-simpflat-26
     flat-16-simpflat-33 =w Buf_read#
-                             conv-26-simpflat-27
+                             conv-25-simpflat-27
 }
 else
 {
-    flat-16-simpflat-30 =w c-conv-11-simpflat-28
+    flat-16-simpflat-30 =w c-conv-10-simpflat-28
     flat-16-simpflat-31 =w 0
     flat-16-simpflat-32 =w unsafe_Array_create#
                              0
@@ -387,31 +387,31 @@ marge|(1, [ 0 , 10 , 20 ])
 λ Flattened (simplified), not typechecked
 ---------------------------------------
 
-conv-3 : Time =
+conv-2 : Time =
   TIME
-conv-4 : Int =
+conv-3 : Int =
   MAX_MAP_SIZE
 
-acc-conv-37-simpflat-32 =i ExceptNotAnError : Error
-acc-conv-37-simpflat-33 =i unsafe_Array_create#
+acc-conv-36-simpflat-32 =i ExceptNotAnError : Error
+acc-conv-36-simpflat-33 =i unsafe_Array_create#
                              0 : Array Time
-acc-conv-37-simpflat-34 =i unsafe_Array_create#
+acc-conv-36-simpflat-34 =i unsafe_Array_create#
                              0 : Array (Buf 2 Error)
-acc-conv-37-simpflat-35 =i unsafe_Array_create#
+acc-conv-36-simpflat-35 =i unsafe_Array_create#
                              0 : Array (Buf 2 Int)
-load_resumable acc-conv-37-simpflat-32
-load_resumable acc-conv-37-simpflat-33
-load_resumable acc-conv-37-simpflat-34
-load_resumable acc-conv-37-simpflat-35
+load_resumable acc-conv-36-simpflat-32
+load_resumable acc-conv-36-simpflat-33
+load_resumable acc-conv-36-simpflat-34
+load_resumable acc-conv-36-simpflat-35
 
-for_facts conv-2 : Time
+for_facts conv-1 : Time
         , conv-0-simpflat-135 : Error
         , conv-0-simpflat-136 : Int
         , conv-0-simpflat-137 : Time {
-    conv-37-aval-0-simpflat-37 =r acc-conv-37-simpflat-32
-    conv-37-aval-0-simpflat-38 =r acc-conv-37-simpflat-33
-    conv-37-aval-0-simpflat-39 =r acc-conv-37-simpflat-34
-    conv-37-aval-0-simpflat-40 =r acc-conv-37-simpflat-35
+    conv-36-aval-0-simpflat-37 =r acc-conv-36-simpflat-32
+    conv-36-aval-0-simpflat-38 =r acc-conv-36-simpflat-33
+    conv-36-aval-0-simpflat-39 =r acc-conv-36-simpflat-34
+    conv-36-aval-0-simpflat-40 =r acc-conv-36-simpflat-35
     flat-0-simpflat-42 =i ExceptNotAnError : Error
     flat-0-simpflat-43 =i unsafe_Array_create#
                             0 : Array Time
@@ -421,12 +421,12 @@ for_facts conv-2 : Time
                             0 : Array (Buf 2 Int)
     
     if (eq#
-          conv-37-aval-0-simpflat-37
+          conv-36-aval-0-simpflat-37
           ExceptNotAnError)
     {
-        map_insert_acc_keys-flat-3 =i conv-37-aval-0-simpflat-38 : Array Time
-        map_insert_acc_vals-flat-4-simpflat-47 =i conv-37-aval-0-simpflat-39 : Array (Buf 2 Error)
-        map_insert_acc_vals-flat-4-simpflat-48 =i conv-37-aval-0-simpflat-40 : Array (Buf 2 Int)
+        map_insert_acc_keys-flat-3 =i conv-36-aval-0-simpflat-38 : Array Time
+        map_insert_acc_vals-flat-4-simpflat-47 =i conv-36-aval-0-simpflat-39 : Array (Buf 2 Error)
+        map_insert_acc_vals-flat-4-simpflat-48 =i conv-36-aval-0-simpflat-40 : Array (Buf 2 Int)
         map_insert_acc_bs_found-flat-6 =i False : Bool
         map_insert_acc_bs_index-flat-5 =i -1 : Int
         map_insert_loc_keys-flat-7 =r map_insert_acc_keys-flat-3
@@ -666,7 +666,7 @@ for_facts conv-2 : Time
         simpflat-198 = Array_length#
                          flat-104
         
-        if (lt# simpflat-198 conv-4)
+        if (lt# simpflat-198 conv-3)
         {
             flat-39-simpflat-68 =w ExceptNotAnError
             flat-39-simpflat-69 =w flat-104
@@ -695,7 +695,7 @@ for_facts conv-2 : Time
     }
     else
     {
-        flat-0-simpflat-42 =w conv-37-aval-0-simpflat-37
+        flat-0-simpflat-42 =w conv-36-aval-0-simpflat-37
         flat-0-simpflat-43 =w unsafe_Array_create#
                                 0
         flat-0-simpflat-44 =w unsafe_Array_create#
@@ -708,20 +708,20 @@ for_facts conv-2 : Time
     flat-0-simpflat-79 =r flat-0-simpflat-43
     flat-0-simpflat-80 =r flat-0-simpflat-44
     flat-0-simpflat-81 =r flat-0-simpflat-45
-    acc-conv-37-simpflat-32 =w flat-0-simpflat-78
-    acc-conv-37-simpflat-33 =w flat-0-simpflat-79
-    acc-conv-37-simpflat-34 =w flat-0-simpflat-80
-    acc-conv-37-simpflat-35 =w flat-0-simpflat-81
+    acc-conv-36-simpflat-32 =w flat-0-simpflat-78
+    acc-conv-36-simpflat-33 =w flat-0-simpflat-79
+    acc-conv-36-simpflat-34 =w flat-0-simpflat-80
+    acc-conv-36-simpflat-35 =w flat-0-simpflat-81
 }
 
-save_resumable acc-conv-37-simpflat-32
-save_resumable acc-conv-37-simpflat-33
-save_resumable acc-conv-37-simpflat-34
-save_resumable acc-conv-37-simpflat-35
-conv-37-simpflat-83 =r acc-conv-37-simpflat-32
-conv-37-simpflat-84 =r acc-conv-37-simpflat-33
-conv-37-simpflat-85 =r acc-conv-37-simpflat-34
-conv-37-simpflat-86 =r acc-conv-37-simpflat-35
+save_resumable acc-conv-36-simpflat-32
+save_resumable acc-conv-36-simpflat-33
+save_resumable acc-conv-36-simpflat-34
+save_resumable acc-conv-36-simpflat-35
+conv-36-simpflat-83 =r acc-conv-36-simpflat-32
+conv-36-simpflat-84 =r acc-conv-36-simpflat-33
+conv-36-simpflat-85 =r acc-conv-36-simpflat-34
+conv-36-simpflat-86 =r acc-conv-36-simpflat-35
 flat-40-simpflat-88 =i ExceptNotAnError : Error
 flat-40-simpflat-89 =i unsafe_Array_create#
                          0 : Array Time
@@ -729,7 +729,7 @@ flat-40-simpflat-90 =i unsafe_Array_create#
                          0 : Array Int
 
 if (eq#
-      conv-37-simpflat-83
+      conv-36-simpflat-83
       ExceptNotAnError)
 {
     flat-48-simpflat-91 =i ExceptNotAnError : Error
@@ -739,19 +739,19 @@ if (eq#
                              0 : Array Int
     
     foreach (for_counter-flat-49 in 0 .. Array_length#
-                                           conv-37-simpflat-84)
+                                           conv-36-simpflat-84)
     {
         flat-48-simpflat-94 =r flat-48-simpflat-91
         flat-48-simpflat-95 =r flat-48-simpflat-92
         flat-48-simpflat-96 =r flat-48-simpflat-93
         simpflat-388 = unsafe_Array_index#
-                         conv-37-simpflat-84
+                         conv-36-simpflat-84
                          for_counter-flat-49
         simpflat-390 = unsafe_Array_index#
-                         conv-37-simpflat-85
+                         conv-36-simpflat-85
                          for_counter-flat-49
         simpflat-392 = unsafe_Array_index#
-                         conv-37-simpflat-86
+                         conv-36-simpflat-86
                          for_counter-flat-49
         flat-51-simpflat-97 =i ExceptNotAnError : Error
         flat-51-simpflat-98 =i unsafe_Array_create#
@@ -1026,7 +1026,7 @@ if (eq#
                 simpflat-257 = Array_length#
                                  flat-110
                 
-                if (lt# simpflat-257 conv-4)
+                if (lt# simpflat-257 conv-3)
                 {
                     flat-93-simpflat-117 =w ExceptNotAnError
                     flat-93-simpflat-118 =w flat-110
@@ -1090,7 +1090,7 @@ if (eq#
 }
 else
 {
-    flat-40-simpflat-88 =w conv-37-simpflat-83
+    flat-40-simpflat-88 =w conv-36-simpflat-83
     flat-40-simpflat-89 =w unsafe_Array_create#
                              0
     flat-40-simpflat-90 =w unsafe_Array_create#
@@ -1109,31 +1109,31 @@ output repl:output : Sum Error (Map Time Int) =
 Flattened Avalanche (simplified), typechecked
 ---------------------------------------------
 
-conv-3 : Time =
+conv-2 : Time =
   TIME
-conv-4 : Int =
+conv-3 : Int =
   MAX_MAP_SIZE
 
-acc-conv-37-simpflat-32 =i ExceptNotAnError : Error
-acc-conv-37-simpflat-33 =i unsafe_Array_create#
+acc-conv-36-simpflat-32 =i ExceptNotAnError : Error
+acc-conv-36-simpflat-33 =i unsafe_Array_create#
                              0 : Array Time
-acc-conv-37-simpflat-34 =i unsafe_Array_create#
+acc-conv-36-simpflat-34 =i unsafe_Array_create#
                              0 : Array (Buf 2 Error)
-acc-conv-37-simpflat-35 =i unsafe_Array_create#
+acc-conv-36-simpflat-35 =i unsafe_Array_create#
                              0 : Array (Buf 2 Int)
-load_resumable acc-conv-37-simpflat-32
-load_resumable acc-conv-37-simpflat-33
-load_resumable acc-conv-37-simpflat-34
-load_resumable acc-conv-37-simpflat-35
+load_resumable acc-conv-36-simpflat-32
+load_resumable acc-conv-36-simpflat-33
+load_resumable acc-conv-36-simpflat-34
+load_resumable acc-conv-36-simpflat-35
 
-for_facts conv-2 : Time
+for_facts conv-1 : Time
         , conv-0-simpflat-135 : Error
         , conv-0-simpflat-136 : Int
         , conv-0-simpflat-137 : Time {
-    conv-37-aval-0-simpflat-37 =r acc-conv-37-simpflat-32
-    conv-37-aval-0-simpflat-38 =r acc-conv-37-simpflat-33
-    conv-37-aval-0-simpflat-39 =r acc-conv-37-simpflat-34
-    conv-37-aval-0-simpflat-40 =r acc-conv-37-simpflat-35
+    conv-36-aval-0-simpflat-37 =r acc-conv-36-simpflat-32
+    conv-36-aval-0-simpflat-38 =r acc-conv-36-simpflat-33
+    conv-36-aval-0-simpflat-39 =r acc-conv-36-simpflat-34
+    conv-36-aval-0-simpflat-40 =r acc-conv-36-simpflat-35
     flat-0-simpflat-42 =i ExceptNotAnError : Error
     flat-0-simpflat-43 =i unsafe_Array_create#
                             0 : Array Time
@@ -1143,12 +1143,12 @@ for_facts conv-2 : Time
                             0 : Array (Buf 2 Int)
     
     if (eq#
-          conv-37-aval-0-simpflat-37
+          conv-36-aval-0-simpflat-37
           ExceptNotAnError)
     {
-        map_insert_acc_keys-flat-3 =i conv-37-aval-0-simpflat-38 : Array Time
-        map_insert_acc_vals-flat-4-simpflat-47 =i conv-37-aval-0-simpflat-39 : Array (Buf 2 Error)
-        map_insert_acc_vals-flat-4-simpflat-48 =i conv-37-aval-0-simpflat-40 : Array (Buf 2 Int)
+        map_insert_acc_keys-flat-3 =i conv-36-aval-0-simpflat-38 : Array Time
+        map_insert_acc_vals-flat-4-simpflat-47 =i conv-36-aval-0-simpflat-39 : Array (Buf 2 Error)
+        map_insert_acc_vals-flat-4-simpflat-48 =i conv-36-aval-0-simpflat-40 : Array (Buf 2 Int)
         map_insert_acc_bs_found-flat-6 =i False : Bool
         map_insert_acc_bs_index-flat-5 =i -1 : Int
         map_insert_loc_keys-flat-7 =r map_insert_acc_keys-flat-3
@@ -1388,7 +1388,7 @@ for_facts conv-2 : Time
         simpflat-198 = Array_length#
                          flat-104
         
-        if (lt# simpflat-198 conv-4)
+        if (lt# simpflat-198 conv-3)
         {
             flat-39-simpflat-68 =w ExceptNotAnError
             flat-39-simpflat-69 =w flat-104
@@ -1417,7 +1417,7 @@ for_facts conv-2 : Time
     }
     else
     {
-        flat-0-simpflat-42 =w conv-37-aval-0-simpflat-37
+        flat-0-simpflat-42 =w conv-36-aval-0-simpflat-37
         flat-0-simpflat-43 =w unsafe_Array_create#
                                 0
         flat-0-simpflat-44 =w unsafe_Array_create#
@@ -1430,20 +1430,20 @@ for_facts conv-2 : Time
     flat-0-simpflat-79 =r flat-0-simpflat-43
     flat-0-simpflat-80 =r flat-0-simpflat-44
     flat-0-simpflat-81 =r flat-0-simpflat-45
-    acc-conv-37-simpflat-32 =w flat-0-simpflat-78
-    acc-conv-37-simpflat-33 =w flat-0-simpflat-79
-    acc-conv-37-simpflat-34 =w flat-0-simpflat-80
-    acc-conv-37-simpflat-35 =w flat-0-simpflat-81
+    acc-conv-36-simpflat-32 =w flat-0-simpflat-78
+    acc-conv-36-simpflat-33 =w flat-0-simpflat-79
+    acc-conv-36-simpflat-34 =w flat-0-simpflat-80
+    acc-conv-36-simpflat-35 =w flat-0-simpflat-81
 }
 
-save_resumable acc-conv-37-simpflat-32
-save_resumable acc-conv-37-simpflat-33
-save_resumable acc-conv-37-simpflat-34
-save_resumable acc-conv-37-simpflat-35
-conv-37-simpflat-83 =r acc-conv-37-simpflat-32
-conv-37-simpflat-84 =r acc-conv-37-simpflat-33
-conv-37-simpflat-85 =r acc-conv-37-simpflat-34
-conv-37-simpflat-86 =r acc-conv-37-simpflat-35
+save_resumable acc-conv-36-simpflat-32
+save_resumable acc-conv-36-simpflat-33
+save_resumable acc-conv-36-simpflat-34
+save_resumable acc-conv-36-simpflat-35
+conv-36-simpflat-83 =r acc-conv-36-simpflat-32
+conv-36-simpflat-84 =r acc-conv-36-simpflat-33
+conv-36-simpflat-85 =r acc-conv-36-simpflat-34
+conv-36-simpflat-86 =r acc-conv-36-simpflat-35
 flat-40-simpflat-88 =i ExceptNotAnError : Error
 flat-40-simpflat-89 =i unsafe_Array_create#
                          0 : Array Time
@@ -1451,7 +1451,7 @@ flat-40-simpflat-90 =i unsafe_Array_create#
                          0 : Array Int
 
 if (eq#
-      conv-37-simpflat-83
+      conv-36-simpflat-83
       ExceptNotAnError)
 {
     flat-48-simpflat-91 =i ExceptNotAnError : Error
@@ -1461,19 +1461,19 @@ if (eq#
                              0 : Array Int
     
     foreach (for_counter-flat-49 in 0 .. Array_length#
-                                           conv-37-simpflat-84)
+                                           conv-36-simpflat-84)
     {
         flat-48-simpflat-94 =r flat-48-simpflat-91
         flat-48-simpflat-95 =r flat-48-simpflat-92
         flat-48-simpflat-96 =r flat-48-simpflat-93
         simpflat-388 = unsafe_Array_index#
-                         conv-37-simpflat-84
+                         conv-36-simpflat-84
                          for_counter-flat-49
         simpflat-390 = unsafe_Array_index#
-                         conv-37-simpflat-85
+                         conv-36-simpflat-85
                          for_counter-flat-49
         simpflat-392 = unsafe_Array_index#
-                         conv-37-simpflat-86
+                         conv-36-simpflat-86
                          for_counter-flat-49
         flat-51-simpflat-97 =i ExceptNotAnError : Error
         flat-51-simpflat-98 =i unsafe_Array_create#
@@ -1748,7 +1748,7 @@ if (eq#
                 simpflat-257 = Array_length#
                                  flat-110
                 
-                if (lt# simpflat-257 conv-4)
+                if (lt# simpflat-257 conv-3)
                 {
                     flat-93-simpflat-117 =w ExceptNotAnError
                     flat-93-simpflat-118 =w flat-110
@@ -1812,7 +1812,7 @@ if (eq#
 }
 else
 {
-    flat-40-simpflat-88 =w conv-37-simpflat-83
+    flat-40-simpflat-88 =w conv-36-simpflat-83
     flat-40-simpflat-89 =w unsafe_Array_create#
                              0
     flat-40-simpflat-90 =w unsafe_Array_create#
