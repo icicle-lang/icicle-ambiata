@@ -55,7 +55,8 @@ genPrimMany genT = do
     , PrimMap   <$> (PrimMapDelete            <$> genT  <*> genT)
     , PrimMap   <$> (PrimMapLookup            <$> genT  <*> genT)
     , PrimArray <$> (PrimArrayMap   <$> genT  <*> genT)
-    , PrimWindow <$> genWindowUnit <*> Gen.maybe genWindowUnit
+    -- TODO: missing PrimWindow; investigate conversion of windows to Avalanche and reinstate
+    -- , PrimWindow <$> genWindowUnit <*> Gen.maybe genWindowUnit
     ]
 
   -- Generate buffer prims in pairs so for a given size and type we can always push and read
@@ -76,7 +77,7 @@ genWindowUnit = Gen.choice
 
 genPrimMinimalMany :: Gen ValType -> Gen [PM.Prim]
 genPrimMinimalMany genT
- = concatGens [pure arith, pure logical, relation <$> genT, struct <$> genT, pure consts, pure builtins]
+ = concatGens [pure arith, pure tostring, pure logical, relation <$> genT, struct <$> genT, pure consts, pure builtins]
  where
   concatGens :: [Gen [Gen PM.Prim]] -> Gen [PM.Prim]
   concatGens gs = join (sequence <$> (concat <$> (sequence gs)))
@@ -84,6 +85,12 @@ genPrimMinimalMany genT
   arith
    = [ PM.PrimArithUnary  <$> genPrimArithUnary <*> genArithType
      , PM.PrimArithBinary <$> genPrimArithBinary <*> genArithType ]
+
+  -- TODO: ToString are not supported by C *or* exposed by front-end?
+  tostring
+   = []
+     -- [ return $ PM.PrimToString PM.PrimToStringFromInt
+     -- , return $ PM.PrimToString PM.PrimToStringFromDouble ]
 
   logical
    = [ PM.PrimLogical     <$> genPrimLogical
@@ -125,6 +132,8 @@ genPrimMinimal
  = Gen.choice
  [ PM.PrimArithUnary  <$> genPrimArithUnary <*> genArithType
  , PM.PrimArithBinary <$> genPrimArithBinary <*> genArithType
+ , return $ PM.PrimToString PM.PrimToStringFromInt
+ , return $ PM.PrimToString PM.PrimToStringFromDouble
  , PM.PrimLogical     <$> genPrimLogical
  , PM.PrimTime        <$> genPrimTime
  , PM.PrimConst <$> (PM.PrimConstPair  <$> genValType <*> genValType)
@@ -148,6 +157,7 @@ genPrimMinimal
 genPrimArithUnary :: Gen PM.PrimArithUnary
 genPrimArithUnary = Gen.enumBounded
 
+-- TODO: missing PrimArithPow; this should be modified to work on Doubles only
 genPrimArithBinary :: Gen PM.PrimArithBinary
 genPrimArithBinary = Gen.element
   [ PM.PrimArithPlus
@@ -182,6 +192,11 @@ genPrimBuiltinMath = Gen.element
   , PM.PrimBuiltinTruncate
   , PM.PrimBuiltinRound
   , PM.PrimBuiltinToDoubleFromInt
+  -- TODO: missing NaN-introducing primitives; modify tests to use NanEq instead of Eq.
+  -- , PM.PrimBuiltinDiv
+  -- , PM.PrimBuiltinLog
+  -- , PM.PrimBuiltinExp
+  -- , PM.PrimBuiltinSqrt
   , PM.PrimBuiltinDoubleIsValid ]
 
 genPrimBuiltinMap :: Gen ValType -> Gen PM.PrimBuiltinMap
@@ -189,8 +204,12 @@ genPrimBuiltinMap genT = Gen.choice
     [ PM.PrimBuiltinKeys <$> genT <*> genT
     , PM.PrimBuiltinVals <$> genT <*> genT ]
 
+-- TODO: missing PrimBuiltinIndex; modify index to be safe.
+-- Returning an Option would probably be fine for Core, if we had an explicitly unsafe primitive in Flat.
 genPrimBuiltinArray :: Gen ValType -> Gen PM.PrimBuiltinArray
-genPrimBuiltinArray genT = PM.PrimBuiltinSort <$> genT
+genPrimBuiltinArray genT = Gen.choice
+  [ PM.PrimBuiltinSort <$> genT
+  , PM.PrimBuiltinLength <$> genT ]
 
 genPrimBuiltinFun :: Gen ValType -> Gen PM.PrimBuiltinFun
 genPrimBuiltinFun genT = Gen.choice
