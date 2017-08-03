@@ -5,7 +5,6 @@ module Icicle.Common.Exp.Prim.Minimal (
       Prim            (..)
     , PrimArithUnary  (..)
     , PrimArithBinary (..)
-    , PrimToString    (..)
     , PrimRelation    (..)
     , PrimLogical     (..)
     , PrimConst       (..)
@@ -36,7 +35,6 @@ import           P
 data Prim
  = PrimArithUnary  !PrimArithUnary  !ArithType  -- ^ "Polymorphic" (double or int) unary operators
  | PrimArithBinary !PrimArithBinary !ArithType  -- ^ "Polymorphic" (double or int) binary operators
- | PrimToString    !PrimToString                -- ^ Conversion to string
  | PrimRelation    !PrimRelation    !ValType    -- ^ "Polymorphic" relation operators
  | PrimLogical     !PrimLogical                 -- ^ Logical operators
  | PrimConst       !PrimConst                   -- ^ Literal value constructors
@@ -60,11 +58,6 @@ data PrimArithBinary
  | PrimArithMinus
  | PrimArithMul
  | PrimArithPow
- deriving (Eq, Ord, Show, Enum, Bounded, Generic)
-
-data PrimToString
- = PrimToStringFromInt
- | PrimToStringFromDouble
  deriving (Eq, Ord, Show, Enum, Bounded, Generic)
 
 -- | Predicates like >=
@@ -119,7 +112,6 @@ data PrimStruct
 instance NFData PrimPair
 instance NFData PrimArithUnary
 instance NFData PrimArithBinary
-instance NFData PrimToString
 instance NFData PrimRelation
 instance NFData PrimLogical
 instance NFData PrimConst
@@ -172,11 +164,6 @@ typeOfPrim p
      -> FunT [funOfVal (ArrayT t)] IntT
     PrimBuiltinFun    (PrimBuiltinArray (PrimBuiltinIndex t))
      -> FunT [funOfVal (ArrayT t), funOfVal IntT] t
-
-    PrimToString PrimToStringFromInt
-     -> FunT [funOfVal IntT] StringT
-    PrimToString PrimToStringFromDouble
-     -> FunT [funOfVal DoubleT] StringT
 
     -- All relations are binary to bool
     PrimRelation _ val
@@ -249,10 +236,6 @@ instance Pretty PrimRelation where
  pretty PrimRelationEq = "eq#"
  pretty PrimRelationNe = "ne#"
 
-instance Pretty PrimToString where
- pretty PrimToStringFromInt    = "stringOfInt#"
- pretty PrimToStringFromDouble = "stringOfDouble#"
-
 instance Pretty PrimLogical where
  pretty PrimLogicalNot   = "not#"
  pretty PrimLogicalAnd   = "and#"
@@ -287,7 +270,6 @@ instance Pretty Prim where
  pretty (PrimArithUnary  p _t) = pretty p
  pretty (PrimArithBinary p _t) = pretty p
  pretty (PrimRelation    p _t) = pretty p
- pretty (PrimToString    p)   = pretty p
  pretty (PrimLogical     p)   = pretty p
  pretty (PrimConst       p)   = pretty p
  pretty (PrimTime        p)   = pretty p

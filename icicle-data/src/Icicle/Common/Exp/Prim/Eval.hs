@@ -15,7 +15,6 @@ import              P
 
 import qualified    Data.Map                        as Map
 import qualified    Data.List                       as List
-import qualified    Data.Text                       as T
 
 
 -- | Evaluate a primitive, given list of argument values
@@ -175,19 +174,6 @@ evalPrim p originalP vs
       -> return $ VBase $ a List.!! i
       | otherwise
       -> return $ VBase $ VError ExceptTombstone
-
-     -- To string
-     PrimToString PrimToStringFromInt
-      | [VBase (VInt i)] <- vs
-      -> return $ VBase $ VString $ T.pack $ show i
-      | otherwise
-      -> primError
-     PrimToString PrimToStringFromDouble
-      | [VBase (VDouble i)] <- vs
-      -> return $ VBase $ VString $ T.pack $ show i
-      | otherwise
-      -> primError
-
 
      -- Relation
      PrimRelation rel _
