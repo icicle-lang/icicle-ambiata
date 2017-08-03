@@ -112,12 +112,12 @@ typeOfPrim p
 
     -- Latest buffer primitives
     PrimLatest (PrimLatestPush i t)
-     -> FunT [funOfVal (BufT i t), funOfVal FactIdentifierT, funOfVal t] (BufT i t)
+     -> FunT [funOfVal (BufT i t), funOfVal t] (BufT i t)
     PrimLatest (PrimLatestRead i t)
      -> FunT [funOfVal (BufT i t)] (ArrayT t)
 
     PrimWindow _ _
-     -> FunT [funOfVal TimeT, funOfVal TimeT, funOfVal FactIdentifierT] BoolT
+     -> FunT [funOfVal TimeT, funOfVal TimeT] BoolT
 
 
 -- Pretty -------------

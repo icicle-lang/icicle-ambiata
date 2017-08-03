@@ -217,8 +217,6 @@ meltLogical t
     TimeT   -> rep t
     StringT -> rep t
     ErrorT  -> rep t
-    FactIdentifierT
-            -> rep t
 
     PairT   a b -> meltLogical a <> meltLogical b
 

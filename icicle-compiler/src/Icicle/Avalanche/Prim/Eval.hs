@@ -236,8 +236,6 @@ meltValue v t
      VTime{}   -> Just [v]
      VString{} -> Just [v]
      VError{}  -> Just [v]
-     VFactIdentifier{}
-               -> Just [v]
 
      VArray vs
       | Nothing <- tryMeltType t
@@ -366,8 +364,6 @@ unmeltValue' vs0 t
      (v:vs, TimeT{})   -> Just (v, vs)
      (v:vs, StringT{}) -> Just (v, vs)
      (v:vs, ErrorT{})  -> Just (v, vs)
-     (v:vs, FactIdentifierT{})
-                       -> Just (v, vs)
 
      (v:vs, ArrayT ta)
       | Just ts <- tryMeltType ta

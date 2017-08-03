@@ -83,7 +83,6 @@ programForStreamType streamType outputType = runCoreGen streamType (programForSt
 programForStreamType' :: C m => ValType -> ValType -> m (Program () Var)
 programForStreamType' streamType outputType = do
   nmapsz <- freshName' "maxMapSize"
-  nid    <- freshName' "id"
   ntime  <- freshName' "factTime"
   ndate  <- freshName' "snapshotTime"
   ninput <- freshName' "input"
@@ -96,7 +95,6 @@ programForStreamType' streamType outputType = do
   (envP',pres)<- genExps env0 npres
 
   let envS0 = Map.fromList [ ( ninput, (PairT streamType TimeT, Priority 40))
-                           , ( nid,    (FactIdentifierT, Priority 1))
                            , ( ntime,  (TimeT, Priority 20)) ]
 
   nstrs       <- genCount
@@ -113,7 +111,6 @@ programForStreamType' streamType outputType = do
   return Program
          { inputType    = streamType
          , factValName  = ninput
-         , factIdName   = nid
          , factTimeName = ntime
          , snaptimeName = ndate
          , maxMapSize   = nmapsz
@@ -196,8 +193,6 @@ genPrimConstructor t
     ErrorT    -> genContextOrValue
     BoolT     -> genContextOrValue
     TimeT     -> genContextOrValue
-    FactIdentifierT
-              -> genContextOrValue
     StringT   -> genContextOrValue
     StructT _ -> genContextOrValue
 

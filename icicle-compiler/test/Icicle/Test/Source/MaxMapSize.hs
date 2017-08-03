@@ -8,7 +8,6 @@ module Icicle.Test.Source.MaxMapSize where
 import           Icicle.Test.Arbitrary.SourceWithCore
 import           Icicle.Test.Arbitrary.Corpus
 import           Icicle.Test.Arbitrary
-import qualified Icicle.Core.Eval.Program   as PV
 
 import           Icicle.Common.Eval
 import           Icicle.Common.Base
@@ -29,14 +28,14 @@ import qualified Data.Map as Map
 prop_maxsize :: TestSourceConvert -> Property
 prop_maxsize ts =
   let maxsize = evalMaxMapSize $ tsEvalCtx ts
-      inputs' = fmap (\(AsAt (bg,v) t) -> AsAt (bg, clip maxsize v) t)
+      inputs' = fmap (\(AsAt v t) -> AsAt (clip maxsize v) t)
               $ tsInputs ts
       ev      = evalCore ts inputs'
   in counterexample (show ev)
    $ case ev of
       Left _ -> property False
       Right r  ->
-       let vals  = fmap snd $ PV.value r
+       let vals  = fmap snd r
            props = fmap (checkMaxMapSize maxsize) vals
        in  conjoin props
 
@@ -83,7 +82,6 @@ clip maxMapSize = go
    VSome   a -> VSome   $ go a
    VStruct m -> VStruct $ fmap go m
    VError  _ -> v
-   VFactIdentifier _ -> v
 
 
 checkMaxMapSize :: Int -> BaseValue -> Property
@@ -116,7 +114,6 @@ checkMaxMapSize maxMapSize = go
    VSome   a -> go a
    VStruct m -> conjoin (fmap go $ Map.elems m)
    VError  _ -> ok
-   VFactIdentifier _ -> ok
 
   ok = property True
 

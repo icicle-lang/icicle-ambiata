@@ -57,8 +57,6 @@ programFromCore namer p
         let inputType'  = PairT (C.inputType p) TimeT
         let factBinds   = FactBinds (C.factTimeName p) [(C.factValName p, inputType')]
         let factLoop    = ForeachFacts factBinds inputType'
-                        -- Temporary dummy FactIdentifier binding
-                        $ Let  (C.factIdName p) (X.XValue () FactIdentifierT (VFactIdentifier $ FactIdentifier 0))
                         $ Block factStmts
         let inner       = mconcat (fmap loadResumables accNames) <>
                           factLoop                               <>

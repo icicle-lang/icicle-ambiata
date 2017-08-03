@@ -75,7 +75,6 @@ convertQueryTop :: (Hashable n, Eq n)
                 -> FreshT n (Either (ConvertError a n)) (C.Program () n)
 convertQueryTop feats qt
  = do   inp         <- fresh
-        factid      <- fresh
         facttime    <- fresh
         now         <- fresh
         maxMapSize  <- fresh
@@ -92,9 +91,8 @@ convertQueryTop feats qt
                   Just t' -> return t'
         let inpTy'dated = T.PairT inpTy T.TimeT
 
-        let convState = ConvertState inp inpTy'dated factid facttime now maxMapSize fs Map.empty
+        let convState = ConvertState inp inpTy'dated facttime now maxMapSize fs Map.empty
         let env       = Map.insert facttime (T.funOfVal   T.TimeT)
-                      $ Map.insert factid   (T.funOfVal   T.FactIdentifierT)
                       $ Map.insert inp      (T.funOfVal $ T.PairT inpTy T.TimeT) Map.empty
 
         -- Convert the query body.
@@ -102,7 +100,7 @@ convertQueryTop feats qt
                    $ do maybe (return ()) (flip convertFreshenAddAs now) $ featureNow feats
                         convertQuery (query qt) >>= convertKey env key
 
-        return (programOfBinds (queryName qt) inpTy inp factid facttime now maxMapSize bs () ret)
+        return (programOfBinds (queryName qt) inpTy inp facttime now maxMapSize bs () ret)
 
 
 -- | Convert a Query to Core
@@ -153,10 +151,9 @@ convertQuery q
      -> do  (bs, b) <- convertQuery q'
             now  <- convertDateName
             time <- convertFactTimeName
-            fact <- convertFactIdName
 
             let e'  = CE.makeApps () (CE.xPrim $ C.PrimWindow newerThan olderThan)
-                    [ CE.xVar now, CE.xVar time, CE.xVar fact ]
+                    [ CE.xVar now, CE.xVar time ]
             let bs' = filt e' (streams bs) <> bs { streams = [] }
             return (bs', b)
 

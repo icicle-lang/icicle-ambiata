@@ -60,7 +60,6 @@ data ValType
  | StringT
  | UnitT
  | ErrorT
- | FactIdentifierT
  | ArrayT  !ValType
  | MapT    !ValType    !ValType
  | OptionT !ValType
@@ -99,8 +98,6 @@ defaultOfType typ
      StringT   -> VString T.empty
      UnitT     -> VUnit
      ErrorT    -> VError ExceptNotAnError
-     FactIdentifierT
-               -> VFactIdentifier (FactIdentifier 0)
      ArrayT  _ -> VArray []
      MapT  _ _ -> VMap Map.empty
      OptionT _ -> VNone
@@ -248,11 +245,6 @@ valueMatchesType v t
     (ErrorT, _)
      -> False
 
-    (FactIdentifierT, VFactIdentifier _)
-     -> True
-    (FactIdentifierT, _)
-     -> False
-
     (BoolT, VBool{})
      -> True
     (BoolT, _)
@@ -325,9 +317,6 @@ instance Pretty ValType where
 
     ErrorT ->
       prettyConstructor "Error"
-
-    FactIdentifierT ->
-      prettyConstructor "FactIdentifier"
 
     BoolT ->
       prettyConstructor "Bool"

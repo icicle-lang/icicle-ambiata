@@ -4,11 +4,8 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Core.Eval.Program (
       RuntimeError (..)
-    , ProgramValue (..)
     , eval
     ) where
-
-import              Icicle.BubbleGum
 
 import              Icicle.Common.Base
 import              Icicle.Common.Eval
@@ -30,8 +27,6 @@ import              P
 
 import qualified    Data.Map as Map
 import              Data.Hashable (Hashable)
-import qualified    Data.Set as Set
-import              Data.List (zipWith)
 
 
 -- | Things that can go wrong for program evaluation
@@ -65,20 +60,11 @@ instance (Pretty n) => Pretty (RuntimeError a n) where
 
 
 
--- | The result of evaluating a whole program:
--- some value, and the minimum facts needed to compute next value.
-data ProgramValue n =
- ProgramValue {
-    value   :: [(OutputId, BaseValue)]
- ,  history :: Set.Set FactIdentifier
- }
- deriving (Show, Eq)
-
 -- | Right at the start, we need dates on the stream values.
 -- These can be used by windowing functions or ignored.
 -- Afterwards they are thrown away, but could still be included in the value itself.
 type InitialStreamValue
- = [AsAt (BubbleGumFact, BaseValue)]
+ = [AsAt BaseValue]
 
 
 -- | Evaluate a program.
@@ -87,7 +73,7 @@ eval    :: (Hashable n, Eq n)
         => EvalContext
         -> InitialStreamValue
         -> P.Program a n
-        -> Either (RuntimeError a n) (ProgramValue n)
+        -> Either (RuntimeError a n) [(OutputId, BaseValue)]
 eval ctx sv p
  = do   let env0 = Map.fromList 
                  [ (P.snaptimeName p, VBase $ VTime $ evalSnapshotTime ctx)
@@ -96,14 +82,12 @@ eval ctx sv p
                  $ XV.evalExps XV.evalPrim  env0   (P.precomps     p)
 
         let mkstream f t = SV.StreamValue (fmap f sv) (defaultOfType t)
-        let idStream = SV.StreamValue (zipWith (\_ i -> VFactIdentifier $ FactIdentifier i) sv [0..]) (defaultOfType FactIdentifierT)
-        let valueOfInput at = VPair (snd $ atFact at) (VTime $ atTime at)
+        let valueOfInput at = VPair (atFact at) (VTime $ atTime at)
 
         let inputHeap = Map.fromList 
                       [(P.factValName  p, mkstream valueOfInput (PairT (P.inputType p) TimeT))
-                      ,(P.factIdName   p, idStream)
                       ,(P.factTimeName p, mkstream (VTime . atTime) TimeT)]
-        (stms,facts) <- evalStms pres inputHeap (P.streams      p)
+        stms <- evalStms pres inputHeap (P.streams      p)
 
         let lastSV svals | (v:_) <- reverse $ SV.streamValues svals
                          = v
@@ -124,11 +108,7 @@ eval ctx sv p
 
         rets <- mapM evalReturn (P.returns p)
 
-        let facts' = Set.unions
-                   $ fmap V.collectFactIdentifiersFromBufs
-                   $ Map.elems stms'
-
-        return $ ProgramValue rets (Set.union facts facts')
+        return rets
 
 
 -- | Evaluate all stream bindings, collecting up stream heap as we go
@@ -137,15 +117,13 @@ evalStms
         => V.Heap a n Prim
         -> SV.StreamHeap  n
         -> [Stream a n]
-        -> Either (RuntimeError a n) (SV.StreamHeap n, Set.Set FactIdentifier)
+        -> Either (RuntimeError a n) (SV.StreamHeap n)
 
 evalStms _ sh []
- = return (sh, Set.empty)
+ = return sh
 
 evalStms xh sh (strm:bs)
- = do   (sh',facts)     <- first RuntimeErrorStream
-                         $ SV.eval xh sh strm
-
-        (sh'', facts')  <- evalStms xh sh' bs
-        return (sh'', Set.union facts facts')
+ = do   sh'  <- first RuntimeErrorStream
+              $ SV.eval xh sh strm
+        evalStms xh sh' bs
 

@@ -17,7 +17,6 @@ MK_SIMPLE_CMPS(ierror_t, ierror_)
 MK_SIMPLE_CMPS(ibool_t,  ibool_)
 MK_SIMPLE_CMPS(itime_t,  itime_)
 MK_SIMPLE_CMPS(iunit_t,  iunit_)
-MK_SIMPLE_CMPS(ifactid_t,ifactid_)
 
 #define MK_SIMPLE_COPY(t,pre)                                                   \
     static t    INLINE pre##copy(anemone_mempool_t *into, t val) { return val; }\
@@ -26,7 +25,6 @@ MK_SIMPLE_COPY(ierror_t, ierror_)
 MK_SIMPLE_COPY(ibool_t,  ibool_)
 MK_SIMPLE_COPY(itime_t,  itime_)
 MK_SIMPLE_COPY(iunit_t,  iunit_)
-MK_SIMPLE_COPY(ifactid_t,ifactid_)
 
 
 static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }

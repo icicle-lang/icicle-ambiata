@@ -106,20 +106,20 @@ evalPrim p vs
 
 
      PrimLatest (PrimLatestPush i _)
-      | [VBase (VBuf as), VBase factid, VBase e] <- vs
+      | [VBase (VBuf as), VBase e] <- vs
       -> return . VBase . VBuf
-      $  circ i (VPair factid e) as
+      $  circ i e as
       | otherwise
       -> primError
 
      PrimLatest (PrimLatestRead _ _)
       | [VBase (VBuf as)] <- vs
-      -> return . VBase . VArray $ fmap getSnd as
+      -> return . VBase . VArray $ as
       | otherwise
       -> primError
 
      PrimWindow newerThan olderThan
-      | [VBase (VTime now), VBase (VTime fact), _] <- vs
+      | [VBase (VTime now), VBase (VTime fact)] <- vs
       -> let newer = windowEdge now     newerThan 
              older = windowEdge now <$> olderThan
              range = fact >= newer && maybe True (fact <=) older
@@ -144,9 +144,6 @@ evalPrim p vs
    = xs <> [x]
    | otherwise
    = List.drop 1 (xs <> [x])
-
-  getSnd (VPair _ b) = b
-  getSnd v           = v
 
   windowEdge now (Days   d) = minusDays   now d
   windowEdge now (Weeks  w) = minusDays   now $ 7 * w

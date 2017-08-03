@@ -17,7 +17,6 @@ import           Data.Hashable (Hashable)
 
 import           P
 
-import qualified Icicle.BubbleGum   as B
 import           Icicle.Common.Base
 import           Icicle.Common.Eval
 import           Icicle.Common.Type
@@ -86,17 +85,16 @@ makePartition fs@(f:_)
 
 evaluateVirtualValue :: (Hashable n, Eq n) => P.Program a n -> EvalContext -> [AsAt Value] -> Result a n
 evaluateVirtualValue p ctx vs
- = do   vs' <- zipWithM toCore [1..] vs
+ = do   vs' <- mapM toCore vs
 
         xv  <- first SimulateErrorRuntime
              $ PV.eval ctx vs' p
 
-        v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) (PV.value xv)
-        return v'
+        traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) xv
  where
-  toCore n a
+  toCore a
    = do v' <- valueToCore' (atFact a) (P.inputType p)
-        return $ a { atFact = (B.BubbleGumFact $ B.Flavour n $ atTime a, v') }
+        return $ a { atFact = v' }
 
 evaluateVirtualValue' :: (Hashable n, Eq n, Show n, Show a) => A.Program a n APF.Prim -> EvalContext -> [AsAt Value] -> Result a n
 evaluateVirtualValue' p ctx vs
@@ -106,9 +104,7 @@ evaluateVirtualValue' p ctx vs
             <- first SimulateErrorRuntime'
              $ AE.evalProgram APF.evalPrim ctx vs' p
 
-        v'  <- traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) outs
-        -- bg' <- traverse (traverse valueFromCore') (fst xv)
-        return v'
+        traverse (\(k,v) -> (,) <$> pure k <*> valueFromCore' v) outs
  where
   toCore a
    = do v' <- valueToCore' (atFact a) (A.input p)

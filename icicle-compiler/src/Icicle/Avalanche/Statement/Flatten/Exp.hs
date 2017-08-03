@@ -231,7 +231,7 @@ flatX a_fresh xx stm
 
       -- LatestPush b f v -> (BufPush (fst b) f, BufPush (snd b) v)
       Core.PrimLatest (Core.PrimLatestPush i t)
-       | [buf, _, e]    <- xs
+       | [buf, e]    <- xs
        -> flatX' e
        $  \e'
        -> flatX' buf
@@ -259,7 +259,7 @@ flatX a_fresh xx stm
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
       Core.PrimWindow newerThan olderThan
-       | [now, fact, _] <- xs
+       | [now, fact] <- xs
        -> flatX' now
        $  \now'
        -> flatX' fact
