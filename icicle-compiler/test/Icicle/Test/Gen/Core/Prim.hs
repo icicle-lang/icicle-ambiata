@@ -149,7 +149,6 @@ genPrimMinimal
 genPrimArithUnary :: Gen PM.PrimArithUnary
 genPrimArithUnary = Gen.enumBounded
 
--- TODO: missing PrimArithPow; this should be modified to work on Doubles only
 genPrimArithBinary :: Gen PM.PrimArithBinary
 genPrimArithBinary = Gen.element
   [ PM.PrimArithPlus
@@ -185,7 +184,7 @@ genPrimBuiltinMath = Gen.element
   , PM.PrimBuiltinRound
   , PM.PrimBuiltinToDoubleFromInt
   -- TODO: missing NaN-introducing primitives; modify tests to use NanEq instead of Eq.
-  , PM.PrimBuiltinPow
+  -- , PM.PrimBuiltinPow
   -- , PM.PrimBuiltinDiv
   -- , PM.PrimBuiltinLog
   -- , PM.PrimBuiltinExp
