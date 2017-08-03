@@ -426,7 +426,7 @@ evalP ann p xs vs env
              | otherwise
              -> err
 
-            ArithBinary Pow
+            ArithDouble Pow
              | [VDouble i, VDouble j] <- args
              -> return $ VDouble (i ** j)
              | otherwise

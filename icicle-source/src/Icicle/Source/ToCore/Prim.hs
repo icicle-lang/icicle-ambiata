@@ -132,7 +132,6 @@ convertPrim p ann resT xts = go p
              Add -> Min.PrimArithPlus
              Sub -> Min.PrimArithMinus
              Mul -> Min.PrimArithMul
-             Pow -> Min.PrimArithPow
    let fx = primmin (Min.PrimArithBinary p' tt)
    case tt of
     T.ArithDoubleT ->
@@ -142,6 +141,8 @@ convertPrim p ann resT xts = go p
 
   goop (ArithDouble Div)
    = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinDiv
+  goop (ArithDouble Pow)
+   = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinPow
 
   -- Logic
   goop (LogicalUnary Not)

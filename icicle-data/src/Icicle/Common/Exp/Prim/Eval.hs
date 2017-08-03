@@ -74,21 +74,19 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
-     PrimArithBinary PrimArithPow _
-      | [VBase (VDouble i), VBase (VDouble j)] <- vs
-      -> return $ VBase $ VDouble $ i ** j
-      | [VBase (VInt i), VBase (VInt j)] <- vs
-      -> return $ VBase $ VInt $ i ^ j
-      | otherwise
-      -> primError
-
-
      -- Builtin
      PrimBuiltinFun (PrimBuiltinMath PrimBuiltinDiv)
       | [VBase (VDouble i), VBase (VDouble j)] <- vs
       -> return $ VBase $ VDouble $ i / j
       | otherwise
       -> primError
+
+     PrimBuiltinFun (PrimBuiltinMath PrimBuiltinPow)
+      | [VBase (VDouble i), VBase (VDouble j)] <- vs
+      -> return $ VBase $ VDouble $ i ** j
+      | otherwise
+      -> primError
+
 
      PrimBuiltinFun (PrimBuiltinMath PrimBuiltinLog)
       | [VBase (VDouble i)] <- vs

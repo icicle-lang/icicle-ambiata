@@ -185,6 +185,7 @@ genPrimBuiltinMath = Gen.element
   , PM.PrimBuiltinRound
   , PM.PrimBuiltinToDoubleFromInt
   -- TODO: missing NaN-introducing primitives; modify tests to use NanEq instead of Eq.
+  , PM.PrimBuiltinPow
   -- , PM.PrimBuiltinDiv
   -- , PM.PrimBuiltinLog
   -- , PM.PrimBuiltinExp

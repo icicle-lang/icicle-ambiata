@@ -27,6 +27,7 @@ data PrimBuiltinMath
  | PrimBuiltinRound
  | PrimBuiltinToDoubleFromInt
  | PrimBuiltinDiv
+ | PrimBuiltinPow
  | PrimBuiltinLog
  | PrimBuiltinExp
  | PrimBuiltinSqrt
@@ -60,6 +61,7 @@ instance Pretty PrimBuiltinFun where
 instance Pretty PrimBuiltinMath where
  pretty p = case p of
    PrimBuiltinDiv             -> "div#"
+   PrimBuiltinPow             -> "pow#"
    PrimBuiltinLog             -> "log#"
    PrimBuiltinExp             -> "exp#"
    PrimBuiltinSqrt            -> "sqrt#"

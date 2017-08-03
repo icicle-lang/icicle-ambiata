@@ -57,7 +57,6 @@ data PrimArithBinary
  = PrimArithPlus
  | PrimArithMinus
  | PrimArithMul
- | PrimArithPow
  deriving (Eq, Ord, Show, Enum, Bounded, Generic)
 
 -- | Predicates like >=
@@ -125,7 +124,6 @@ instance NFData Prim
 typeOfPrim :: Prim -> Type
 typeOfPrim p
  = case p of
-    -- All arithmetics are working on ints for now
     PrimArithUnary _ t
      -> FunT [funOfVal (valTypeOfArithType t)] (valTypeOfArithType t)
     PrimArithBinary _ t
@@ -143,6 +141,8 @@ typeOfPrim p
     PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinRound)
      -> FunT [funOfVal DoubleT] IntT
     PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinDiv)
+     -> FunT [funOfVal DoubleT, funOfVal DoubleT] DoubleT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinPow)
      -> FunT [funOfVal DoubleT, funOfVal DoubleT] DoubleT
     PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinLog)
      -> FunT [funOfVal DoubleT] DoubleT
@@ -226,7 +226,6 @@ instance Pretty PrimArithBinary where
  pretty PrimArithPlus  = "add#"
  pretty PrimArithMinus = "sub#"
  pretty PrimArithMul   = "mul#"
- pretty PrimArithPow   = "pow#"
 
 instance Pretty PrimRelation where
  pretty PrimRelationGt = "gt#"
