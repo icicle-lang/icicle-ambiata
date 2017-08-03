@@ -3,6 +3,7 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Test.Gen.Core.Prim where
 
+import           Icicle.Common.Base
 import           Icicle.Common.Type
 
 import           Icicle.Core.Exp.Prim
@@ -12,6 +13,7 @@ import Icicle.Test.Gen.Core.Type
 
 import           Hedgehog
 import qualified Hedgehog.Gen as Gen
+import qualified Hedgehog.Range as Range
 
 import P
 import qualified Data.Map   as Map
@@ -50,7 +52,10 @@ genPrimMany genT = do
     , PrimFold  <$> (PrimFoldMap    <$> genT  <*> genT) <*> genT
     , PrimMap   <$> (PrimMapInsertOrUpdate    <$> genT  <*> genT)
     , PrimMap   <$> (PrimMapMapValues         <$> genT  <*> genT <*> genT)
+    , PrimMap   <$> (PrimMapDelete            <$> genT  <*> genT)
+    , PrimMap   <$> (PrimMapLookup            <$> genT  <*> genT)
     , PrimArray <$> (PrimArrayMap   <$> genT  <*> genT)
+    , PrimWindow <$> genWindowUnit <*> Gen.maybe genWindowUnit
     ]
 
   -- Generate buffer prims in pairs so for a given size and type we can always push and read
@@ -59,6 +64,15 @@ genPrimMany genT = do
    a <- genT
    return [ PrimLatest $ PrimLatestPush n a
           , PrimLatest $ PrimLatestRead n a ]
+
+
+genWindowUnit :: Gen WindowUnit
+genWindowUnit = Gen.choice
+  [ Days <$> pos
+  , Months <$> pos
+  , Weeks <$> pos ]
+ where
+  pos = Gen.integral $ Range.linear 0 10
 
 genPrimMinimalMany :: Gen ValType -> Gen [PM.Prim]
 genPrimMinimalMany genT
