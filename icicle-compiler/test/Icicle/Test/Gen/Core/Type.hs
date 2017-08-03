@@ -26,7 +26,7 @@ genDerivedTypeTop t
  , SumT <$> genDerivedTypeTop t <*> genDerivedTypeTop t
  , ArrayT <$> genDerivedTypeTop t
  , MapT <$> genDerivedTypeTop t <*> genDerivedTypeTop t
- -- , BufT <$> Gen.integral (Range.linear 1 10) <*> genDerivedTypeTop t
+ , BufT <$> genBufLength <*> genDerivedTypeTop t
  ] ]
 
 genDerivedType :: ValType -> Gen ValType
@@ -50,6 +50,9 @@ genDerivedType t = case t of
  where
   usually = Gen.choice [genPrimType, return t]
 
+genBufLength :: Gen Int
+genBufLength = Gen.integral (Range.linear 1 5)
+
 --------------------------------------------------------------------------------
 
 genArithType :: Gen ArithType
@@ -64,7 +67,7 @@ genValType = Gen.recursive Gen.choice
   , OptionT <$> genValType
   , SumT    <$> genValType <*> genValType
   , ArrayT  <$> genValType
-  -- , BufT    <$> (Gen.integral $ Range.linear 1 20) <*> genValType
+  , BufT    <$> genBufLength <*> genValType
   , MapT    <$> genValType <*> genValType
   , StructT <$> genStructType
   ]

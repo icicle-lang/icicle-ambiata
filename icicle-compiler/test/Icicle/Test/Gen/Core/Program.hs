@@ -207,17 +207,13 @@ genPrimConstructor t
         [ (xPrim' $ PrimMinimal $ PM.PrimConst $ PM.PrimConstSome a) `pApp` genExpForValType a ]
 
     ArrayT a  -> valueChoice
-        -- TODO: see BufT below
-        -- [ (xPrim' $ PrimLatest  $ PrimLatestRead 1 a) `pApp` genExpForValType (BufT 1 a)
-        [ (xPrim' $ PrimMinimal $ PM.PrimBuiltinFun $ PM.PrimBuiltinMap $ PM.PrimBuiltinVals IntT a) `pApp` genExpForValType (MapT IntT a)
+        [ genArrayOfBuf a
+        , (xPrim' $ PrimMinimal $ PM.PrimBuiltinFun $ PM.PrimBuiltinMap $ PM.PrimBuiltinVals IntT a) `pApp` genExpForValType (MapT IntT a)
         , (xPrim' $ PrimMinimal $ PM.PrimBuiltinFun $ PM.PrimBuiltinMap $ PM.PrimBuiltinKeys a IntT) `pApp` genExpForValType (MapT a IntT) ]
 
-    BufT _ _ -> genContextOrValue
-    -- TODO: fix buffers. Something wrong with the types of the primitives, to do with FactIdentifiers.
-    -- Either fix the primitives or remove FactIdentifiers completely.
-    --    genrec1
-    --    (xValue t $ VBuf [])
-    --    (\x' -> (xPrim' $ PrimLatest $ PrimLatestPush n a) `pApp` pure x' `pApp` genExpForValType FactIdentifierT `pApp` genExpForValType a)
+    BufT n a -> genrec1
+        (xValue t $ VBuf [])
+        (\x' -> (xPrim' $ PrimLatest $ PrimLatestPush n a) `pApp` pure x' `pApp` genExpForValType a)
 
     MapT k v -> genrec1
         (xValue t (VMap Map.empty) )
@@ -248,6 +244,9 @@ genPrimConstructor t
     Nothing -> genValue
     Just c' -> return c'
 
+  genArrayOfBuf a = do
+    n <- Gen.lift genBufLength
+    (xPrim' $ PrimLatest  $ PrimLatestRead n a) `pApp` genExpForValType (BufT n a)
 
 -- | Generate an expression for an arbitrary value type
 genExp :: C m => m (Exp () Var Prim, ValType)

@@ -35,7 +35,11 @@ genPrimLookup genT = go Map.empty (10 :: Int)
 
 
 genPrimMany :: Gen ValType -> Gen [Prim]
-genPrimMany genT = (<>) <$> mins <*> rest
+genPrimMany genT = do
+  m <- mins
+  r <- rest
+  l <- latest
+  return (m <> r <> l)
  where
   mins = fmap PrimMinimal <$> genPrimMinimalMany genT
   rest = sequence
@@ -48,6 +52,13 @@ genPrimMany genT = (<>) <$> mins <*> rest
     , PrimMap   <$> (PrimMapMapValues         <$> genT  <*> genT <*> genT)
     , PrimArray <$> (PrimArrayMap   <$> genT  <*> genT)
     ]
+
+  -- Generate buffer prims in pairs so for a given size and type we can always push and read
+  latest = do
+   n <- genBufLength
+   a <- genT
+   return [ PrimLatest $ PrimLatestPush n a
+          , PrimLatest $ PrimLatestRead n a ]
 
 genPrimMinimalMany :: Gen ValType -> Gen [PM.Prim]
 genPrimMinimalMany genT
