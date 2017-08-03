@@ -7,6 +7,7 @@
 -- so not putting any polymorphism in the primitives should make typechecking
 -- and everything simpler.
 --
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -43,6 +44,7 @@ import           GHC.Generics (Generic)
 
 import           Icicle.Internal.Pretty
 import           Icicle.Common.Base
+import           Icicle.Common.NanEq
 import           Icicle.Data.Time (timeOfDays)
 
 import           P
@@ -67,14 +69,14 @@ data ValType
  | SumT    !ValType    !ValType
  | StructT !StructType
  | BufT    !Int        !ValType
- deriving (Eq, Ord, Show, Generic)
+ deriving (Eq, Ord, Show, Generic, NanEq)
 
 instance NFData ValType
 
 data ArithType
  = ArithIntT
  | ArithDoubleT
- deriving (Eq, Ord, Show, Generic)
+ deriving (Eq, Ord, Show, Generic, NanEq)
 
 instance NFData ArithType
 
@@ -111,7 +113,7 @@ defaultOfType typ
 newtype StructType
  = StructType
  { getStructType :: Map.Map StructField ValType }
- deriving (Eq, Ord, Generic)
+ deriving (Eq, Ord, Generic, NanEq)
 
 instance NFData StructType
 
@@ -138,7 +140,7 @@ instance Show StructType where
 --
 data FunType =
  FunT ![FunType] !ValType
- deriving (Eq, Ord, Show, Generic)
+ deriving (Eq, Ord, Show, Generic, NanEq)
 
 instance NFData FunType
 

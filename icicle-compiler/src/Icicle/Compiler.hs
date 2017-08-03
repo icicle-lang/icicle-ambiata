@@ -87,6 +87,7 @@ import qualified Icicle.Common.Annot as Common
 import qualified Icicle.Common.Base as Common
 import qualified Icicle.Common.Eval as Common
 import qualified Icicle.Common.Fresh as Fresh
+import qualified Icicle.Common.NanEq as Common
 import qualified Icicle.Common.Type as Common
 
 import qualified Icicle.Core.Exp.Prim as Core
@@ -433,7 +434,9 @@ simpFlattened opts av
 type SimError = Sim.SimulateError Source.AnnotUnit Source.Var
 
 newtype Result   = Result (Entity, Value)
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic)
+
+instance Common.NanEq Result
 
 instance Pretty Result where
   pretty (Result (ent, val))

@@ -5,7 +5,7 @@
 module Icicle.Test.Avalanche.EvalCommutes where
 
 import           Icicle.Test.Arbitrary
-import           Icicle.Test.Arbitrary.NanEq
+import           Icicle.Test.Arbitrary.NanEq ((=~=))
 
 import           Icicle.Core.Program.Check
 import qualified Icicle.Core.Eval.Exp       as XV

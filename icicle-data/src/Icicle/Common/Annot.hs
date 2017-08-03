@@ -7,6 +7,7 @@ module Icicle.Common.Annot (
 import           GHC.Generics (Generic)
 
 import           Icicle.Internal.Pretty
+import           Icicle.Common.NanEq
 import           Icicle.Common.Type
 
 import           P
@@ -20,6 +21,7 @@ data Annot a
  deriving (Eq, Ord, Show, Generic)
 
 instance NFData a => NFData (Annot a)
+instance NanEq a => NanEq (Annot a)
 
 instance Pretty (Annot a) where
  pretty ann

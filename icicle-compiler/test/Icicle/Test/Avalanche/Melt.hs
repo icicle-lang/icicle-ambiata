@@ -5,6 +5,7 @@
 module Icicle.Test.Avalanche.Melt where
 
 import           Icicle.Test.Arbitrary
+import           Icicle.Test.Arbitrary.NanEq ((=~=))
 
 import qualified Icicle.Avalanche.Annot               as AA
 import qualified Icicle.Avalanche.Program             as AP
@@ -35,7 +36,7 @@ import           Test.QuickCheck.Property
 prop_roundtrip_meltValue t =
   forAll (baseValueForType t) $ \v0 ->
     checkMelt   v0 t $ \vs ->
-    checkUnmelt vs t $ \v1 -> v1 === v0
+    checkUnmelt vs t $ \v1 -> v1 =~= v0
 
 checkMelt :: BaseValue -> ValType -> ([BaseValue] -> Property) -> Property
 checkMelt v t go =

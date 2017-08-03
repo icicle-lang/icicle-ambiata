@@ -1,4 +1,5 @@
 -- | Primitive functions, constant values and so on
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -15,6 +16,7 @@ import           GHC.Generics (Generic)
 
 import           Icicle.Internal.Pretty
 import           Icicle.Common.Base
+import           Icicle.Common.NanEq
 import           Icicle.Common.Type
 import qualified Icicle.Common.Exp.Prim.Minimal as Min
 
@@ -35,7 +37,7 @@ data Prim
  -- | Circular buffer for latest
  | PrimLatest   !PrimLatest
  | PrimWindow   !WindowUnit !(Maybe WindowUnit)
- deriving (Eq, Ord, Show, Generic)
+ deriving (Eq, Ord, Show, Generic, NanEq)
 
 
 -- | Folds and destructing things
@@ -45,13 +47,13 @@ data PrimFold
  | PrimFoldOption !ValType
  | PrimFoldSum    !ValType !ValType
  | PrimFoldMap    !ValType !ValType
- deriving (Eq, Ord, Show, Generic)
+ deriving (Eq, Ord, Show, Generic, NanEq)
 
 
 -- | Array primitives
 data PrimArray
  = PrimArrayMap !ValType !ValType
- deriving (Eq, Ord, Show, Generic)
+ deriving (Eq, Ord, Show, Generic, NanEq)
 
 
 -- | Map primitives
@@ -60,14 +62,14 @@ data PrimMap
  | PrimMapDelete         !ValType !ValType
  | PrimMapMapValues      !ValType !ValType !ValType
  | PrimMapLookup         !ValType !ValType
- deriving (Eq, Ord, Show, Generic)
+ deriving (Eq, Ord, Show, Generic, NanEq)
 
 
 -- | Latest buffer primitives
 data PrimLatest
  = PrimLatestPush !Int !ValType
  | PrimLatestRead !Int !ValType
- deriving (Eq, Ord, Show, Generic)
+ deriving (Eq, Ord, Show, Generic, NanEq)
 
 instance NFData Prim
 instance NFData PrimFold

@@ -1,4 +1,6 @@
 -- | Evaluate Avalanche programs
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -15,12 +17,15 @@ import              Icicle.Avalanche.Program
 
 import              Icicle.Common.Base
 import              Icicle.Common.Eval
+import              Icicle.Common.NanEq
 import              Icicle.Common.Type
 import              Icicle.Common.Value
 import qualified    Icicle.Common.Exp as XV
 
 import              Icicle.Data         (AsAt(..))
 import              Icicle.Data.Name
+
+import              GHC.Generics (Generic)
 
 import              P
 
@@ -49,7 +54,7 @@ data RuntimeError a n p
  | RuntimeErrorNotBaseValue  (Value a n p)
  | RuntimeErrorAccumulatorLatestNotInt  BaseValue
  | RuntimeErrorOutOfScope (Name n)
- deriving (Eq, Show)
+ deriving (Eq, Show, Generic, NanEq)
 
 instance (Pretty n, Pretty p) => Pretty (RuntimeError a n p) where
  pretty (RuntimeErrorNoAccumulator n)

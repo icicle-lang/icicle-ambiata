@@ -25,6 +25,7 @@ import qualified Icicle.Compiler.Source as Source
 import qualified Icicle.Source.Parser  as SP
 
 import           Icicle.Test.Arbitrary
+import           Icicle.Test.Arbitrary.NanEq
 
 import           Icicle.Internal.Pretty
 
@@ -93,7 +94,7 @@ prop_languages_eval =
                  Right retSea
                    -> return
                     $ property
-                    $ retCore === retFlat .&&. retFlat === retSea
+                    $ retCore =~= retFlat .&&. retFlat =~= retSea
 
 mkFacts :: WellTyped -> [D.AsAt D.Fact]
 mkFacts wt =

@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -22,6 +23,8 @@ module Icicle.Data.Fact (
   , prettyEncodingHang
   ) where
 
+import           Icicle.Common.NanEq
+
 import           Icicle.Data.Name
 import           Icicle.Data.Time
 import           Icicle.Internal.Pretty
@@ -34,27 +37,27 @@ import           P
 newtype Entity =
   Entity {
       getEntity :: Text
-    } deriving (Eq, Ord, Show, Generic)
+    } deriving (Eq, Ord, Show, Generic, NanEq)
 
 data Fact =
   Fact {
       factEntity    :: Entity
     , factAttribute :: InputName
     , factValue     :: Value
-    } deriving (Eq, Show, Generic)
+    } deriving (Eq, Show, Generic, NanEq)
 
 data Fact' =
   Fact' {
       factEntity'    :: Entity
     , factAttribute' :: InputName
     , factValue'     :: Text
-    } deriving (Eq, Show, Generic)
+    } deriving (Eq, Show, Generic, NanEq)
 
 data AsAt a =
   AsAt {
       atFact :: a
     , atTime :: Time
-    } deriving (Eq, Show, Generic, Functor, Foldable, Traversable)
+    } deriving (Eq, Show, Generic, NanEq, Functor, Foldable, Traversable)
 
 instance Pretty Entity where
   pretty =
@@ -73,7 +76,7 @@ data Value =
   | PairValue       Value Value
   | MapValue        [(Value, Value)]
   | Tombstone
-    deriving (Eq, Show, Generic)
+    deriving (Eq, Show, Generic, NanEq)
 
 instance Pretty Value where
   pretty v = case v of
@@ -93,7 +96,7 @@ instance Pretty Value where
 
 data Struct =
   Struct [(Text, Value)]
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, NanEq)
 
 instance Pretty Struct where
   pretty (Struct avs) = pretty avs
@@ -102,7 +105,7 @@ instance Pretty Struct where
 
 data List =
   List [Value]
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, NanEq)
 
 instance Pretty List where
   pretty (List vs) = pretty vs
@@ -117,7 +120,7 @@ data Encoding =
   | TimeEncoding
   | StructEncoding  [StructField]
   | ListEncoding    Encoding
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, NanEq)
 
 instance Pretty Encoding where
   pretty =
@@ -155,7 +158,7 @@ prettyEncodingHang =
 
 data StructField =
   StructField StructFieldType Text Encoding
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Generic, NanEq)
 
 instance Pretty StructField where
  pretty (StructField Mandatory attr enc)
@@ -170,4 +173,4 @@ structFieldName (StructField _ attr _) =
 data StructFieldType =
     Mandatory
   | Optional
-    deriving (Eq, Ord, Show, Generic)
+    deriving (Eq, Ord, Show, Generic, NanEq)

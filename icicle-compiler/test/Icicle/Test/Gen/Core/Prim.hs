@@ -183,12 +183,11 @@ genPrimBuiltinMath = Gen.element
   , PM.PrimBuiltinTruncate
   , PM.PrimBuiltinRound
   , PM.PrimBuiltinToDoubleFromInt
-  -- TODO: missing NaN-introducing primitives; modify tests to use NanEq instead of Eq.
-  -- , PM.PrimBuiltinPow
-  -- , PM.PrimBuiltinDiv
-  -- , PM.PrimBuiltinLog
-  -- , PM.PrimBuiltinExp
-  -- , PM.PrimBuiltinSqrt
+  , PM.PrimBuiltinPow
+  , PM.PrimBuiltinDiv
+  , PM.PrimBuiltinLog
+  , PM.PrimBuiltinExp
+  , PM.PrimBuiltinSqrt
   , PM.PrimBuiltinDoubleIsValid ]
 
 genPrimBuiltinMap :: Gen ValType -> Gen PM.PrimBuiltinMap

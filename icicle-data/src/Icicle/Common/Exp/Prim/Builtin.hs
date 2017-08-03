@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -5,6 +6,7 @@ module Icicle.Common.Exp.Prim.Builtin where
 
 import           GHC.Generics (Generic)
 
+import           Icicle.Common.NanEq
 import           Icicle.Common.Type
 import           Icicle.Internal.Pretty
 
@@ -17,7 +19,7 @@ data PrimBuiltinFun
   = PrimBuiltinMath   !PrimBuiltinMath
   | PrimBuiltinMap    !PrimBuiltinMap
   | PrimBuiltinArray  !PrimBuiltinArray
- deriving (Eq, Ord, Show, Generic)
+ deriving (Eq, Ord, Show, Generic, NanEq)
 
 -- | Built-in math functions
 data PrimBuiltinMath
@@ -32,19 +34,19 @@ data PrimBuiltinMath
  | PrimBuiltinExp
  | PrimBuiltinSqrt
  | PrimBuiltinDoubleIsValid
- deriving (Eq, Ord, Show, Enum, Bounded, Generic)
+ deriving (Eq, Ord, Show, Enum, Bounded, Generic, NanEq)
 
 -- | Built-in map functions
 data PrimBuiltinMap
  = PrimBuiltinKeys   !ValType !ValType -- ^ Get the keys in a map
  | PrimBuiltinVals   !ValType !ValType -- ^ Get the values in a map
- deriving (Eq, Ord, Show, Generic)
+ deriving (Eq, Ord, Show, Generic, NanEq)
 
 data PrimBuiltinArray
  = PrimBuiltinSort   !ValType
  | PrimBuiltinLength !ValType
  | PrimBuiltinIndex  !ValType
- deriving (Eq, Ord, Show, Generic)
+ deriving (Eq, Ord, Show, Generic, NanEq)
 
 instance NFData PrimBuiltinFun
 instance NFData PrimBuiltinMath

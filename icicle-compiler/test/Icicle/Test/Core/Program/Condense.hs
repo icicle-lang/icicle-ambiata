@@ -6,6 +6,7 @@
 module Icicle.Test.Core.Program.Condense where
 
 import           Icicle.Test.Arbitrary
+import           Icicle.Test.Arbitrary.NanEq ((=~=))
 import           Icicle.Core.Program.Check
 import           Icicle.Core.Program.Program
 import           Icicle.Core.Program.Condense
@@ -49,7 +50,7 @@ prop_condense_eval t =
      -- it is tempting to try "e1 === e2" here, but some of the errors have names inside them.
      -- they should be the same error modulo renaming..
      -> property True
-    (Right v1, Right v2) -> v1 === v2
+    (Right v1, Right v2) -> v1 =~= v2
     (_,_)                -> property False
 
 -- Condensing gives <= total stream size
@@ -80,7 +81,7 @@ prop_condense_fuseself_has_same_number_of_streams t =
         in  counterexample ("Fused (" <> (show s'p'c) <> "): " <> (show $ pretty p'c))
          $  counterexample ("Original (" <> (show s'pc) <> "): " <> (show $ pretty pc))
           -- Condensed fused program has same number of streams as condensed original
-         ( s'p'c === s'pc )
+         ( s'p'c =~= s'pc )
 
 stream_counts
  = sum . fmap stream_count . streams

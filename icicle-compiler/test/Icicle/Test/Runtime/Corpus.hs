@@ -37,6 +37,7 @@ import           Icicle.Runtime.Data
 import           Icicle.Runtime.Evaluator
 import           Icicle.Test.Arbitrary
 import           Icicle.Test.Arbitrary.Corpus
+import           Icicle.Test.Arbitrary.NanEq (hedgehogNanEq)
 
 import           P
 
@@ -145,7 +146,7 @@ test_runtime_corpus cid query =
       c_results =
         fmap (fmap (second forceTombstone)) c_results0
 
-    core_results === c_results
+    core_results `hedgehogNanEq` c_results
 
 mkPropertyName :: CorpusId -> Text -> PropertyName
 mkPropertyName (CorpusId cid) source =
