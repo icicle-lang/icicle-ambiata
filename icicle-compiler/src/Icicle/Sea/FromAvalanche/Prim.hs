@@ -99,7 +99,6 @@ seaOfPrimArithBinary p
      M.PrimArithPlus  -> "add"
      M.PrimArithMinus -> "sub"
      M.PrimArithMul   -> "mul"
-     M.PrimArithPow   -> "pow"
 
 seaOfPrimTime :: M.PrimTime -> Doc
 seaOfPrimTime p
@@ -118,6 +117,7 @@ seaOfPrimTime p
 seaOfPrimBuiltinMath :: M.PrimBuiltinMath -> Doc
 seaOfPrimBuiltinMath p = case p of
   M.PrimBuiltinDiv             -> idouble <> "div"
+  M.PrimBuiltinPow             -> idouble <> "pow"
   M.PrimBuiltinLog             -> idouble <> "log"
   M.PrimBuiltinExp             -> idouble <> "exp"
   M.PrimBuiltinSqrt            -> idouble <> "sqrt"

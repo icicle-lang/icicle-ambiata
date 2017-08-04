@@ -37,6 +37,11 @@ primLookup' prim
     Op (ArithDouble Div)
      -> f0 [DoubleT, DoubleT] possiblyDouble
 
+    -- Pow can return Inf for large powers
+    Op (ArithDouble Pow)
+     -> f0 [DoubleT, DoubleT] possiblyDouble
+
+
     Op (Relation _)
      -> f1 $ \a at -> FunctionType [a] [] [at, at] BoolT
 
@@ -195,6 +200,7 @@ primReturnsPossibly p ty
  = case p of
     Op (ArithBinary _)     -> True
     Op (ArithDouble Div)   -> True
+    Op (ArithDouble Pow)   -> True
     Fun (BuiltinMath Log)  -> True
     Fun (BuiltinMath Exp)  -> True
     Fun (BuiltinMath Sqrt) -> True

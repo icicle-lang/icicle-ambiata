@@ -53,13 +53,13 @@ data ArithBinary
  = Mul
  | Add
  | Sub
- | Pow
  deriving (Show, Eq, Ord, Generic)
 
 instance NFData ArithBinary
 
 data ArithDouble
  = Div
+ | Pow
  deriving (Show, Eq, Ord, Generic)
 
 instance NFData ArithDouble
@@ -130,11 +130,11 @@ fixity o
      -> FInfix $ Infix AssocLeft 6
     ArithBinary Sub
      -> FInfix $ Infix AssocLeft 6
-    ArithBinary Pow
-     -> FInfix $ Infix AssocRight 8
 
     ArithDouble Div
      -> FInfix $ Infix AssocLeft 7
+    ArithDouble Pow
+     -> FInfix $ Infix AssocRight 8
 
     Relation _
      -> FInfix $ Infix AssocLeft 4
@@ -166,7 +166,7 @@ symbol s
     "/" -> inf (ArithDouble Div)
     "*" -> inf (ArithBinary Mul)
     "+" -> inf (ArithBinary Add)
-    "^" -> inf (ArithBinary Pow)
+    "^" -> inf (ArithDouble Pow)
     "-" -> OpsOfSymbol (Just $ ArithBinary Sub) (Just $ ArithUnary Negate)
 
     ">" -> inf $ Relation Gt
@@ -216,7 +216,7 @@ instance Pretty Op where
  pretty (ArithBinary Mul)       = "*"
  pretty (ArithBinary Add)       = "+"
  pretty (ArithBinary Sub)       = "-"
- pretty (ArithBinary Pow)       = "^"
+ pretty (ArithDouble Pow)       = "^"
  pretty (ArithDouble Div)       = "/"
 
  pretty (Relation Lt)           = "<"

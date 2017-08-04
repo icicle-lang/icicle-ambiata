@@ -500,7 +500,7 @@ instance Arbitrary Prim where
         , ArithBinary Mul
         , ArithBinary Add
         , ArithBinary Sub
-        , ArithBinary Pow
+        , ArithDouble Pow
         , ArithDouble Div
         , Relation Lt
         , Relation Le

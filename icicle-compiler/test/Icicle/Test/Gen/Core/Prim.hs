@@ -3,6 +3,7 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Test.Gen.Core.Prim where
 
+import           Icicle.Common.Base
 import           Icicle.Common.Type
 
 import           Icicle.Core.Exp.Prim
@@ -12,6 +13,7 @@ import Icicle.Test.Gen.Core.Type
 
 import           Hedgehog
 import qualified Hedgehog.Gen as Gen
+import qualified Hedgehog.Range as Range
 
 import P
 import qualified Data.Map   as Map
@@ -35,7 +37,11 @@ genPrimLookup genT = go Map.empty (10 :: Int)
 
 
 genPrimMany :: Gen ValType -> Gen [Prim]
-genPrimMany genT = (<>) <$> mins <*> rest
+genPrimMany genT = do
+  m <- mins
+  r <- rest
+  l <- latest
+  return (m <> r <> l)
  where
   mins = fmap PrimMinimal <$> genPrimMinimalMany genT
   rest = sequence
@@ -46,8 +52,28 @@ genPrimMany genT = (<>) <$> mins <*> rest
     , PrimFold  <$> (PrimFoldMap    <$> genT  <*> genT) <*> genT
     , PrimMap   <$> (PrimMapInsertOrUpdate    <$> genT  <*> genT)
     , PrimMap   <$> (PrimMapMapValues         <$> genT  <*> genT <*> genT)
+    , PrimMap   <$> (PrimMapDelete            <$> genT  <*> genT)
+    , PrimMap   <$> (PrimMapLookup            <$> genT  <*> genT)
     , PrimArray <$> (PrimArrayMap   <$> genT  <*> genT)
+    -- TODO: missing PrimWindow; investigate conversion of windows to Avalanche and reinstate
+    -- , PrimWindow <$> genWindowUnit <*> Gen.maybe genWindowUnit
     ]
+
+  -- Generate buffer prims in pairs so for a given size and type we can always push and read
+  latest = do
+   n <- genBufLength
+   a <- genT
+   return [ PrimLatest $ PrimLatestPush n a
+          , PrimLatest $ PrimLatestRead n a ]
+
+
+genWindowUnit :: Gen WindowUnit
+genWindowUnit = Gen.choice
+  [ Days <$> pos
+  , Months <$> pos
+  , Weeks <$> pos ]
+ where
+  pos = Gen.integral $ Range.linear 0 10
 
 genPrimMinimalMany :: Gen ValType -> Gen [PM.Prim]
 genPrimMinimalMany genT
@@ -157,6 +183,12 @@ genPrimBuiltinMath = Gen.element
   , PM.PrimBuiltinTruncate
   , PM.PrimBuiltinRound
   , PM.PrimBuiltinToDoubleFromInt
+  -- TODO: missing NaN-introducing primitives; modify tests to use NanEq instead of Eq.
+  -- , PM.PrimBuiltinPow
+  -- , PM.PrimBuiltinDiv
+  -- , PM.PrimBuiltinLog
+  -- , PM.PrimBuiltinExp
+  -- , PM.PrimBuiltinSqrt
   , PM.PrimBuiltinDoubleIsValid ]
 
 genPrimBuiltinMap :: Gen ValType -> Gen PM.PrimBuiltinMap
@@ -164,8 +196,12 @@ genPrimBuiltinMap genT = Gen.choice
     [ PM.PrimBuiltinKeys <$> genT <*> genT
     , PM.PrimBuiltinVals <$> genT <*> genT ]
 
+-- TODO: missing PrimBuiltinIndex; modify index to be safe.
+-- Returning an Option would probably be fine for Core, if we had an explicitly unsafe primitive in Flat.
 genPrimBuiltinArray :: Gen ValType -> Gen PM.PrimBuiltinArray
-genPrimBuiltinArray genT = PM.PrimBuiltinSort <$> genT
+genPrimBuiltinArray genT = Gen.choice
+  [ PM.PrimBuiltinSort <$> genT
+  , PM.PrimBuiltinLength <$> genT ]
 
 genPrimBuiltinFun :: Gen ValType -> Gen PM.PrimBuiltinFun
 genPrimBuiltinFun genT = Gen.choice

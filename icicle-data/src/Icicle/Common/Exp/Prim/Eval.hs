@@ -15,7 +15,6 @@ import              P
 
 import qualified    Data.Map                        as Map
 import qualified    Data.List                       as List
-import qualified    Data.Text                       as T
 
 
 -- | Evaluate a primitive, given list of argument values
@@ -75,21 +74,19 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
-     PrimArithBinary PrimArithPow _
-      | [VBase (VDouble i), VBase (VDouble j)] <- vs
-      -> return $ VBase $ VDouble $ i ** j
-      | [VBase (VInt i), VBase (VInt j)] <- vs
-      -> return $ VBase $ VInt $ i ^ j
-      | otherwise
-      -> primError
-
-
      -- Builtin
      PrimBuiltinFun (PrimBuiltinMath PrimBuiltinDiv)
       | [VBase (VDouble i), VBase (VDouble j)] <- vs
       -> return $ VBase $ VDouble $ i / j
       | otherwise
       -> primError
+
+     PrimBuiltinFun (PrimBuiltinMath PrimBuiltinPow)
+      | [VBase (VDouble i), VBase (VDouble j)] <- vs
+      -> return $ VBase $ VDouble $ i ** j
+      | otherwise
+      -> primError
+
 
      PrimBuiltinFun (PrimBuiltinMath PrimBuiltinLog)
       | [VBase (VDouble i)] <- vs
@@ -175,19 +172,6 @@ evalPrim p originalP vs
       -> return $ VBase $ a List.!! i
       | otherwise
       -> return $ VBase $ VError ExceptTombstone
-
-     -- To string
-     PrimToString PrimToStringFromInt
-      | [VBase (VInt i)] <- vs
-      -> return $ VBase $ VString $ T.pack $ show i
-      | otherwise
-      -> primError
-     PrimToString PrimToStringFromDouble
-      | [VBase (VDouble i)] <- vs
-      -> return $ VBase $ VString $ T.pack $ show i
-      | otherwise
-      -> primError
-
 
      -- Relation
      PrimRelation rel _

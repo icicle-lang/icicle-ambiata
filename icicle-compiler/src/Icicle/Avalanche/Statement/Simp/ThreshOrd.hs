@@ -59,7 +59,6 @@ instance (Ord a, Hashable n, Eq n) => Ord (ThreshMapOrd a n) where
     = case (x, y) of
        (Min.PrimArithUnary p _, Min.PrimArithUnary p' _) -> compare p p'
        (Min.PrimArithBinary p _, Min.PrimArithBinary p' _) -> compare p p'
-       (Min.PrimToString _, Min.PrimToString _) -> EQ
        (Min.PrimRelation p _, Min.PrimRelation p' _) -> compare p p'
        (Min.PrimLogical p, Min.PrimLogical p') -> compare p p'
        -- Constructors actually do matter what their type is.
