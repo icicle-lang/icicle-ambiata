@@ -97,7 +97,7 @@ evalWellTypedRuntime stime0 maxMapSize cid wt = do
 
   let
     stime =
-      SnapshotTime . Time64 $ packedOfTime stime0
+      SnapshotTime . QueryTime . Time64 $ packedOfTime stime0
 
   input <- evalEither $ fromInputs [inputid|test:input|] (wtInputType wt) (wtInputs wt)
   output0 <- evalExceptT . hoist liftIO $ snapshotBlock runtime maxMapSize stime input

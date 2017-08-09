@@ -28,7 +28,7 @@ import qualified Icicle.Runtime.Data.Striped as Striped
 import qualified Icicle.Runtime.Evaluator as Runtime
 import           Icicle.Test.Gen.Data.Fact
 import           Icicle.Test.Gen.Data.Name
-import           Icicle.Test.Gen.Runtime.Data (genEntityInputColumn, genEntityKey, genTime64)
+import           Icicle.Test.Gen.Runtime.Data (genEntityInputColumn, genEntityKey, genSnapshotTime)
 
 import           P
 
@@ -148,13 +148,13 @@ takeInput et =
   Input (testEntities et) (fmap concatEntities $ testInputs et)
 
 takeWhileBefore :: SnapshotTime -> InputColumn -> InputColumn
-takeWhileBefore (SnapshotTime stime) icolumn =
+takeWhileBefore (SnapshotTime (QueryTime stime)) icolumn =
   if Storable.length (inputLength icolumn) /= 1 then
     Savage.error "takeWhileBefore: this function only works for a single entities"
   else
     let
       time =
-        Storable.takeWhile (< stime) $ inputTime icolumn
+        Storable.takeWhile (< InputTime stime) $ inputTime icolumn
 
       n =
         Storable.length time
@@ -175,7 +175,7 @@ prop_evaluator_roundtrip :: Property
 prop_evaluator_roundtrip =
   withTests 100 . property $ do
     et@(EvaluatorTest dictionary _entities _inputs) <- forAll genEvaluatorTest
-    stime <- forAll $ SnapshotTime <$> genTime64
+    stime <- forAll genSnapshotTime
 
     ccoptions0 <- Runtime.getCompilerOptions
 

@@ -394,13 +394,13 @@ decodeColumn = \case
   Zebra.Reversed x ->
     Left $ ZebraStripedUnexpectedReversed (Zebra.schemaColumn x)
 
-decodeInputTime :: Zebra.Column -> Either ZebraStripedError (Storable.Vector Time64)
+decodeInputTime :: Zebra.Column -> Either ZebraStripedError (Storable.Vector InputTime)
 decodeInputTime column = do
   (_, fields) <- first ZebraStripedSchemaError $ Zebra.takeStruct column
   case Cons.toList fields of
     [Zebra.Field "time" time0, Zebra.Field "factset_id" (Zebra.Reversed (Zebra.Int _ _ _))] -> do
       (_, encoding, time) <- first ZebraStripedSchemaError $ Zebra.takeInt time0
-      decodeIntTime encoding time
+      Storable.map InputTime <$> decodeIntTime encoding time
 
     _ ->
       Left . ZebraStripedExpectedTimeKey . Cons.toList $ fmap (fmap Zebra.schemaColumn) fields
@@ -681,11 +681,11 @@ encodeFactsetId n =
   Zebra.Reversed . Zebra.Int Zebra.DenyDefault Encoding.Int $
     Storable.replicate n 0
 
-encodeInputTime :: Storable.Vector Time64 -> Either ZebraStripedError Zebra.Column
+encodeInputTime :: Storable.Vector InputTime -> Either ZebraStripedError Zebra.Column
 encodeInputTime times =
   fmap (Zebra.Struct Zebra.DenyDefault) $
     Cons.from2
-      <$> (Zebra.Field "time" <$> encodeIntTime times)
+      <$> (Zebra.Field "time" <$> encodeIntTime (Storable.map unInputTime times))
       <*> pure (Zebra.Field "factset_id" . encodeFactsetId $ Storable.length times)
 
 encodeTombstoneTags :: Storable.Vector Error64 -> Storable.Vector Zebra.Tag
