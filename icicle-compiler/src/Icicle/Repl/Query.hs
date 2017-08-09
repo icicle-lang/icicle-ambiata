@@ -519,7 +519,8 @@ evaluateZebra compiled path = do
 
       whenSet FlagSeaEval $ do
         mapSize <- Runtime.MaximumMapSize . fromIntegral <$> gets stateMaxMapSize
-        time <- Runtime.SnapshotTime . Runtime.Time64 . packedOfTime . exclusiveSnapshotTime <$> gets stateSnapshotDate
+        time <- Runtime.SnapshotTime . Runtime.QueryTime . Runtime.Time64 .
+          packedOfTime . exclusiveSnapshotTime <$> gets stateSnapshotDate
 
         limit <- gets stateLimit
         minput0 <- readZebraRows limit path

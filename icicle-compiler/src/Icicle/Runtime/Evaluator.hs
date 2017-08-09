@@ -403,12 +403,12 @@ runtimeOutputSchema =
 resolveAvailableCount ::
      SnapshotTime
   -> Storable.Vector Int64
-  -> Storable.Vector Time64
+  -> Storable.Vector InputTime
   -> Either RuntimeError (Storable.Vector Int64)
-resolveAvailableCount (SnapshotTime stime) ns ts = do
+resolveAvailableCount (SnapshotTime (QueryTime stime)) ns ts = do
   tss <- first RuntimeSegmentError $ Segment.reify ns ts
   pure . Storable.convert $
-    Boxed.map (fromIntegral . Storable.length . Storable.takeWhile (< stime)) tss
+    Boxed.map (fromIntegral . Storable.length . Storable.takeWhile (< InputTime stime)) tss
 
 snapshotCluster ::
      Cluster ClusterInfo KernelIO
@@ -427,7 +427,7 @@ snapshotCluster cluster maxMapSize stime input =
     inputData =
       Striped.Pair
         (Striped.Result (inputTombstone input) (inputColumn input))
-        (Striped.Time (inputTime input))
+        (Striped.Time (Storable.map unInputTime (inputTime input)))
 
     inputSchema =
       Striped.schema $ inputColumn input

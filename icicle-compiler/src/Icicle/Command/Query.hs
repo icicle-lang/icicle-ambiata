@@ -199,7 +199,7 @@ decodeZebra runtime = do
 
 fromSnapshotDate :: Date -> Runtime.SnapshotTime
 fromSnapshotDate =
-  Runtime.SnapshotTime . Runtime.Time64 . packedOfTime . exclusiveSnapshotTime
+  Runtime.SnapshotTime . Runtime.QueryTime . Runtime.Time64 . packedOfTime . exclusiveSnapshotTime
 
 encodeZebraSnapshot :: Runtime.Output SnapshotKey -> Either QueryError Zebra.Table
 encodeZebraSnapshot =

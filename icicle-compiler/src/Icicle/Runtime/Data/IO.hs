@@ -15,7 +15,10 @@ module Icicle.Runtime.Data.IO (
   , ChordDescriptor(..)
   , Label(..)
 
+  , QueryTime(..)
+
   , Input(..)
+  , InputTime(..)
   , InputColumn(..)
 
   , Output(..)
@@ -101,9 +104,27 @@ instance Show MaximumMapSize where
   showsPrec =
     gshowsPrec
 
+newtype QueryTime =
+  QueryTime {
+      unQueryTime :: Time64
+    } deriving (Eq, Ord, Generic, Storable)
+
+instance Show QueryTime where
+  showsPrec =
+    gshowsPrec
+
+newtype InputTime =
+  InputTime {
+      unInputTime :: Time64
+    } deriving (Eq, Ord, Generic, Storable)
+
+instance Show InputTime where
+  showsPrec =
+    gshowsPrec
+
 newtype SnapshotTime =
   SnapshotTime {
-      unSnapshotTime :: Time64
+      unSnapshotTime :: QueryTime
     } deriving (Eq, Ord, Generic, Storable)
 
 instance Show SnapshotTime where
@@ -117,7 +138,7 @@ newtype ChordDescriptor =
 
 data Label =
   Label {
-      labelTime :: !Time64
+      labelTime :: !QueryTime
     , labelTag :: !ByteString
     } deriving (Eq, Ord, Generic)
 
@@ -159,7 +180,7 @@ data InputColumn =
 
     -- | /invariant: length inputTime = sum inputLength/
     --
-    , inputTime :: !(Storable.Vector Time64)
+    , inputTime :: !(Storable.Vector InputTime)
 
     -- | /invariant: length inputTombstone = sum inputLength/
     --

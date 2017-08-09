@@ -94,8 +94,8 @@ fromInputs iid typ kvss = do
     lens =
       Storable.fromList $ fmap (fromIntegral . length) vss
 
-    times :: Storable.Vector Runtime.Time64 =
-      Storable.fromList $ fmap (Runtime.Time64 . packedOfTime . atTime) (concat vss)
+    times :: Storable.Vector Runtime.InputTime =
+      Storable.fromList $ fmap (Runtime.InputTime . Runtime.Time64 . packedOfTime . atTime) (concat vss)
 
   (tombstones, values) <-
     fmap List.unzip . first CompilerSeaLogicalError $
@@ -159,7 +159,7 @@ seaEval ctx facts0 (renameQT unVar -> query) program = do
       Runtime.MaximumMapSize . fromIntegral $ Common.evalMaxMapSize ctx
 
     stime =
-      Runtime.SnapshotTime . Runtime.Time64 . packedOfTime $ Common.evalSnapshotTime ctx
+      Runtime.SnapshotTime . Runtime.QueryTime . Runtime.Time64 . packedOfTime $ Common.evalSnapshotTime ctx
 
   context <- hoistEither . first CompilerSeaRuntimeError . Runtime.compileAvalanche $
     Runtime.AvalancheContext "Icicle.Compiler.Sea.seaEval" (Map.singleton iid (program :| []))
