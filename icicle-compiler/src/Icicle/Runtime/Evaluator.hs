@@ -25,7 +25,8 @@ module Icicle.Runtime.Evaluator (
   , Sea.getCompilerOptions
 
   , snapshotBlock
-  , snapshotCluster
+
+  , runQuery
 
   , RuntimeError(..)
   , renderRuntimeError
@@ -66,6 +67,7 @@ import           Icicle.Runtime.Data.Schema (SchemaError)
 import qualified Icicle.Runtime.Data.Schema as Schema
 import           Icicle.Runtime.Data.Striped (StripedError)
 import qualified Icicle.Runtime.Data.Striped as Striped
+import           Icicle.Runtime.Stencil
 import           Icicle.Sea.Data
 import qualified Icicle.Sea.Eval.Base as Sea
 import qualified Icicle.Sea.FromAvalanche.State as Sea
@@ -94,6 +96,7 @@ data RuntimeError =
   | RuntimeSchemaError !SchemaError
   | RuntimeStripedError !StripedError
   | RuntimeSegmentError !SegmentError
+  | RuntimeStencilError !StencilError
   | RuntimeUnexpectedInputType !ValType
   | RuntimeClusterHadNoOutputs !ClusterId
   | RuntimeExpectedStructOutput !Schema
@@ -102,6 +105,7 @@ data RuntimeError =
   | RuntimeInputSchemaMismatch !Schema !Schema
   | RuntimeInputClusterMismatch !(Set InputId) !(Set InputId)
   | RuntimeInputNoEntities !Schema
+  | RuntimeInputStencilMismatch !Int !Int
     deriving (Eq, Show)
 
 renderRuntimeError :: RuntimeError -> Text
@@ -128,6 +132,9 @@ renderRuntimeError = \case
 
   RuntimeSegmentError x ->
     Segment.renderSegmentError x
+
+  RuntimeStencilError x ->
+    renderStencilError x
 
   RuntimeUnexpectedInputType x ->
     "Expected (Sum Error x, Time) but found: " <> Text.pack (show x)
@@ -167,6 +174,15 @@ renderRuntimeError = \case
     "\n" <>
     "\n  schema of input =" <>
     "\n" <> Text.pack (indent4 (ppShow schema))
+
+  RuntimeInputStencilMismatch n_input n_stencil ->
+    "Input entity count must match stencil entity count." <>
+    "\n" <>
+    "\n  input entity count =" <>
+    "\n" <> Text.pack (show n_input) <>
+    "\n" <>
+    "\n  stencil entity count =" <>
+    "\n" <> Text.pack (show n_stencil)
 
 indent4 :: String -> String
 indent4 =
@@ -400,23 +416,17 @@ runtimeOutputSchema =
   Map.elems .
   runtimeClusters
 
-resolveAvailableCount ::
-     SnapshotTime
-  -> Storable.Vector Int64
-  -> Storable.Vector InputTime
-  -> Either RuntimeError (Storable.Vector Int64)
-resolveAvailableCount (SnapshotTime (QueryTime stime)) ns ts = do
-  tss <- first RuntimeSegmentError $ Segment.reify ns ts
-  pure . Storable.convert $
-    Boxed.map (fromIntegral . Storable.length . Storable.takeWhile (< InputTime stime)) tss
+inputSegmentedTime :: InputColumn -> Segmented InputTime
+inputSegmentedTime input =
+  Segmented (inputLength input) (inputTime input)
 
-snapshotCluster ::
+runQuery ::
      Cluster ClusterInfo KernelIO
   -> MaximumMapSize
-  -> SnapshotTime
+  -> Stencil
   -> InputColumn
   -> EitherT RuntimeError IO (Map OutputId Column)
-snapshotCluster cluster maxMapSize stime input =
+runQuery cluster maxMapSize stencil input =
   let
     size =
       clusterStateSize $ clusterAnnotation cluster
@@ -448,6 +458,8 @@ snapshotCluster cluster maxMapSize stime input =
       left $ RuntimeInputSchemaMismatch expectedInputSchema inputSchema
     else if Storable.null (inputLength input) then
       left $ RuntimeInputNoEntities inputSchema
+    else if Storable.length (inputLength input) /= Boxed.length (unStencil stencil) then
+      left $ RuntimeInputStencilMismatch (Storable.length $ inputLength input) (Boxed.length $ unStencil stencil)
     else
       bracket (liftIO Mempool.create) (liftIO . Mempool.free) $ \pool -> do
         arrays <- bimapT RuntimeStripedError Boxed.fromList $
@@ -464,18 +476,16 @@ snapshotCluster cluster maxMapSize stime input =
           ncounts_all =
             inputLength input
 
-        ncounts_valid <- hoistEither $ resolveAvailableCount stime ncounts_all (inputTime input)
-
-        let
           offsets =
             Storable.prescanl' (\off n -> off + fromIntegral n * 8) 0 ncounts_all
 
-          -- This loops runs once per entity
-          computeEntity offset ncount = do
+          -- This loops runs once for each of the chord times we need for an
+          -- entity, in the case of a snapshot it will run just once.
+          computeQuery offset qtime ncount = do
             pState <- liftIO $ Mempool.callocBytes pool (fromIntegral size) 1
             pokeWordOff pState Offset.programMempool pool
             pokeWordOff pState Offset.programMaxMapSize maxMapSize
-            pokeWordOff pState Offset.programInputQueryTime stime
+            pokeWordOff pState Offset.programInputQueryTime qtime
             pokeWordOff pState Offset.programInputNewCount (ncount :: Int64)
 
             flip Boxed.imapM_ arrays $ \ix array ->
@@ -491,7 +501,14 @@ snapshotCluster cluster maxMapSize stime input =
             outputs <- peekOutputs pState outputOffset outputCount
             firstT RuntimeStripedError $ Striped.fromAnys pool outputSchema outputs
 
-        columns <- Boxed.zipWithM computeEntity (Boxed.convert offsets) (Boxed.convert ncounts_valid)
+          -- This loops runs once per entity.
+          computeEntity offset estencil =
+            Boxed.zipWithM
+              (computeQuery offset)
+              (Boxed.convert $ stencilTime estencil)
+              (Boxed.convert $ stencilLength estencil)
+
+        columns <- Boxed.concatMap id <$> Boxed.zipWithM computeEntity (Boxed.convert offsets) (unStencil stencil)
 
         case Cons.fromVector columns of
           Nothing ->
@@ -527,8 +544,9 @@ snapshotBlock runtime maxsize stime input =
     if Map.size both /= Map.size inputs then
       left $ RuntimeInputClusterMismatch (Map.keysSet missingInputs) (Map.keysSet missingClusters)
     else do
-      fmap (Output keys . Map.unions) . for (Map.elems both) $ \(cluster, column) ->
-        snapshotCluster cluster maxsize stime column
+      fmap (Output keys . Map.unions) . for (Map.elems both) $ \(cluster, column) -> do
+        stencil <- hoistEither . first RuntimeStencilError . snapshotStencil stime $ inputSegmentedTime column
+        runQuery cluster maxsize stencil column
 
 ------------------------------------------------------------------------
 -- Skeleton for generated cluster state

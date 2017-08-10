@@ -1,4 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -42,10 +41,17 @@ newtype Stencil =
 
 -- | The number of inputs to take for each query we want to run against a single entity.
 --
-newtype EntityStencil =
+data EntityStencil =
   EntityStencil {
-      unEntityStencil :: Storable.Vector Int64
-    } deriving (Eq, Ord, Show, Monoid)
+      stencilTime :: !(Storable.Vector QueryTime)
+    , stencilLength :: !(Storable.Vector Int64)
+    } deriving (Eq, Ord, Show)
+
+instance Monoid EntityStencil where
+  mempty =
+    EntityStencil mempty mempty
+  mappend (EntityStencil x a) (EntityStencil y b) =
+    EntityStencil (x <> y) (a <> b)
 
 data Segmented a =
   Segmented {
@@ -99,14 +105,14 @@ queryStencil (QueryTime time) ts =
   fromIntegral . Storable.length $ Storable.takeWhile (< InputTime time) ts
 
 snapshotStencil :: SnapshotTime -> Segmented InputTime -> Either StencilError Stencil
-snapshotStencil time tss0 = do
+snapshotStencil (SnapshotTime time) tss0 = do
   tss <- fromSegmented tss0
   pure . Stencil $
-    Boxed.map (EntityStencil . Storable.singleton . queryStencil (unSnapshotTime time)) tss
+    Boxed.map (EntityStencil (Storable.singleton time) . Storable.singleton . queryStencil time) tss
 
 chordEntityStencil :: Storable.Vector QueryTime -> Storable.Vector InputTime -> EntityStencil
 chordEntityStencil qtimes ftimes =
-  EntityStencil $
+  EntityStencil qtimes $
     Storable.map (flip queryStencil ftimes) qtimes
 
 chordStencil :: Segmented QueryTime -> Segmented InputTime -> Either StencilError Stencil
