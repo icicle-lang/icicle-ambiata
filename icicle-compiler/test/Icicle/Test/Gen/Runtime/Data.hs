@@ -5,6 +5,7 @@
 module Icicle.Test.Gen.Runtime.Data where
 
 import           Data.ByteString (ByteString)
+import qualified Data.ByteString as ByteString
 import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
@@ -167,10 +168,10 @@ genEntityId =
     <$> Gen.element simpsons
 
 genEntityKey :: Gen EntityKey
-genEntityKey =
-  EntityKey
-    <$> genEntityHash
-    <*> genEntityId
+genEntityKey = do
+  eid <- genEntityId
+  pure $
+    EntityKey (EntityHash . fromIntegral . ByteString.length $ unEntityId eid) eid
 
 genEntityInputColumn :: Schema -> Gen InputColumn
 genEntityInputColumn schema = do
