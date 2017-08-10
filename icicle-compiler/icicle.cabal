@@ -163,6 +163,7 @@ library
                        Icicle.Runtime.Serial.Zebra
                        Icicle.Runtime.Serial.Zebra.Schema
                        Icicle.Runtime.Serial.Zebra.Striped
+                       Icicle.Runtime.Stencil
 
                        Icicle.Simulator
 
