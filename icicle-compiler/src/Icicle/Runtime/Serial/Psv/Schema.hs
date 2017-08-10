@@ -12,7 +12,8 @@ module Icicle.Runtime.Serial.Psv.Schema (
   , PsvPrimitive(..)
   , PsvStructField(..)
 
-  , encodePsvSchema
+  , encodePsvSnapshotSchema
+  , encodePsvChordSchema
   , encodePsvColumn
   , encodePsvEncoding
 
@@ -357,6 +358,16 @@ encodePsvColumn :: OutputId -> Icicle.Schema -> Either SerialPsvSchemaError PsvC
 encodePsvColumn name column =
   PsvColumn (renderOutputId name) <$> encodePsvEncoding column
 
-encodePsvSchema :: Map OutputId Icicle.Schema -> Either SerialPsvSchemaError PsvSchema
-encodePsvSchema kvs =
+encodePsvSnapshotSchema :: Map OutputId Icicle.Schema -> Either SerialPsvSchemaError PsvSchema
+encodePsvSnapshotSchema kvs =
   PsvSchema (PsvMissingValue "NA") <$> traverse (uncurry encodePsvColumn) (Map.toList kvs)
+
+psvLabelColumn :: PsvColumn
+psvLabelColumn =
+  PsvColumn "label" (PsvPrimitive PsvString)
+
+encodePsvChordSchema :: Map OutputId Icicle.Schema -> Either SerialPsvSchemaError PsvSchema
+encodePsvChordSchema kvs = do
+  columns <- traverse (uncurry encodePsvColumn) (Map.toList kvs)
+  pure $
+    PsvSchema (PsvMissingValue "NA") (psvLabelColumn : columns)

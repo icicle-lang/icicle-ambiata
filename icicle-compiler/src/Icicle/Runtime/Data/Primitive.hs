@@ -38,6 +38,7 @@ module Icicle.Runtime.Data.Primitive (
   , packTimeVector
   , unpackTime
   , unpackTimeVector
+  , fromIvorySeconds
   ) where
 
 import           Data.Bits ((.|.), (.&.), unsafeShiftL, unsafeShiftR)
@@ -50,6 +51,7 @@ import           Foreign.Storable (Storable(..))
 
 import           GHC.Generics (Generic)
 
+import           Icicle.Data.Time (packedOfTime, timeOfIvorySeconds)
 import           Icicle.Common.Base (ExceptionInfo(..))
 
 import           P
@@ -272,6 +274,12 @@ renderTime x =
   in
     Text.pack $
       printf "%04d-%02d-%02d %02d:%02d:%02d" year month day hour minute sec
+
+fromIvorySeconds :: Int64 -> Time64
+fromIvorySeconds seconds =
+  -- FIX don't depend on Icicle.Data.Time
+  Time64 . packedOfTime $ timeOfIvorySeconds seconds
+{-# INLINE fromIvorySeconds #-}
 
 packTime :: UnpackedTime64 -> Time64
 packTime x =

@@ -7,6 +7,7 @@ module Icicle.Runtime.Serial.Psv.Data (
   , renderSerialPsvDataError
 
   , encodeSnapshotOutput
+  , encodeChordOutput
   ) where
 
 import qualified Anemone.Pretty as Anemone
@@ -231,6 +232,11 @@ encodeSnapshotKey :: SnapshotKey -> Builder
 encodeSnapshotKey =
   Builder.byteString . unEntityId . entityId . snapshotEntity
 
+encodeChordKey :: ChordKey -> Builder
+encodeChordKey x =
+  Builder.byteString (unEntityId . entityId $ chordEntity x) <> "|" <>
+  Builder.byteString (chordLabel x)
+
 encodeColumns :: Boxed.Vector (Boxed.Vector Builder) -> Boxed.Vector Builder
 encodeColumns =
   Boxed.map (mconcat . List.intersperse "|" . Boxed.toList) .
@@ -240,11 +246,11 @@ encodeRows :: Boxed.Vector Builder -> Builder
 encodeRows =
   mconcat . Boxed.toList . fmap (<> "\n")
 
-encodeSnapshotOutput :: Output SnapshotKey -> Either SerialPsvDataError Builder
-encodeSnapshotOutput output = do
+encodeOutput :: (key -> Builder) -> Output key -> Either SerialPsvDataError Builder
+encodeOutput encodeKey output = do
   let
     key =
-      fmap encodeSnapshotKey (outputKey output)
+      fmap encodeKey (outputKey output)
 
     encode (k, v) =
       first (SerialPsvDataOutputError k) (encodeColumn v)
@@ -253,3 +259,11 @@ encodeSnapshotOutput output = do
 
   pure .
     encodeRows . encodeColumns . Boxed.fromList $ key : columns
+
+encodeSnapshotOutput :: Output SnapshotKey -> Either SerialPsvDataError Builder
+encodeSnapshotOutput output =
+  encodeOutput encodeSnapshotKey output
+
+encodeChordOutput :: Output ChordKey -> Either SerialPsvDataError Builder
+encodeChordOutput output =
+  encodeOutput encodeChordKey output

@@ -23,6 +23,7 @@ module Icicle.Data.Time (
   , dateOfYMD
   , timeOfYMD
   , timeOfDays
+  , timeOfIvorySeconds
   , withinWindow
   , unsafeDateOfYMD
   , unsafeTimeOfYMD
@@ -171,6 +172,10 @@ timeOfYMD y m d
  =   Time
  .   flip Thyme.mkUTCTime 0
  <$> Thyme.fromGregorianValid y m d
+
+timeOfIvorySeconds :: Int64 -> Time
+timeOfIvorySeconds seconds =
+  Time $ Thyme.addUTCTime (fromIntegral seconds) (Thyme.mkUTCTime ivoryEpoch 0)
 
 timeOfYMDHMS :: Int -> Int -> Int -> Int -> Int -> Int -> Time
 timeOfYMDHMS year month day hour minute sec
