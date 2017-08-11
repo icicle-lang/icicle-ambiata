@@ -514,7 +514,7 @@ runQuery cluster maxMapSize stencil input =
 
         case Cons.fromVector columns of
           Nothing ->
-            left $ RuntimeClusterHadNoOutputs (clusterId cluster)
+            hoistEither $ mkOutputColumns (Striped.empty outputSchema)
           Just xss0 -> do
             xss <- hoistEither . first RuntimeStripedError $ Striped.unsafeConcat xss0
             hoistEither $ mkOutputColumns xss

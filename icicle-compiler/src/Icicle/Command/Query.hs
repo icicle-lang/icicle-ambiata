@@ -169,8 +169,10 @@ writeZebra :: (MonadResource m, MonadCatch m) => OutputZebra -> Stream (Of Zebra
 writeZebra (OutputZebra path) xs =
   let
     bss =
-      hoist (firstT QueryZebraBinaryStripedEncodeError) $
-        Zebra.encodeStriped xs
+      hoist (firstJoin QueryZebraBinaryStripedEncodeError) .
+        Zebra.encodeStriped .
+      hoist (firstT QueryZebraStripedError) $
+        Zebra.rechunk 1024 xs
   in
     firstJoin QueryIOError $
       ByteStream.writeFile path bss
