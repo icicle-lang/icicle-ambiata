@@ -5,6 +5,7 @@
 module Icicle.Test.Avalanche.EvalCommutes where
 
 import           Icicle.Test.Arbitrary
+import           Icicle.Test.Arbitrary.NanEq
 
 import           Icicle.Core.Program.Check
 import qualified Icicle.Core.Eval.Exp       as XV
@@ -44,7 +45,7 @@ prop_eval_commutes_value t =
     isRight     (checkProgram p) ==>
      case (AE.evalProgram XV.evalPrim d vs $ testFresh "fromCore" $ AC.programFromCore namer p, PV.eval d vs p) of
       (Right aval, Right cres)
-       ->   aval === cres
+       ->   aval =~= cres
       (_, Left _)
        -> counterexample "Impossible: Core evaluation or type check must be wrong" False
       (Left err, _)
