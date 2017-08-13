@@ -25,7 +25,7 @@ genDerivedTypeTop t
  , OptionT <$> genDerivedTypeTop t
  , SumT <$> genDerivedTypeTop t <*> genDerivedTypeTop t
  , ArrayT <$> genDerivedTypeTop t
- , MapT <$> genDerivedTypeTop t <*> genDerivedTypeTop t
+ , MapT <$> genOrdValType <*> genDerivedTypeTop t
  , BufT <$> genBufLength <*> genDerivedTypeTop t
  ] ]
 
@@ -68,7 +68,7 @@ genValType = Gen.recursive Gen.choice
   , SumT    <$> genValType <*> genValType
   , ArrayT  <$> genValType
   , BufT    <$> genBufLength <*> genValType
-  , MapT    <$> genValType <*> genValType
+  , MapT    <$> genOrdValType <*> genValType
   , StructT <$> genStructType
   ]
 
@@ -154,7 +154,7 @@ genInputType = Gen.recursive Gen.choice
   , SumT    <$> genInputType <*> genInputType
   , StructT <$> genStructType' genInputType
   , ArrayT  <$> genInputType
-  , MapT    <$> genInputType <*> genInputType
+  , MapT    <$> genPrimType  <*> genInputType
   ]
 
 genOutputType :: Gen ValType
@@ -169,9 +169,9 @@ genOutputType = Gen.recursive Gen.choice
   , return StringT ]
   [ OptionT <$> genOutputType
   , SumT ErrorT <$> genOutputType
-  , PairT <$> genOutputType <*> genOutputType
-  , ArrayT <$> genOutputType
-  , MapT <$> genOutputType <*> genOutputType
+  , PairT   <$> genOutputType <*> genOutputType
+  , ArrayT  <$> genOutputType
+  , MapT    <$> genPrimType   <*> genOutputType
   , StructT <$> genStructType' genOutputType
   ]
 
