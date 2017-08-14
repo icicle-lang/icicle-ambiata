@@ -209,7 +209,7 @@ genOutputType = Gen.recursive Gen.choice
   , SumT ErrorT <$> genOutputType
   , PairT   <$> genOutputType <*> genOutputType
   , ArrayT  <$> genOutputType
-  , MapT    <$> genPrimType   <*> genOutputType
+  , MapT    <$> genOrdValType <*> genOutputType
   , StructT <$> genStructType' genOutputType
   ]
 
