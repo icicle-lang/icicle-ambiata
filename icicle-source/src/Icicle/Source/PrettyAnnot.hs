@@ -78,6 +78,7 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
     primRequiresAnnot = \case
      Op o -> case o of
       ArithUnary{}    -> True
+      ArithBinary{}   -> True
       ArithDouble{}   -> False
       Relation{}      -> True
       LogicalUnary{}  -> False
