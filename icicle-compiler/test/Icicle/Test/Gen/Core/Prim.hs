@@ -50,10 +50,10 @@ genPrimMany genT = do
     , PrimFold  <$> (PrimFoldOption <$> genT) <*> genT
     , PrimFold  <$> (PrimFoldSum    <$> genT  <*> genT) <*> genT
     , PrimFold  <$> (PrimFoldMap    <$> genT  <*> genT) <*> genT
-    , PrimMap   <$> (PrimMapInsertOrUpdate    <$> genT  <*> genT)
-    , PrimMap   <$> (PrimMapMapValues         <$> genT  <*> genT <*> genT)
-    , PrimMap   <$> (PrimMapDelete            <$> genT  <*> genT)
-    , PrimMap   <$> (PrimMapLookup            <$> genT  <*> genT)
+    , PrimMap   <$> (PrimMapInsertOrUpdate    <$> genOrdValTypeOf' genT <*> genT)
+    , PrimMap   <$> (PrimMapMapValues         <$> genOrdValTypeOf' genT <*> genT <*> genT)
+    , PrimMap   <$> (PrimMapDelete            <$> genOrdValTypeOf' genT <*> genT)
+    , PrimMap   <$> (PrimMapLookup            <$> genOrdValTypeOf' genT <*> genT)
     , PrimArray <$> (PrimArrayMap   <$> genT  <*> genT)
     -- TODO: missing PrimWindow; investigate conversion of windows to Avalanche and reinstate
     -- , PrimWindow <$> genWindowUnit <*> Gen.maybe genWindowUnit
@@ -192,8 +192,8 @@ genPrimBuiltinMath = Gen.element
 
 genPrimBuiltinMap :: Gen ValType -> Gen PM.PrimBuiltinMap
 genPrimBuiltinMap genT = Gen.choice
-    [ PM.PrimBuiltinKeys <$> genT <*> genT
-    , PM.PrimBuiltinVals <$> genT <*> genT ]
+    [ PM.PrimBuiltinKeys <$> genOrdValTypeOf' genT <*> genT
+    , PM.PrimBuiltinVals <$> genOrdValTypeOf' genT <*> genT ]
 
 -- TODO: missing PrimBuiltinIndex; modify index to be safe.
 -- Returning an Option would probably be fine for Core, if we had an explicitly unsafe primitive in Flat.

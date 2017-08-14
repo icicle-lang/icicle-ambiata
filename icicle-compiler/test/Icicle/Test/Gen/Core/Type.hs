@@ -115,6 +115,38 @@ genOrdValType = Gen.recursive Gen.choice
   , StructT <$> genStructType' genOrdValType
   ]
 
+-- Try to generate an Ord type based on an arbitrary type.
+-- If the type contains an array or map, we will just replace it with the element type:
+--
+-- > Int                ==> Int
+-- > Array a            ==> a
+-- > (Array a, Map k v) ==> (a, k)
+-- > (Array a, Map k v) ==> (a, v)
+--
+genOrdValTypeOf :: ValType -> Gen ValType
+genOrdValTypeOf t = case t of
+  _ | isOrdValType t -> return t
+  PairT a b
+   -> PairT <$> genOrdValTypeOf a <*> genOrdValTypeOf b
+  SumT a b
+   -> SumT <$> genOrdValTypeOf a <*> genOrdValTypeOf b
+  OptionT a
+   -> OptionT <$> genOrdValTypeOf a
+  StructT (StructType fs)
+   -> Gen.choice (genOrdValType : fmap genOrdValTypeOf (Map.elems fs))
+  ArrayT a
+   -> genOrdValTypeOf a
+  MapT k v
+   -> Gen.choice [genOrdValTypeOf k, genOrdValTypeOf v]
+  BufT _ a
+   -> genOrdValTypeOf a
+  -- Generate a primitive if we can't
+  _
+   -> genOrdValType
+
+genOrdValTypeOf' :: Gen ValType -> Gen ValType
+genOrdValTypeOf' genT = genT >>= genOrdValTypeOf
+
 isOrdValType :: ValType -> Bool
 isOrdValType t = case t of
  IntT       -> True

@@ -152,7 +152,7 @@ programForStreamType' streamType outputType = do
         (z,t) <- genExpEnv zE
         let zE' = Map.insert n (t, Priority 50) zE
         k     <- genExpForTypeEnv (FunT [] t) (Map.union zE' kE)
-        return (zE', SFold n t z k) 
+        return (zE', SFold n t z k)
 
   genFilter zE kE num
    = do num'      <- Gen.integral $ Range.linear 1 num
@@ -174,7 +174,7 @@ genExpForValType ty = shrink $ Gen.recursive Gen.choice
 -- | Generate a well typed expression that has given type.
 --
 genExpForType :: C m => Type -> m (Exp () Var Prim)
-genExpForType ty 
+genExpForType ty
  = case ty of
     FunT (FunT [] t : ts) ret
       -> freshBind t (Priority 30) $ \n -> xLam n t <$> genExpForType (FunT ts ret)
@@ -196,7 +196,7 @@ genPrimConstructor t
     StringT   -> genContextOrValue
     StructT _ -> genContextOrValue
 
-    PairT a b -> valueChoice 
+    PairT a b -> valueChoice
         [ (xPrim' $ PrimMinimal $ PM.PrimConst $ PM.PrimConstPair a b) `pApp` genExpForValType a `pApp` genExpForValType b ]
 
     SumT a b  -> valueChoice
@@ -206,10 +206,14 @@ genPrimConstructor t
     OptionT a -> valueChoice
         [ (xPrim' $ PrimMinimal $ PM.PrimConst $ PM.PrimConstSome a) `pApp` genExpForValType a ]
 
-    ArrayT a  -> valueChoice
+    ArrayT a
+     | isOrdValType a -> valueChoice
         [ genArrayOfBuf a
-        , (xPrim' $ PrimMinimal $ PM.PrimBuiltinFun $ PM.PrimBuiltinMap $ PM.PrimBuiltinVals IntT a) `pApp` genExpForValType (MapT IntT a)
-        , (xPrim' $ PrimMinimal $ PM.PrimBuiltinFun $ PM.PrimBuiltinMap $ PM.PrimBuiltinKeys a IntT) `pApp` genExpForValType (MapT a IntT) ]
+        , genArrayOfMap PM.PrimBuiltinVals IntT a
+        , genArrayOfMap PM.PrimBuiltinKeys a IntT ]
+     | otherwise -> valueChoice
+        [ genArrayOfBuf a
+        , genArrayOfMap PM.PrimBuiltinVals IntT a ]
 
     BufT n a -> genrec1
         (xValue t $ VBuf [])
@@ -247,6 +251,9 @@ genPrimConstructor t
   genArrayOfBuf a = do
     n <- Gen.lift genBufLength
     (xPrim' $ PrimLatest  $ PrimLatestRead n a) `pApp` genExpForValType (BufT n a)
+
+  genArrayOfMap p tk tv =
+    (xPrim' $ PrimMinimal $ PM.PrimBuiltinFun $ PM.PrimBuiltinMap $ p tk tv) `pApp` genExpForValType (MapT tk tv)
 
 -- | Generate an expression for an arbitrary value type
 genExp :: C m => m (Exp () Var Prim, ValType)
@@ -327,7 +334,7 @@ genLetForType r = shrink $ do
   (x, t)   <- genExp
   freshBind t (Priority 50) $ \n -> xLet n x <$> genExpForType (FunT [] r)
 
--- Shrink the 
+-- Shrink the
 shrink :: C m => m (Exp () Var Prim) -> m (Exp () Var Prim)
 shrink = Gen.shrink go
  where
