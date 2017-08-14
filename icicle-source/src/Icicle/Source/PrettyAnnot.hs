@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -51,10 +52,10 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
         prettyPunctuation "(" <>
         annotate AnnPrimitive (pretty o) <>
         prettyPunctuation ")" <>
-        prettyAnnot a
+        annotPrim a (Op o)
 
       Prim a p ->
-        annotate AnnPrimitive (pretty p) <> prettyAnnot a
+        annotate AnnPrimitive (pretty p) <> annotPrim a p
 
       Case a scrut pats ->
         vsep [
@@ -66,6 +67,39 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
                 ]
           , prettyKeyword "end"
           ]
+   where
+    annotPrim a p
+     | primRequiresAnnot p
+     = prettyAnnot a
+     | otherwise
+     = mempty
+
+    -- Do not bother annotating monomorphic prims.
+    primRequiresAnnot = \case
+     Op o -> case o of
+      ArithUnary{}    -> True
+      ArithDouble{}   -> False
+      Relation{}      -> True
+      LogicalUnary{}  -> False
+      LogicalBinary{} -> False
+      TimeBinary{}    -> False
+      TupleComma      -> True
+     Lit{} -> False
+     Fun f -> case f of
+      BuiltinMath{}   -> False
+      BuiltinTime{}   -> False
+      BuiltinData{}   -> True
+      BuiltinArray{}  -> True
+      BuiltinMap{}    -> True
+     PrimCon c -> case c of
+      ConSome         -> False
+      ConNone         -> True
+      ConTuple        -> True
+      ConTrue         -> False
+      ConFalse        -> False
+      ConLeft         -> True
+      ConRight        -> True
+      ConError{}      -> False
 
 instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context a n)) where
   pretty cc =
