@@ -56,7 +56,7 @@ genPrimMany genT = do
     , PrimMap   <$> (PrimMapLookup            <$> genOrdValTypeOf' genT <*> genT)
     , PrimArray <$> (PrimArrayMap   <$> genT  <*> genT)
     -- TODO: missing PrimWindow; investigate conversion of windows to Avalanche and reinstate
-    -- , PrimWindow <$> genWindowUnit <*> Gen.maybe genWindowUnit
+    , PrimWindow <$> genWindowUnit <*> Gen.maybe genWindowUnit
     ]
 
   -- Generate buffer prims in pairs so for a given size and type we can always push and read

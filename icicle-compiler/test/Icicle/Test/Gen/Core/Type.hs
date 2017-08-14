@@ -108,7 +108,11 @@ genStructField = StructField <$> Gen.element colours
 --
 genOrdValType :: Gen ValType
 genOrdValType = Gen.recursive Gen.choice
-    genPrimTypes
+  [ return UnitT
+  , return BoolT
+  , return IntT
+  , return TimeT
+  , return StringT ]
   [ PairT   <$> genOrdValType <*> genOrdValType
   , OptionT <$> genOrdValType
   , SumT    <$> genOrdValType <*> genOrdValType
@@ -152,10 +156,11 @@ isOrdValType t = case t of
  IntT       -> True
  UnitT      -> True
  BoolT      -> True
- DoubleT    -> True
  TimeT      -> True
  StringT    -> True
  ErrorT     -> True
+ -- Double is not "Ord" because NaN cannot be used as the key of a Map.
+ DoubleT    -> False
  PairT a b  -> isOrdValType a && isOrdValType b
  SumT a b   -> isOrdValType a && isOrdValType b
  OptionT a  -> isOrdValType a
