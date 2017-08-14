@@ -35,6 +35,7 @@ library
                      , aeson-pretty                    >= 0.8        && < 0.9
                      , ansi-terminal                   == 0.6.*
                      , bifunctors                      >= 4.2        && < 5.4
+                     , boxes                           == 0.1.*
                      , bytestring                      == 0.10.*
                      , containers                      == 0.5.*
                      , dates                           == 0.2.*

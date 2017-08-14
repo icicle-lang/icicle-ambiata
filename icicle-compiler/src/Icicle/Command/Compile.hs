@@ -119,9 +119,9 @@ writeSeaDictionary (OutputDictionarySea path) context =
 
 icicleCompile :: Compile -> EitherT CompileError IO ()
 icicleCompile compile = do
-  finishAll <- startTimer "Compiling TOML -> C"
+  finishAll <- startTimer_ "Compiling TOML -> C"
 
-  finishDictionary <- startTimer "Parsing TOML"
+  finishDictionary <- startTimer_ "Parsing TOML"
   dictionary <- loadDictionary (compileInputDictionary compile)
   finishDictionary
 
@@ -130,18 +130,18 @@ icicleCompile compile = do
   let
     updateUI = \case
       Compiler.CompileBegin Compiler.PhaseSourceToCore ->
-        liftIO . IORef.writeIORef ref =<< startTimer "Compiling Source -> Core"
+        liftIO . IORef.writeIORef ref =<< startTimer_ "Compiling Source -> Core"
       Compiler.CompileBegin Compiler.PhaseFuseCore ->
-        liftIO . IORef.writeIORef ref =<< startTimer "Fusing Compute Kernels"
+        liftIO . IORef.writeIORef ref =<< startTimer_ "Fusing Compute Kernels"
       Compiler.CompileBegin Compiler.PhaseCoreToAvalanche ->
-        liftIO . IORef.writeIORef ref =<< startTimer "Compiling Core -> Avalanche"
+        liftIO . IORef.writeIORef ref =<< startTimer_ "Compiling Core -> Avalanche"
       Compiler.CompileEnd _ -> do
         end <- liftIO $ IORef.readIORef ref
         end
 
   avalanche <- compileDictionary updateUI dictionary (compileMaximumQueriesPerKernel compile)
 
-  finishSea <- startTimer "Compiling Avalanche -> C"
+  finishSea <- startTimer_ "Compiling Avalanche -> C"
   sea <-
     hoistEither . first CompileAvalancheError . Runtime.compileAvalanche $
       Runtime.AvalancheContext (compileFingerprint compile) avalanche
