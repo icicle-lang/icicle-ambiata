@@ -147,7 +147,8 @@ data ErrorCompile var
  -- Core
  | ErrorConvert     !(ToCore.ConvertError     Parsec.SourcePos var                  )
  | ErrorFusion      !(Core.FusionError                         Source.Var           )
- | ErrorCoreCheck   !(Core.ProgramError       Source.AnnotUnit var                  )
+ | ErrorCoreCheck   !(Source.QueryTyped                        var                  )
+                    !(Core.ProgramError       Source.AnnotUnit var                  )
  -- Avalanche/Flatten
  | ErrorFlatten     !(Avalanche.FlattenError  Source.AnnotUnit var                  )
  | ErrorFlattenSimp !(Avalanche.SimpError     Source.AnnotUnit var         Flat.Prim)
@@ -166,7 +167,7 @@ annotOfError e
      -> Source.annotOfError e'
     ErrorConvert e'
      -> ToCore.annotOfError e'
-    ErrorCoreCheck _
+    ErrorCoreCheck _ _
      -> Nothing
     ErrorFusion _
      -> Nothing
@@ -189,9 +190,11 @@ instance (Hashable a, Eq a, IsString a, Pretty a, Show a) => Pretty (ErrorCompil
      ErrorFusion ce
       -> "Fusion error:" <> line
       <> indent 2 (pretty ce)
-     ErrorCoreCheck ce
+     ErrorCoreCheck s ce
       -> "Core error:" <> line
-      <> indent 2 (pretty ce)
+      <> indent 2 (pretty ce) <> line
+      <> "Original query:" <> line
+      <> indent 2 (pretty s)
      ErrorFlatten d
       -> "Flatten error:" <> line
       <> indent 2 (text $ show d)
@@ -292,14 +295,15 @@ coreOfSource1 opt dict virtual = do
   (checked, _)   <- first ErrorSource $ Source.sourceCheckQT   (Source.icicleBigData opt) dict desugared
   let reified     = Source.sourceReifyQT checked
   core           <- sourceConvert dict reified
-  _              <- checkCore core
+  _              <- checkCore virtual core
   return $ coreSimp core
 
 checkCore      :: IsName v
-               => Source.CoreProgramUntyped v
+               => Source.QueryTyped v
+               -> Source.CoreProgramUntyped v
                -> Either (ErrorCompile v) [(OutputId, Common.Type)]
-checkCore prog
- = first ErrorCoreCheck
+checkCore source prog
+ = first (ErrorCoreCheck source)
  $ Core.checkProgram prog
 
 
