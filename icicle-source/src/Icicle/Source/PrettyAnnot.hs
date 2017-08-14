@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -51,10 +52,10 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
         prettyPunctuation "(" <>
         annotate AnnPrimitive (pretty o) <>
         prettyPunctuation ")" <>
-        prettyAnnot a
+        annotPrim a (Op o)
 
       Prim a p ->
-        annotate AnnPrimitive (pretty p) <> prettyAnnot a
+        annotate AnnPrimitive (pretty p) <> annotPrim a p
 
       Case a scrut pats ->
         vsep [
@@ -66,6 +67,40 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
                 ]
           , prettyKeyword "end"
           ]
+   where
+    annotPrim a p
+     | primRequiresAnnot p
+     = prettyAnnot a
+     | otherwise
+     = mempty
+
+    -- Do not bother annotating monomorphic prims.
+    primRequiresAnnot = \case
+     Op o -> case o of
+      ArithUnary{}    -> True
+      ArithBinary{}   -> True
+      ArithDouble{}   -> False
+      Relation{}      -> True
+      LogicalUnary{}  -> False
+      LogicalBinary{} -> False
+      TimeBinary{}    -> False
+      TupleComma      -> True
+     Lit{} -> False
+     Fun f -> case f of
+      BuiltinMath{}   -> False
+      BuiltinTime{}   -> False
+      BuiltinData{}   -> True
+      BuiltinArray{}  -> True
+      BuiltinMap{}    -> True
+     PrimCon c -> case c of
+      ConSome         -> False
+      ConNone         -> True
+      ConTuple        -> True
+      ConTrue         -> False
+      ConFalse        -> False
+      ConLeft         -> True
+      ConRight        -> True
+      ConError{}      -> False
 
 instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context a n)) where
   pretty cc =
@@ -83,19 +118,23 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context a n)) where
       Filter a x ->
         prettyAnnotK "filter" a <+> pretty (PrettyAnnot x)
 
-      LetFold a f ->
+      -- For fold and let-bindings, the annotation holds the *return* type, but this isn't
+      -- particularly interesting to print since it's the same as the rest of the expression.
+      -- It's more useful to print the type of the binding, so to get that we need to
+      -- dig in and get the annotation of the bound expression.
+      LetFold _ f ->
         vsep [
-            annotate AnnKeyword (pretty $ foldType f) <> prettyAnnot a <+>
-              annotate AnnBinding (pretty (foldBind f)) <+> prettyPunctuation "="
+            annotate AnnKeyword (pretty $ foldType f) <+>
+              annotate AnnBinding (pretty (foldBind f)) <> prettyAnnot (annotOfExp $ foldInit f)  <+> prettyPunctuation "="
           , indent 2 . align $
-              pretty (foldInit f) <+> prettyPunctuation ":" <+> pretty (foldWork f)
+              pretty (PrettyAnnot $ foldInit f) <+> prettyPunctuation ":" <+> pretty (PrettyAnnot $ foldWork f)
           ]
 
-      Let a b x ->
+      Let _ b x ->
         vsep [
-            prettyAnnotK "let" a <+> annotate AnnBinding (pretty b) <+> prettyPunctuation "="
+            prettyKeyword "let" <+> annotate AnnBinding (pretty b) <> prettyAnnot (annotOfExp x) <+> prettyPunctuation "="
           , indent 2 . align $
-              pretty x
+              pretty $ PrettyAnnot x
           ]
 
 instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Query a n)) where
