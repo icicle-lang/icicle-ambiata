@@ -37,12 +37,19 @@ import           Control.Monad.Trans.Resource (MonadResource, runResourceT)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
 import           Data.ByteString.Builder (Builder)
+import           Data.IORef (IORef)
+import qualified Data.IORef as IORef
+import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
+import qualified Data.Text.IO as Text
+import qualified Data.Vector as Boxed
+import qualified Data.Vector.Storable as Storable
 
 import           Icicle.Command.Timer
+import           Icicle.Data.Name
 import           Icicle.Data.Time
 import           Icicle.Runtime.Data (MaximumMapSize(..), SnapshotKey(..), ChordKey(..), ChordDescriptor(..))
 import qualified Icicle.Runtime.Data as Runtime
@@ -59,6 +66,10 @@ import qualified Piano.Data as Piano
 
 import           System.IO (IO, FilePath)
 import           System.IO.Error (IOError)
+
+import           Text.PrettyPrint.Boxes (Box)
+import qualified Text.PrettyPrint.Boxes as Box
+import           Text.Printf (printf)
 
 import           Viking (Stream, Of)
 import qualified Viking.ByteStream as ByteStream
@@ -117,6 +128,30 @@ data QueryScope =
     QuerySnapshot !Date
   | QueryChord !FilePath
     deriving (Eq, Ord, Show)
+
+data QuerySummary =
+  QuerySummary {
+      summaryInputEntityCount :: !Int
+    , summaryInputFactCounts :: !(Map InputId Int)
+    , summaryOutputRowCount :: !Int
+    } deriving (Eq, Ord, Show)
+
+summaryInputFactCount :: QuerySummary -> Int
+summaryInputFactCount =
+  sum . summaryInputFactCounts
+
+instance Monoid QuerySummary where
+  mempty =
+    QuerySummary 0 Map.empty 0
+  mappend x y =
+    QuerySummary {
+        summaryInputEntityCount =
+          summaryInputEntityCount x + summaryInputEntityCount y
+      , summaryInputFactCounts =
+          Map.unionWith (+) (summaryInputFactCounts x) (summaryInputFactCounts y)
+      , summaryOutputRowCount =
+          summaryOutputRowCount x + summaryOutputRowCount y
+      }
 
 data QueryError =
     QueryRuntimeError !RuntimeError
@@ -249,20 +284,39 @@ mapConcurrentlyN n f =
   Stream.mapped Stream.toList .
   Stream.chunksOf n
 
+mkSummary :: Runtime.Input -> Runtime.Output k -> QuerySummary
+mkSummary input output =
+  QuerySummary {
+      summaryInputEntityCount =
+        Boxed.length (Runtime.inputKey input)
+
+    , summaryInputFactCounts =
+        Map.filter (/= 0) $
+          fmap (Storable.length . Runtime.inputTime) (Runtime.inputColumns input)
+
+    , summaryOutputRowCount =
+        Boxed.length (Runtime.outputKey output)
+    }
+
 queryBlock ::
      forall a b k m r.
      MonadBaseControl IO m
-  => (a -> Either QueryError Runtime.Input)
+  => IORef QuerySummary
+  -> (a -> Either QueryError Runtime.Input)
   -> (Runtime.Output k -> Either QueryError b)
   -> (Runtime.Input -> EitherT RuntimeError IO (Runtime.Output k))
   -> Stream (Of a) m r
   -> Stream (Of b) (EitherT QueryError m) r
-queryBlock decode encode query =
+queryBlock ref decode encode query =
   let
     run :: a -> EitherT QueryError IO b
     run input0 = do
       input <- hoistEither $ decode input0
       output <- firstT QueryRuntimeError $ query input
+
+      liftIO . IORef.atomicModifyIORef' ref $ \x ->
+        (x <> mkSummary input output, ())
+
       hoistEither $ encode output
   in
     mapConcurrentlyN 16 (hoist liftBase . run) . hoist lift
@@ -284,8 +338,9 @@ readChordDescriptor path = do
     Set.mapMonotonic fromPianoLabel . fromMaybe Set.empty $
       Map.lookup (Piano.mkEntity entity) piano
 
-execute :: Query -> Runtime -> EitherT QueryError IO ()
-execute query runtime =
+execute :: Query -> Runtime -> EitherT QueryError IO QuerySummary
+execute query runtime = do
+  ref <- liftIO $ IORef.newIORef mempty
   hoist runResourceT $ do
     case queryInput query of
       QueryInputZebra qinput -> do
@@ -297,7 +352,7 @@ execute query runtime =
               QueryOutputZebra qoutput ->
                 squash . squash .
                   writeZebra qoutput .
-                  queryBlock decode encodeZebraSnapshot
+                  queryBlock ref decode encodeZebraSnapshot
                     (Runtime.snapshotBlock runtime (queryMaxmumMapSize query) (fromSnapshotDate date)) $
                   readZebra qinput
 
@@ -305,7 +360,7 @@ execute query runtime =
                 writePsvSchema qoutput soutput =<< hoistEither (encodePsvSnapshotSchema runtime)
                 squash . squash .
                   writePsv qoutput .
-                  queryBlock decode encodePsvSnapshot
+                  queryBlock ref decode encodePsvSnapshot
                     (Runtime.snapshotBlock runtime (queryMaxmumMapSize query) (fromSnapshotDate date)) $
                   readZebra qinput
 
@@ -315,7 +370,7 @@ execute query runtime =
               QueryOutputZebra qoutput ->
                 squash . squash .
                   writeZebra qoutput .
-                  queryBlock decode encodeZebraChord
+                  queryBlock ref decode encodeZebraChord
                     (Runtime.chordBlock runtime (queryMaxmumMapSize query) descriptor) $
                   readZebra qinput
 
@@ -323,23 +378,94 @@ execute query runtime =
                 writePsvSchema qoutput soutput =<< hoistEither (encodePsvChordSchema runtime)
                 squash . squash .
                   writePsv qoutput .
-                  queryBlock decode encodePsvChord
+                  queryBlock ref decode encodePsvChord
                     (Runtime.chordBlock runtime (queryMaxmumMapSize query) descriptor) $
                   readZebra qinput
+  liftIO $ IORef.readIORef ref
+
+boxRows :: [(Text, Text)] -> Box
+boxRows rows =
+  let
+    keys =
+      Box.vcat Box.left $ fmap (Box.text . Text.unpack . fst) rows
+
+    preEq x =
+      if null x then
+        x
+      else
+        "= " <> x
+
+    vals =
+      Box.vcat Box.left $ fmap (Box.text . preEq . Text.unpack . snd) rows
+  in
+    Box.hsep 1 Box.top [
+        keys
+      , vals
+      ]
+
+renderSummary :: QuerySummary -> TimerDuration -> Text
+renderSummary summary duration =
+  let
+    tr =
+      (,)
+
+    spacer =
+      tr "" ""
+
+    header x =
+      tr x ""
+
+    ruler x =
+      tr (Text.replicate (Text.length x) "-") ""
+
+    fcount (k, v) =
+      tr (renderInputId k) (Text.pack $ show v <> " facts")
+  in
+    Text.pack . Box.render . boxRows $ [
+          header "Facts"
+        , ruler "Facts"
+
+        ] <> fmap fcount (Map.toList $ summaryInputFactCounts summary) <> [
+          tr "total" . Text.pack $
+            show (summaryInputFactCount summary) <> " facts"
+
+        , tr "throughput" . Text.pack $
+            printf "%.0f facts/second" $
+              fromIntegral (summaryInputFactCount summary) / timerDurationSeconds duration
+
+        , spacer
+        , header "Entities"
+        , ruler "Entities"
+
+        , tr "facts" . Text.pack $
+            printf "%.0f facts/entity" $
+              fromIntegral (summaryInputFactCount summary) / (fromIntegral (summaryInputEntityCount summary) :: Double)
+        , tr "total" . Text.pack $
+            show (summaryInputEntityCount summary) <> " entities"
+        , tr "throughput" . Text.pack $
+            printf "%.0f entities/second" $
+              fromIntegral (summaryInputEntityCount summary) / timerDurationSeconds duration
+
+        , spacer
+        , header "Output"
+        , ruler "Output"
+
+        , tr "total" . Text.pack $
+            show (summaryOutputRowCount summary) <> " rows"
+        , tr "throughput" . Text.pack $
+            printf "%.0f rows/second" $
+              fromIntegral (summaryOutputRowCount summary) / timerDurationSeconds duration
+        ]
 
 icicleQuery :: Query -> EitherT QueryError IO ()
 icicleQuery query = do
-  finishCompile <- startTimer "Compiling C -> x86_64"
+  finishCompile <- startTimer_ "Compiling C -> x86_64"
   runtime <- compile query
   finishCompile
 
   finishQuery <- startTimer "Executing Query"
-  execute query runtime
-  finishQuery
+  summary <- execute query runtime
+  duration <- finishQuery
 
--- FIXME add back these statistics:
---  liftIO (printf "icicle: query time      = %.2fs\n" secs)
---  liftIO (printf "icicle: total entities  = %d\n" entities)
---  liftIO (printf "icicle: total facts     = %d\n" facts)
---  liftIO (printf "icicle: fact throughput = %.0f facts/s\n" fps)
---  liftIO (printf "icicle: byte throughput = %.2f MiB/s\n" mbps)
+  liftIO . Text.putStr . Text.unlines . fmap ("icicle: " <>) . ("" :) . Text.lines $
+    renderSummary summary duration

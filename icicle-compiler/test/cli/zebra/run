@@ -13,8 +13,8 @@ diff_update () {
 
 ################################################################################
 
-echo "====\n"
-echo "Separate compilation + Zebra"
+echo "\nSeparate compilation + Zebra"
+echo "============================"
 
 common_args="--snapshot 2016-02-01"
 dict=test/cli/zebra/dictionary.toml
