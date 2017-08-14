@@ -126,6 +126,11 @@ timeEnd :: Time
 timeEnd =
   unsafeTimeOfYMD 3000 1 1
 
+dropEmpty :: Time -> Map Entity [AsAt a] -> Map Entity [AsAt a]
+dropEmpty stime =
+  Map.filter $
+    not . List.null . List.filter (< stime) . fmap atTime
+
 test_runtime_corpus :: CorpusId -> (InputName, OutputId, Text) -> Property
 test_runtime_corpus cid query =
   property . handleDiscard $ do
@@ -134,8 +139,14 @@ test_runtime_corpus cid query =
     stime <- forAll $ Gen.element (timeEnd : fmap atTime (concat . Map.elems $ wtInputs wt))
 
     let
+      wt_dropped =
+        wt {
+          wtInputs =
+            dropEmpty stime (wtInputs wt)
+        }
+
       core_results0 =
-        evalWellTyped (EvalContext stime maxMapSize) wt
+        evalWellTyped (EvalContext stime maxMapSize) wt_dropped
 
     c_results0 <- evalWellTypedRuntime stime (MaximumMapSize $ fromIntegral maxMapSize) cid wt
 

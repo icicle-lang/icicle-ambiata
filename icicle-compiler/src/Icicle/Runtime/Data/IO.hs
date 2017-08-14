@@ -26,14 +26,17 @@ module Icicle.Runtime.Data.IO (
   , splitInput
   , splitInputN
   , concatInput
+  , maskInput
 
   , splitInputColumn
   , concatInputColumn
   , appendInputColumn
+  , maskInputColumn
 
   , splitOutput
   , splitOutputN
   , concatOutput
+  , maskOutput
 
   -- * Icicle.Data.Name re-exports
   , InputId(..)
@@ -56,6 +59,7 @@ import           Foreign.Storable (Storable)
 import           GHC.Generics (Generic)
 
 import           Icicle.Data.Name
+import           Icicle.Runtime.Data.Mask
 import           Icicle.Runtime.Data.Primitive
 import           Icicle.Runtime.Data.Striped (StripedError)
 import qualified Icicle.Runtime.Data.Striped as Striped
@@ -317,3 +321,31 @@ concatOutput xss =
   Output
     (Boxed.concat . Cons.toList $ fmap outputKey xss)
     <$> mapConcat Striped.unsafeAppend (Cons.toVector (fmap outputColumns xss))
+
+maskInputColumn :: Boxed.Vector Mask -> InputColumn -> InputColumn
+maskInputColumn mask x =
+  let
+    mss =
+      replicateMask (inputLength x) mask
+  in
+    InputColumn
+      (maskStorable mask $ inputLength x)
+      (maskStorable mss $ inputTime x)
+      (maskStorable mss $ inputTombstone x)
+      (Striped.mask mss $ inputColumn x)
+
+maskInput :: Boxed.Vector Mask -> Input -> Input
+maskInput mask x =
+  Input
+    (maskBoxed mask $ inputKey x)
+    (fmap (maskInputColumn mask) $ inputColumns x)
+
+maskOutput :: Boxed.Vector Mask -> Output key -> Output key
+maskOutput mask output =
+  Output {
+      outputKey =
+        maskBoxed mask (outputKey output)
+
+    , outputColumns =
+        fmap (Striped.mask mask) (outputColumns output)
+    }

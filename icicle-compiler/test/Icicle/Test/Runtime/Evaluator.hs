@@ -6,13 +6,13 @@ module Icicle.Test.Runtime.Evaluator where
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.Morph (hoist)
 
-import qualified Data.ByteString.Char8 as Char8
 import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text
 import qualified Data.Vector as Boxed
 import qualified Data.Vector.Storable as Storable
 
@@ -26,6 +26,7 @@ import           Icicle.Data.Fact
 import           Icicle.Data.Name
 import           Icicle.Dictionary.Data
 import           Icicle.Runtime.Data
+import           Icicle.Runtime.Data.Mask
 import qualified Icicle.Runtime.Data.Schema as Schema
 import qualified Icicle.Runtime.Data.Striped as Striped
 import           Icicle.Runtime.Evaluator (Runtime)
@@ -172,11 +173,40 @@ takeWhileBefore (QueryTime qtime) icolumn =
     in
       InputColumn (Storable.singleton $ fromIntegral n) time tombstone column
 
+inputColumnMask :: InputColumn -> Mask
+inputColumnMask x =
+  if Storable.length (inputLength x) /= 1 then
+    Savage.error "inputColumnMask: this function only works for a single entities"
+  else if Storable.singleton 0 == inputLength x then
+    Drop
+  else
+    Keep
+
+inputMask :: Map k [InputColumn] -> Boxed.Vector Mask
+inputMask =
+  Boxed.fromList .
+  fmap mconcat .
+  List.transpose .
+  Map.elems .
+  fmap (fmap inputColumnMask)
+
 trimSnapshot :: SnapshotTime -> EvaluatorTest -> Input
-trimSnapshot stime et =
-  Input
-    (testEntities et)
-    (fmap (concatEntities . fmap (takeWhileBefore (unSnapshotTime stime))) $ testInputs et)
+trimSnapshot stime0 et =
+  let
+    stime =
+      unSnapshotTime stime0
+
+    inputs =
+      fmap (fmap (takeWhileBefore stime)) $
+      testInputs et
+
+    mask =
+      inputMask inputs
+  in
+    maskInput mask $
+      Input
+        (testEntities et)
+        (fmap concatEntities inputs)
 
 trimChord :: [Set QueryTime] -> EvaluatorTest -> Input
 trimChord qtimes00 et =
@@ -190,10 +220,18 @@ trimChord qtimes00 et =
     go qtimes column =
       with qtimes $ \qtime ->
         takeWhileBefore qtime column
+
+    inputs =
+      fmap (concat . List.zipWith go qtimes0) $
+      testInputs et
+
+    mask =
+      inputMask inputs
   in
-    Input
-      (Boxed.fromList . concat . List.zipWith rep qtimes0 . Boxed.toList $ testEntities et)
-      (fmap (concatEntities . concat . List.zipWith go qtimes0) $ testInputs et)
+    maskInput mask $
+      Input
+        (Boxed.fromList . concat . List.zipWith rep qtimes0 . Boxed.toList $ testEntities et)
+        (fmap concatEntities inputs)
 
 compileDictionary :: (MonadTest m, MonadIO m) => Dictionary -> m Runtime
 compileDictionary dictionary = do
@@ -221,22 +259,6 @@ compileDictionary dictionary = do
   sea <- evalEither . Runtime.compileAvalanche $ Runtime.AvalancheContext "Icicle.Test.Runtime.Evaluator" avalanche
   evalExceptT $ Runtime.compileSeaWith ccoptions Runtime.SkipJetskiCache sea
 
-compareInputOutput :: MonadTest m => Input -> Output key -> m ()
-compareInputOutput input output =
-  let
-    two (k, v) = [
-        (fromInputId 0 k, fromInputColumn v)
-      , (fromInputId 1 k, fromInputColumn v)
-      ]
-
-    inputAsOutput =
-      Map.fromList .
-      concatMap two .
-      Map.toList $
-      inputColumns input
-  in
-    inputAsOutput === outputColumns output
-
 prop_evaluator_roundtrip_chord :: Property
 prop_evaluator_roundtrip_chord =
   withTests 100 . property $ do
@@ -245,7 +267,7 @@ prop_evaluator_roundtrip_chord =
 
     let
       mkLabel qtime =
-        Label qtime (Char8.pack $ show qtime)
+        Label qtime (Text.encodeUtf8 . renderTime $ unQueryTime qtime)
 
       chordMap =
         Map.fromList $ List.zip (fmap entityId $ Boxed.toList entities) (fmap (Set.mapMonotonic mkLabel) qtimes)
@@ -278,6 +300,23 @@ prop_evaluator_roundtrip_snapshot =
     output <- evalExceptT . hoist liftIO $ Runtime.snapshotBlock runtime maximumMapSize stime input
 
     compareInputOutput (trimSnapshot stime et) output
+
+compareInputOutput :: MonadTest m => Input -> Output key -> m ()
+compareInputOutput input output = do
+  let
+    two (k, v) = [
+        (fromInputId 0 k, fromInputColumn v)
+      , (fromInputId 1 k, fromInputColumn v)
+      ]
+
+    inputAsOutput =
+      Map.fromList .
+      concatMap two .
+      Map.toList $
+      inputColumns input
+  
+  annotateShow input
+  inputAsOutput === outputColumns output
 
 return []
 tests :: IO Bool
