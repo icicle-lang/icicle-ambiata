@@ -77,4 +77,17 @@ Core evaluation
 homer|0
 marge|0
 
-λ 
+λ λ -- Nested case with a polymorphic scrutinee (Num a => (Bool,a))
+λ Type
+----
+
+repl:output :
+  Aggregate (Definitely Bool)
+
+Core evaluation
+---------------
+
+homer|False
+marge|False
+
+λ λ 

@@ -617,12 +617,13 @@ generateX x env
            let t'    = canonT
                      $ Temporality returnTemp'
                      $ Possibility returnPoss' returnType
+           let subs' = compose sub subs
            let cons' = concat [consS, consTj, consPs, consA]
 
            let x' = annotate cons' t'
                   $ \a' -> Case a' scrut' pats'
 
-           return (x', subs, cons')
+           return (x', subs', cons')
   where
   annotate cs t' f
    = let a' = Annot (annotOfExp x) t' cs
