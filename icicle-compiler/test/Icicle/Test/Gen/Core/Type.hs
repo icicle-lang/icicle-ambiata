@@ -144,7 +144,8 @@ genOrdValTypeOf t = case t of
    -> Gen.choice [genOrdValTypeOf k, genOrdValTypeOf v]
   BufT _ a
    -> genOrdValTypeOf a
-  -- Generate a primitive if we can't
+  -- Generate a primitive if we can't salvage any of it.
+  -- Eg. if the input type is Double
   _
    -> genOrdValType
 
