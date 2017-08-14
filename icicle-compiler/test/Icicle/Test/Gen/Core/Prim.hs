@@ -55,7 +55,6 @@ genPrimMany genT = do
     , PrimMap   <$> (PrimMapDelete            <$> genOrdValTypeOf' genT <*> genT)
     , PrimMap   <$> (PrimMapLookup            <$> genOrdValTypeOf' genT <*> genT)
     , PrimArray <$> (PrimArrayMap   <$> genT  <*> genT)
-    -- TODO: missing PrimWindow; investigate conversion of windows to Avalanche and reinstate
     , PrimWindow <$> genWindowUnit <*> Gen.maybe genWindowUnit
     ]
 
