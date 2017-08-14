@@ -8,3 +8,7 @@ feature salary ~> fold perhaps = Left 0 : case perhaps | Right i -> Left i | Lef
 
 -- Cases can be strange
 feature salary ~> windowed 1 days ~> case None | Some a -> Some a | None -> Some 0 end
+
+-- Nested case with a polymorphic scrutinee (Num a => (Bool,a))
+feature salary ~> let v = (True,1) ~> fold s2 = False : case (case v | (a,b) -> a end) | True -> False | False -> True end ~> s2
+
