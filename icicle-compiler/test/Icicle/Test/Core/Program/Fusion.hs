@@ -6,6 +6,7 @@
 module Icicle.Test.Core.Program.Fusion where
 
 import           Icicle.Test.Arbitrary
+import           Icicle.Test.Arbitrary.NanEq ((=~=))
 
 import           Icicle.Core.Program.Check
 import           Icicle.Core.Program.Fusion
@@ -56,7 +57,7 @@ prop_fuseself_eval t =
          -> property False
         -- Evaluation succeeded so the values must match
         Right vv
-         -> property (vv === v <> v)
+         -> property (vv =~= v <> v)
     _ -> property Discard
 
 
@@ -88,7 +89,7 @@ prop_fuseeval2 t =
        -- It should not be an error
        Left  _  -> property False
        -- It evaluated fine, so the values should match
-       Right v' -> property (v' === v1 <> v2)
+       Right v' -> property (v' =~= v1 <> v2)
 
   -- The input programs must be bad, so throw it away
   _ -> property Discard
@@ -110,7 +111,7 @@ prop_fuseeval2_values t =
        -- It should not be an error
        Left  _  -> property False
        -- It evaluated fine, so the values should match
-       Right v' -> property (v' === v1 <> v2)
+       Right v' -> property (v' =~= v1 <> v2)
 
   -- The input programs must be bad, so throw it away
   _ -> property Discard

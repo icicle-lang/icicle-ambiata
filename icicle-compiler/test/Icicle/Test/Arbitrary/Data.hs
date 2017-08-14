@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE TemplateHaskell     #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -13,6 +14,7 @@ module Icicle.Test.Arbitrary.Data (
 import qualified Icicle.Internal.Pretty as PP
 
 import           Icicle.Common.Base hiding (StructField)
+import           Icicle.Common.NanEq
 import           Icicle.Data
 import           Icicle.Data.Time
 
@@ -38,7 +40,7 @@ import           Data.Hashable (Hashable)
 
 -- | Variables used in random Core and Avalanche programs.
 data Var = Var T.Text Int
- deriving (Eq,Ord,Show,Generic)
+ deriving (Eq,Ord,Show,Generic,NanEq)
 
 instance Hashable Var
 instance NFData Var

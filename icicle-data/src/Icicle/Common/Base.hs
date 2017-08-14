@@ -18,6 +18,7 @@ module Icicle.Common.Base (
     ) where
 
 import              Icicle.Internal.Pretty
+import              Icicle.Common.NanEq
 import              Icicle.Data.Time
 
 import              P
@@ -44,6 +45,8 @@ instance Eq n => Eq  (Name n) where
 instance Eq n => Ord (Name n) where
   compare x y = compare (nameHash x) (nameHash y)
 
+instance NanEq n => NanEq (Name n)
+
 -- | User defined names.
 data NameBase n =
  -- | Raw name
@@ -54,6 +57,8 @@ data NameBase n =
  deriving (Eq, Ord, Show, Functor, Generic)
 
 instance Hashable n => Hashable (NameBase n)
+
+instance NanEq n => NanEq (NameBase n)
 
 nameOf :: Hashable n => NameBase n -> Name n
 nameOf n = Name (hash n) n
@@ -74,6 +79,7 @@ data WindowUnit
  deriving (Show, Eq, Ord, Generic)
 
 instance NFData WindowUnit
+instance NanEq WindowUnit
 
 -- | Base values - real values that can be serialised and whatnot
 -- These are used in the expressions, but actual values can be
@@ -99,6 +105,7 @@ data BaseValue
  deriving (Show, Ord, Eq, Generic)
 
 instance NFData BaseValue
+instance NanEq BaseValue
 
 -- | Called "exceptions"
 -- because they aren't really errors,
@@ -112,6 +119,7 @@ data ExceptionInfo
  deriving (Show, Ord, Eq, Generic)
 
 instance NFData ExceptionInfo
+instance NanEq ExceptionInfo
 
 newtype StructField
  = StructField
@@ -120,6 +128,7 @@ newtype StructField
  deriving (Ord, Eq, Generic)
 
 instance NFData StructField
+instance NanEq StructField
 
 instance Show StructField where
  showsPrec p (StructField x)

@@ -14,6 +14,7 @@ module Icicle.Common.Exp.Exp (
 import           GHC.Generics (Generic)
 
 import           Icicle.Common.Base
+import           Icicle.Common.NanEq
 import           Icicle.Common.Type
 import           Icicle.Internal.Pretty
 
@@ -49,6 +50,8 @@ data Exp a n p
 -- Turns out making the whole AST strict has a massive impact
 -- on compilation performance.
 instance (NFData a, NFData n, NFData p) => NFData (Exp a n p)
+
+instance (NanEq a, NanEq n, NanEq p) => NanEq (Exp a n p)
 
 renameExp :: (Name n -> Name n') -> Exp a n p -> Exp a n' p
 renameExp f (XVar a n)     = XVar a (f n)

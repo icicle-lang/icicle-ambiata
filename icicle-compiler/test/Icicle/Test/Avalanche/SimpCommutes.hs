@@ -5,6 +5,7 @@
 module Icicle.Test.Avalanche.SimpCommutes where
 
 import           Icicle.Test.Arbitrary
+import           Icicle.Test.Arbitrary.NanEq
 
 import           Icicle.Core.Program.Check
 import qualified Icicle.Core.Eval.Exp       as XV
@@ -38,7 +39,7 @@ prop_simp_commutes_value t =
          eval = AE.evalProgram XV.evalPrim d vs
      in counterexample (show $ pretty p')
       $ counterexample (show $ pretty simp)
-       (eval p' === eval simp)
+       (eval p' =~= eval simp)
 
 
 return []

@@ -8,6 +8,7 @@ import           Icicle.Test.Gen.Core.Value
 import           Icicle.Test.Gen.Core.Type
 import           Icicle.Test.Gen.Core.Program
 import           Icicle.Test.Arbitrary.Data
+import           Icicle.Test.Arbitrary.NanEq (hedgehogNanEq)
 import           Icicle.Test.Arbitrary.Core (testFresh, testFreshT)
 
 import           Hedgehog hiding (Var, eval)
@@ -76,7 +77,7 @@ prop_flatten_commutes_value = property $ do
    annotate ("Flat:\n" <> show (pretty s'))
    let xv' = eval XV.evalPrim p'
    let fv' = eval AE.evalPrim p' { AP.statements = s'}
-   first show xv' === first show fv'
+   first show xv' `hedgehogNanEq` first show fv'
 
 
 
@@ -104,7 +105,7 @@ flatten_simp_commutes_value p (vs, d) = do
   compareEvalResult xv yv = do
     let xv' = first show xv
     let yv' = first show yv
-    xv' === yv'
+    xv' `hedgehogNanEq` yv'
 
 return []
 tests :: IO Bool

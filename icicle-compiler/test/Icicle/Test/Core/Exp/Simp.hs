@@ -7,6 +7,7 @@ module Icicle.Test.Core.Exp.Simp where
 import Icicle.Internal.Pretty (pretty)
 import Icicle.Test.Gen.Core.Program
 import Icicle.Test.Arbitrary.Data
+import Icicle.Test.Arbitrary.NanEq (hedgehogNanEq)
 import Hedgehog hiding (Var)
 
 import           Icicle.Core.Eval.Exp
@@ -30,7 +31,7 @@ prop_beta_evaluation = property $ do
   let x' = Beta.beta x
   annotate (show $ pretty x)
   annotate (show $ pretty x')
-  eval0 evalPrim x === eval0 evalPrim x'
+  eval0 evalPrim x `hedgehogNanEq` eval0 evalPrim x'
 
 -- Beta reduction preserves type
 prop_beta_type = property $ do
@@ -43,7 +44,7 @@ prop_betaToLets_evaluation = property $ do
   let x' = Beta.betaToLets () x
   annotate (show $ pretty x)
   annotate (show $ pretty x')
-  eval0 evalPrim x === eval0 evalPrim x'
+  eval0 evalPrim x `hedgehogNanEq` eval0 evalPrim x'
 
 -- Beta reduction preserves type
 prop_betaToLets_type = property $ do
@@ -57,7 +58,7 @@ prop_betaToLets_type = property $ do
 -- Converting to a-normal form
 prop_anormal_form_evaluation = property $ do
   x <- forAll (fst <$> genExpTop)
-  eval0 evalPrim x === eval0 evalPrim
+  eval0 evalPrim x `hedgehogNanEq` eval0 evalPrim
    ( snd
    $ Fresh.runFresh (ANormal.anormal () x)
                     (Fresh.counterNameState (NameBase . Var "anf") 0))
@@ -86,7 +87,7 @@ prop_core_simp_type = property $ do
 -- Core simplification preserves result
 prop_core_simp_eval = property $ do
   x <- forAll (fst <$> genExpTop)
-  eval0 evalPrim x === eval0 evalPrim
+  eval0 evalPrim x `hedgehogNanEq` eval0 evalPrim
    ( snd
    $ Fresh.runFresh (CoreSimp.simp () x)
                     (Fresh.counterNameState (NameBase . Var "anf") 0))

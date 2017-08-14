@@ -23,6 +23,7 @@ import qualified Test.QuickCheck.Hedgehog as Qc
 import qualified Icicle.Test.Gen.Core.Value as CoreGen
 import qualified Icicle.Test.Gen.Core.Program as CoreGen
 import qualified Icicle.Test.Gen.Core.Type as CoreGen
+import Icicle.Common.NanEq
 
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
@@ -44,15 +45,15 @@ testFresh desc prog
 
 -- | Check if values are equal except for functions/closures
 -- Because closure heaps can differ..
-equalExceptFunctions :: (Eq a, Eq n, Eq p) => Value a n p -> Value a n p -> Bool
+equalExceptFunctions :: (NanEq a, NanEq n, NanEq p) => Value a n p -> Value a n p -> Bool
 equalExceptFunctions p q
  | VFun{} <- p
  , VFun{} <- q
  = True
  | otherwise
- = p == q
+ = p `nanEq` q
 
-equalExceptFunctionsE :: (Eq a, Eq n, Eq p, Eq l)
+equalExceptFunctionsE :: (NanEq l, NanEq a, NanEq n, NanEq p)
                       => Either l (Value a n p)
                       -> Either l (Value a n p)
                       -> Bool
@@ -61,7 +62,7 @@ equalExceptFunctionsE p q
  , Right q' <- q
  = p' `equalExceptFunctions` q'
  | otherwise
- = p == q
+ = p `nanEq` q
 
 
 -- | Generate a well typed expression.

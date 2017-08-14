@@ -1,4 +1,6 @@
 -- | This is a very simple expression evaluator, the idea being to serve as a spec
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
@@ -13,11 +15,14 @@ module Icicle.Common.Exp.Eval (
     ) where
 
 import Icicle.Common.Base
+import Icicle.Common.NanEq
 import Icicle.Common.Value
 import Icicle.Common.Exp.Exp
 import Icicle.Common.Exp.Compounds
 
 import Icicle.Internal.Pretty
+
+import              GHC.Generics (Generic)
 
 import              P
 
@@ -30,7 +35,7 @@ data RuntimeError a n p
  = RuntimeErrorBadApplication (Value a n p) (Value a n p)
  | RuntimeErrorVarNotInHeap (Name n)
  | RuntimeErrorPrimBadArgs p [Value a n p]
- deriving (Show, Eq)
+ deriving (Show, Eq, Generic, NanEq)
 
 instance (Pretty n, Pretty p) => Pretty (RuntimeError a n p) where
  pretty (RuntimeErrorBadApplication x y)

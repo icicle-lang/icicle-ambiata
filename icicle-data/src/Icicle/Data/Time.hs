@@ -49,6 +49,7 @@ module Icicle.Data.Time (
   , renderOutputTime
   ) where
 
+import           Icicle.Common.NanEq
 import           Control.Monad.IO.Class (MonadIO(..))
 
 import           Data.Attoparsec.Text
@@ -79,6 +80,14 @@ newtype Time =
 -- deepseq stops here, it shouldn't matter too much, we don't particularly
 -- care about values
 instance NFData Time where rnf _ = ()
+
+instance NanEq Time where
+  nanEq =
+    (==)
+
+instance NanEq Date where
+  nanEq =
+    (==)
 
 instance Show Time where
  showsPrec p x

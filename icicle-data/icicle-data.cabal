@@ -70,6 +70,7 @@ library
                        Icicle.Common.Exp.Simp.Beta
                        Icicle.Common.Exp.Simp.ANormal
                        Icicle.Common.Fragment
+                       Icicle.Common.NanEq
                        Icicle.Common.Type
                        Icicle.Common.Value
 

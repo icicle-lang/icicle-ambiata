@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
@@ -40,6 +41,8 @@ module Icicle.Data.Name (
   , outputid
   ) where
 
+import           Icicle.Common.NanEq
+
 import           Data.Data (Data)
 import qualified Data.List as List
 import           Data.Map (Map)
@@ -80,7 +83,7 @@ import           X.Language.Haskell.TH (qparse, dataExp)
 newtype Namespace =
   Namespace {
       unNamespace :: Text
-    } deriving (Eq, Ord, Data, Generic)
+    } deriving (Eq, Ord, Data, Generic, NanEq)
 
 -- | The name of an icicle input.
 --
@@ -101,7 +104,7 @@ newtype Namespace =
 newtype InputName =
   InputName {
       unInputName :: Text
-    } deriving (Eq, Ord, Data, Generic)
+    } deriving (Eq, Ord, Data, Generic, NanEq)
 
 -- | A namespace qualified icicle input name.
 --
@@ -109,14 +112,14 @@ data InputId =
   InputId {
       inputNamespace :: !Namespace
     , inputName :: !InputName
-    } deriving (Eq, Ord, Data, Generic)
+    } deriving (Eq, Ord, Data, Generic, NanEq)
 
 -- | An input name which may or may not be qualified with a namespace.
 --
 data UnresolvedInputId =
     QualifiedInput !InputId
   | UnqualifiedInput !InputName
-    deriving (Eq, Ord, Show, Data, Generic)
+    deriving (Eq, Ord, Show, Data, Generic, NanEq)
 
 -- | The name of an icicle output.
 --
@@ -137,7 +140,7 @@ data UnresolvedInputId =
 newtype OutputName =
   OutputName {
       unOutputName :: Text
-    } deriving (Eq, Ord, Data, Generic)
+    } deriving (Eq, Ord, Data, Generic, NanEq)
 
 -- | A namespace qualified icicle output name.
 --
@@ -145,7 +148,7 @@ data OutputId =
   OutputId {
       outputNamespace :: !Namespace
     , outputName :: !OutputName
-    } deriving (Eq, Ord, Data, Generic)
+    } deriving (Eq, Ord, Data, Generic, NanEq)
 
 instance NFData Namespace
 instance NFData InputName

@@ -10,6 +10,7 @@ import qualified Icicle.Test.Gen.Core.Prim as CoreGenPrim
 import qualified Test.QuickCheck.Hedgehog as Qc
 
 import           Icicle.Test.Arbitrary
+import           Icicle.Test.Arbitrary.NanEq ((=~=))
 
 import qualified Icicle.Avalanche.Annot               as AA
 import           Icicle.Avalanche.Statement.Simp.Melt
@@ -81,7 +82,7 @@ prop_melt_prim = forAll genPrimApps $ \(prim, vals) ->
       (Right [(o1,v1)], Right [(o2,v2)])
        | out == o1
        , out == o2
-       -> v1 === v2
+       -> v1 =~= v2
       (Right os1, Right os2)
        -> counterexample "init eval got: "
         $ counterexample (show os1)

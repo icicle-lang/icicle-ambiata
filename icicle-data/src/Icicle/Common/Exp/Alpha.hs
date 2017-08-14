@@ -7,6 +7,7 @@ module Icicle.Common.Exp.Alpha (
     ) where
 
 import              Icicle.Common.Base
+import              Icicle.Common.NanEq
 import              Icicle.Common.Exp.Exp
 import              P
 
@@ -45,7 +46,7 @@ alphaEquality' m x1 x2
  | XValue _ t1 v1     <- x1
  , XValue _ t2 v2     <- x2
  =  t1 == t2
- && v1 == v2
+ && nanEq v1 v2
 
  -- Recurse with same map
  | XApp _ x11 x12     <- x1
@@ -73,6 +74,7 @@ alphaEquality' m x1 x2
 
  where
   go = alphaEquality' m
+
 
 
 type Ctx n = (Map.Map (Name n) (Name n), Map.Map (Name n) (Name n))
