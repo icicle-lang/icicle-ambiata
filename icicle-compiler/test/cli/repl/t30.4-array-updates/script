@@ -7,3 +7,5 @@
 feature keyed_by_field ~> group (year_of time) ~> count dollarydoos
 
 feature keyed_by_field ~> group (year_of time) ~> newest dollarydoos
+
+feature keyed_by_field ~> let dow = days time ~> filter dow > 0 ~> latest 1 ~> dow
