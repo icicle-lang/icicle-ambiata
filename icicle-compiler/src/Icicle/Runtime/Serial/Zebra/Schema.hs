@@ -220,6 +220,8 @@ encodeColumnSchema = \case
         , (Zebra.Variant "tombstone" Zebra.Unit)
         , (Zebra.Variant "fold1_no_value" Zebra.Unit)
         , (Zebra.Variant "cannot_compute" Zebra.Unit)
+        , (Zebra.Variant "not_a_number" Zebra.Unit)
+        , (Zebra.Variant "index_out_of_bounds" Zebra.Unit)
         ]
 
   Icicle.Pair x y ->
