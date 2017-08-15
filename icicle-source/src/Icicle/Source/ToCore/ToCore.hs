@@ -471,8 +471,9 @@ convertKey env (InputKey (Just k)) (core, ret) = do
         <$> CE.subst () subs ini
         <*> CE.subst () subs kons
       substStream subs (C.SFilter f ss)
-        =   C.SFilter f
-        <$> mapM (substStream subs) ss
+        =   C.SFilter
+        <$> CE.subst () subs f
+        <*> mapM (substStream subs) ss
 
   let substThen f (s : ss) = do
         (s', substs)   <- f [s]

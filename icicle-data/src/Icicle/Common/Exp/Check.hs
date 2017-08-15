@@ -103,7 +103,8 @@ typecheck frag env xx
 
     -- Abstraction
     XLam a n t x
-     -> do  env' <- insertOrDie ExpErrorNameNotUnique env n (FunT [] t)
+     -> first (ExpErrorInContext (ExpErrorContextLambda n t)) $ do
+            env' <- insertOrDie ExpErrorNameNotUnique env n (FunT [] t)
             x'   <- typecheck frag env' x
 
             let tt = annType (annotOfExp x')
@@ -113,7 +114,7 @@ typecheck frag env xx
 
     -- Let binding
     XLet a n x i
-     -> do  x'   <- go x
+     -> do  x'   <- first (ExpErrorInContext (ExpErrorContextLet n)) $ go x
 
             let xt = annType (annotOfExp x')
 
