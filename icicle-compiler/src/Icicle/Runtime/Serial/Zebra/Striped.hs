@@ -319,6 +319,10 @@ decodeResultTags =
       pure Fold1NoValue64
     3 ->
       pure CannotCompute64
+    4 ->
+      pure NotANumber64
+    5 ->
+      pure IndexOutOfBounds64
     n ->
       Left $ ZebraStripedUnknownResultTag n
 
@@ -598,6 +602,10 @@ encodeErrorTags =
       pure 2
     CannotCompute64 ->
       pure 3
+    NotANumber64 ->
+      pure 4
+    IndexOutOfBounds64 ->
+      pure 5
     n ->
       Left $ ZebraStripedUnknownError64 n
 

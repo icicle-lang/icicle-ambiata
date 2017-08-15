@@ -59,11 +59,11 @@ genSnapshotTime =
 
 genError64 :: Gen Error64
 genError64 =
-  Gen.element [NotAnError64, Tombstone64, Fold1NoValue64, CannotCompute64]
+  Gen.element [NotAnError64, Tombstone64, Fold1NoValue64, CannotCompute64, NotANumber64, IndexOutOfBounds64]
 
 genResultError :: Gen Error64
 genResultError =
-  Gen.element [Tombstone64, Fold1NoValue64, CannotCompute64]
+  Gen.element [Tombstone64, Fold1NoValue64, CannotCompute64, NotANumber64, IndexOutOfBounds64]
 
 genTombstoneOrSuccess :: Gen Error64
 genTombstoneOrSuccess =
