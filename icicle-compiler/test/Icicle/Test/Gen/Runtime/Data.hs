@@ -59,11 +59,16 @@ genSnapshotTime =
 
 genError64 :: Gen Error64
 genError64 =
-  Gen.element [NotAnError64, Tombstone64, Fold1NoValue64, CannotCompute64, NotANumber64, IndexOutOfBounds64]
+  Gen.enumBounded
 
 genResultError :: Gen Error64
-genResultError =
-  Gen.element [Tombstone64, Fold1NoValue64, CannotCompute64, NotANumber64, IndexOutOfBounds64]
+genResultError = do
+ -- Generate any tag, but if it's NotAnError just return Tombstone.
+ e <- genError64
+ case e of
+  NotAnError64
+    -> return Tombstone64
+  _ -> return e
 
 genTombstoneOrSuccess :: Gen Error64
 genTombstoneOrSuccess =

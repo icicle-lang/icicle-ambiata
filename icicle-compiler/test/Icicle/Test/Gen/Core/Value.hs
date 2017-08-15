@@ -33,7 +33,7 @@ baseValueForType t
     UnitT
      -> return VUnit
     ErrorT
-     -> return $ VError ExceptTombstone
+     -> VError <$> Gen.enumBounded
     BoolT
      -> VBool <$> Gen.bool
     TimeT

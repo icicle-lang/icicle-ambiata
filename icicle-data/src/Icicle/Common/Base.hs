@@ -118,7 +118,7 @@ data ExceptionInfo
  | ExceptCannotCompute
  | ExceptNotANumber
  | ExceptIndexOutOfBounds
- deriving (Show, Ord, Eq, Generic)
+ deriving (Show, Ord, Eq, Generic, Enum, Bounded)
 
 instance NFData ExceptionInfo
 instance NanEq ExceptionInfo

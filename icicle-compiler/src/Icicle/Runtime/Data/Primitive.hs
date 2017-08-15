@@ -153,11 +153,15 @@ instance Storable UnpackedTime64 where
 newtype Error64 =
   Error64 {
       unError64 :: Word64
-    } deriving (Eq, Ord, Generic, Storable)
+    } deriving (Eq, Ord, Generic, Storable, Enum)
 
 instance Show Error64 where
   showsPrec =
     gshowsPrec
+
+instance Bounded Error64 where
+  minBound = NotAnError64
+  maxBound = IndexOutOfBounds64
 
 -- | A named struct field.
 --
@@ -253,7 +257,7 @@ fromExceptionInfo = \case
   ExceptNotANumber ->
     NotANumber64
   ExceptIndexOutOfBounds ->
-    Tombstone64
+    IndexOutOfBounds64
 {-# INLINE fromExceptionInfo #-}
 
 isError :: Error64 -> Bool
