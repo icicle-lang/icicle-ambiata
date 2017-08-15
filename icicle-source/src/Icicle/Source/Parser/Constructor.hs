@@ -38,6 +38,8 @@ constructors
    ,("ExceptTombstone",         Q.ConError ExceptTombstone)
    ,("ExceptFold1NoValue",      Q.ConError ExceptFold1NoValue)
    ,("ExceptCannotCompute",     Q.ConError ExceptCannotCompute)
+   ,("ExceptNotANumber",        Q.ConError ExceptNotANumber)
+   ,("ExceptIndexOutOfBounds",  Q.ConError ExceptIndexOutOfBounds)
    ]
 
 

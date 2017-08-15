@@ -230,9 +230,9 @@ evalPrim p originalP vs
      PrimBuiltinFun (PrimBuiltinArray (PrimBuiltinIndex _))
       | [VBase (VArray a), VBase (VInt i)] <- vs
       , i >= 0 && i < length a
-      -> return $ VBase $ a List.!! i
+      -> return $ VBase $ VRight $ a List.!! i
       | otherwise
-      -> return $ VBase $ VError ExceptTombstone
+      -> return $ VBase $ VLeft  $ VError ExceptIndexOutOfBounds
 
      -- Relation
      PrimRelation rel _

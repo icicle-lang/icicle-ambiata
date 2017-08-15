@@ -366,3 +366,5 @@
                   |  ExceptTombstone
                   |  ExceptFold1NoValue
                   |  ExceptCannotCompute
+                  |  ExceptNotANumber
+                  |  ExceptIndexOutOfBounds

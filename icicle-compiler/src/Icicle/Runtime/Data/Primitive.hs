@@ -29,6 +29,8 @@ module Icicle.Runtime.Data.Primitive (
   , pattern Tombstone64
   , pattern Fold1NoValue64
   , pattern CannotCompute64
+  , pattern NotANumber64
+  , pattern IndexOutOfBounds64
   , fromExceptionInfo
   , fromError64
   , isError
@@ -226,6 +228,18 @@ pattern CannotCompute64 :: Error64
 pattern CannotCompute64 =
   Error64 3
 
+#if __GLASGOW_HASKELL__ >= 800
+pattern NotANumber64 :: Error64
+#endif
+pattern NotANumber64 =
+  Error64 4
+
+#if __GLASGOW_HASKELL__ >= 800
+pattern IndexOutOfBounds64 :: Error64
+#endif
+pattern IndexOutOfBounds64 =
+  Error64 5
+
 fromExceptionInfo :: ExceptionInfo -> Error64
 fromExceptionInfo = \case
   ExceptNotAnError ->
@@ -236,6 +250,10 @@ fromExceptionInfo = \case
     Fold1NoValue64
   ExceptCannotCompute ->
     CannotCompute64
+  ExceptNotANumber ->
+    NotANumber64
+  ExceptIndexOutOfBounds ->
+    Tombstone64
 {-# INLINE fromExceptionInfo #-}
 
 isError :: Error64 -> Bool
@@ -256,6 +274,10 @@ fromError64 = \case
     Just ExceptFold1NoValue
   CannotCompute64 ->
     Just ExceptCannotCompute
+  NotANumber64 ->
+    Just ExceptNotANumber
+  IndexOutOfBounds64 ->
+    Just ExceptIndexOutOfBounds
   _ ->
     Nothing
 {-# INLINE fromError64 #-}

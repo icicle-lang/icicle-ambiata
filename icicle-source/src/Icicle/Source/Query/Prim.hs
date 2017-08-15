@@ -136,7 +136,7 @@ primLookup' prim
     Fun (BuiltinArray ArrayLength)
      -> f1 $ \a at -> FunctionType [a] [] [ArrayT at] IntT
     Fun (BuiltinArray ArrayIndex)
-     -> f1 $ \a at -> FunctionType [a] [] [ArrayT at, IntT] at
+     -> f1 $ \a at -> FunctionType [a] [] [ArrayT at, IntT] (Possibility PossibilityPossibly at)
 
     Fun (BuiltinMap MapKeys)
      -> f2 $ \a at b bt -> FunctionType [a,b] [] [GroupT at bt] (ArrayT at)
@@ -212,8 +212,9 @@ primLookup' prim
 -- As it is, we're looking at the expression and the result of type inference to decide - trying to work backwards to
 -- figure out what inference did.
 primReturnsPossibly :: Prim -> Type n -> Bool
-primReturnsPossibly (Fun (BuiltinData Box))      _ = True
-primReturnsPossibly (Fun (BuiltinMap MapInsert)) _ = True
+primReturnsPossibly (Fun (BuiltinData  Box))        _ = True
+primReturnsPossibly (Fun (BuiltinMap   MapInsert))  _ = True
+primReturnsPossibly (Fun (BuiltinArray ArrayIndex)) _ = True
 primReturnsPossibly p ty
  | (_, pos, dat)       <- decomposeT ty
  , DoubleT             <- dat

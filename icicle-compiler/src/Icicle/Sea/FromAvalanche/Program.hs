@@ -339,3 +339,9 @@ seaOfError e
      ExceptCannotCompute
       -> "ierror_cannot_compute"
 
+     ExceptNotANumber
+      -> "ierror_not_a_number"
+
+     ExceptIndexOutOfBounds
+      -> "ierror_index_out_of_bounds"
+
