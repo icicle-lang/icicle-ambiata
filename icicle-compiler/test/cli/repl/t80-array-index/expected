@@ -56,4 +56,25 @@ marge|tombstone
 homer|tombstone
 marge|tombstone
 
-λ 
+λ λ -- Varied possibilities: Array is Definitely of Definitely
+λ Core evaluation
+---------------
+
+homer|149690
+marge|142370
+
+λ λ -- Array is Possibly of Definitely
+λ Core evaluation
+---------------
+
+homer|149690
+marge|142370
+
+λ λ -- Array is Possibly of Possibly
+λ Core evaluation
+---------------
+
+homer|500
+marge|20
+
+λ λ 
