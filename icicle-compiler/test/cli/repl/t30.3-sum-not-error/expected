@@ -175,7 +175,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                     flatzm6zmsimpflatzm21     = ierror_not_an_error;                  /* write */
                     flatzm6zmsimpflatzm22     = idouble_add (simpflatzm66, 1.0);      /* write */
                 } else {
-                    flatzm6zmsimpflatzm21     = ierror_cannot_compute;                /* write */
+                    flatzm6zmsimpflatzm21     = ierror_not_a_number;                  /* write */
                     flatzm6zmsimpflatzm22     = 0.0;                                  /* write */
                 }
                 
