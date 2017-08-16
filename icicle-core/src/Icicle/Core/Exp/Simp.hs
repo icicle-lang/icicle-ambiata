@@ -69,6 +69,7 @@ simpX a_fresh = go . B.beta
 --
 simpP :: (Hashable n, Eq n) => a -> Prim -> [Value a n Prim] -> Maybe (C.Exp a n)
 simpP a_fresh p vs
+ | length (functionArguments $ C.typeOfPrim p) == length vs
  = case CE.evalPrim p vs of
     Right (VBase b)
      -> Just
@@ -79,6 +80,8 @@ simpP a_fresh p vs
      -> Nothing
     Left _
      -> Nothing
+ | otherwise
+ = Nothing
 
 
 -- | Dead binding removal
