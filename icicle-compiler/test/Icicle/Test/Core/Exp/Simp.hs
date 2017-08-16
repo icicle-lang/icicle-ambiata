@@ -87,10 +87,12 @@ prop_core_simp_type = property $ do
 -- Core simplification preserves result
 prop_core_simp_eval = property $ do
   x <- forAll (fst <$> genExpTop)
-  eval0 evalPrim x `hedgehogNanEq` eval0 evalPrim
-   ( snd
-   $ Fresh.runFresh (CoreSimp.simp () x)
-                    (Fresh.counterNameState (NameBase . Var "anf") 0))
+  annotate (show . pretty $ x)
+  let x' = snd
+         $ Fresh.runFresh (CoreSimp.simp () x)
+                          (Fresh.counterNameState (NameBase . Var "anf") 0)
+  annotate (show . pretty $ x')
+  eval0 evalPrim x `hedgehogNanEq` eval0 evalPrim x'
 
 
 return []
