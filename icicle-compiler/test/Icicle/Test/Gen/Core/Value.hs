@@ -62,16 +62,16 @@ baseValueForType t
      -> Gen.small
       (VStruct <$> traverse baseValueForType fs)
 
-genExceptionInfo :: Gen ExceptionInfo
-genExceptionInfo
+genExceptionInfo :: MonadGen m => m ExceptionInfo
+genExceptionInfo = do
  -- Because of the melted representation of (Sum Error a), we cannot distinguish between these two:
  -- > Left  ExceptNotAnError
  -- > Right default
  -- So we cannot generate NotAnError.
  e <- Gen.enumBounded
  case e of
-  NotAnError
-    -> return Tombstone
+  ExceptNotAnError
+    -> return ExceptTombstone
   _ -> return e
 
 r10 :: Integral a => Range a
