@@ -108,22 +108,60 @@ genStructField = StructField <$> Gen.element colours
 --
 genOrdValType :: Gen ValType
 genOrdValType = Gen.recursive Gen.choice
-    genPrimTypes
+  [ return UnitT
+  , return BoolT
+  , return IntT
+  , return TimeT
+  , return StringT ]
   [ PairT   <$> genOrdValType <*> genOrdValType
   , OptionT <$> genOrdValType
   , SumT    <$> genOrdValType <*> genOrdValType
   , StructT <$> genStructType' genOrdValType
   ]
 
+-- Try to generate an Ord type based on an arbitrary type.
+-- If the type contains an array or map, we will just replace it with the element type:
+--
+-- > Int                ==> Int
+-- > Array a            ==> a
+-- > (Array a, Map k v) ==> (a, k)
+-- > (Array a, Map k v) ==> (a, v)
+--
+genOrdValTypeOf :: ValType -> Gen ValType
+genOrdValTypeOf t = case t of
+  _ | isOrdValType t -> return t
+  PairT a b
+   -> PairT <$> genOrdValTypeOf a <*> genOrdValTypeOf b
+  SumT a b
+   -> SumT <$> genOrdValTypeOf a <*> genOrdValTypeOf b
+  OptionT a
+   -> OptionT <$> genOrdValTypeOf a
+  StructT (StructType fs)
+   -> Gen.choice (genOrdValType : fmap genOrdValTypeOf (Map.elems fs))
+  ArrayT a
+   -> genOrdValTypeOf a
+  MapT k v
+   -> Gen.choice [genOrdValTypeOf k, genOrdValTypeOf v]
+  BufT _ a
+   -> genOrdValTypeOf a
+  -- Generate a primitive if we can't salvage any of it.
+  -- Eg. if the input type is Double
+  _
+   -> genOrdValType
+
+genOrdValTypeOf' :: Gen ValType -> Gen ValType
+genOrdValTypeOf' genT = genT >>= genOrdValTypeOf
+
 isOrdValType :: ValType -> Bool
 isOrdValType t = case t of
  IntT       -> True
  UnitT      -> True
  BoolT      -> True
- DoubleT    -> True
  TimeT      -> True
  StringT    -> True
  ErrorT     -> True
+ -- Double is not "Ord" because NaN cannot be used as the key of a Map.
+ DoubleT    -> False
  PairT a b  -> isOrdValType a && isOrdValType b
  SumT a b   -> isOrdValType a && isOrdValType b
  OptionT a  -> isOrdValType a
@@ -171,7 +209,7 @@ genOutputType = Gen.recursive Gen.choice
   , SumT ErrorT <$> genOutputType
   , PairT   <$> genOutputType <*> genOutputType
   , ArrayT  <$> genOutputType
-  , MapT    <$> genPrimType   <*> genOutputType
+  , MapT    <$> genOrdValType <*> genOutputType
   , StructT <$> genStructType' genOutputType
   ]
 
