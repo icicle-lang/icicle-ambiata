@@ -196,20 +196,4 @@ genInputType = Gen.recursive Gen.choice
   ]
 
 genOutputType :: Gen ValType
-genOutputType = Gen.recursive Gen.choice
-  -- FIXME
-  -- This is the subset of output types unsupported by PSV.
-  -- Change this to normal type generator when we switch to Zebra.
-  [ return BoolT
-  , return IntT
-  , return DoubleT
-  , return TimeT
-  , return StringT ]
-  [ OptionT <$> genOutputType
-  , SumT ErrorT <$> genOutputType
-  , PairT   <$> genOutputType <*> genOutputType
-  , ArrayT  <$> genOutputType
-  , MapT    <$> genOrdValType <*> genOutputType
-  , StructT <$> genStructType' genOutputType
-  ]
-
+genOutputType = genValType

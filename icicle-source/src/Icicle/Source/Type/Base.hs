@@ -13,6 +13,8 @@ module Icicle.Source.Type.Base (
   , valTypeOfType
   , Constraint  (..)
   , FunctionType(..)
+  , Excuse      (..)
+  , excusePairOfExcuse , excuseRemember
   , Annot (..)
   , annotDiscardConstraints
   , prettyFun
@@ -126,6 +128,22 @@ data Constraint n
 
 instance NFData n => NFData (Constraint n)
 
+-- An excuse is a constraint with information about where the constraint came from.
+data Excuse a n
+ = Excuse
+ { excuseAnnot      :: a
+ , excuseConstraint :: Constraint n
+ , excuseHistory    :: [(a, Constraint n)]
+ } deriving (Eq, Ord, Show, Generic)
+
+instance (NFData a, NFData n) => NFData (Excuse a n)
+
+excusePairOfExcuse :: Excuse a n -> (a, Constraint n)
+excusePairOfExcuse ex = (excuseAnnot ex, excuseConstraint ex)
+
+excuseRemember :: [(a, Constraint n)] -> Excuse a n -> Excuse a n
+excuseRemember an ex = ex { excuseHistory = excuseHistory ex <> an }
+
 data FunctionType n
  = FunctionType
  { functionForalls      :: [Name n]
@@ -141,7 +159,7 @@ data Annot a n
  = Annot
  { annAnnot         :: a
  , annResult        :: Type n
- , annConstraints   :: [(a, Constraint n)]
+ , annConstraints   :: [Excuse a n]
  }
  deriving (Eq, Ord, Show, Generic)
 
@@ -249,4 +267,11 @@ instance Pretty n => Pretty (FunctionType n) where
 instance (Pretty n) => Pretty (Annot a n) where
   pretty ann =
     prettyItems sep (pretty $ annResult ann) $
-      fmap (PrettyItem (prettyPunctuation "=>") . pretty . snd) (annConstraints ann)
+      fmap (PrettyItem (prettyPunctuation "=>") . pretty . excuseConstraint) (annConstraints ann)
+
+instance (Pretty a, Pretty n) => Pretty (Excuse a n) where
+  pretty ex =
+    ppp (excusePairOfExcuse ex) <> line <>
+    indent 2 (vsep $ fmap ppp $ excuseHistory ex) <> line
+   where
+    ppp (a,c) = pretty c <+> prettyPunctuation "(" <> pretty a <> prettyPunctuation ")"

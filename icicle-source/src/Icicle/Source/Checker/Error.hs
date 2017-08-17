@@ -43,8 +43,8 @@ data ErrorInfo a n
  | ErrorContextNotAllowedHere  a (Context a n)
  | ErrorFunctionWrongArgs      a (Exp a n) (FunctionType n) [Type n]
  | ErrorApplicationNotFunction a (Exp a n)
- | ErrorConstraintsNotSatisfied a [(a, DischargeError n)]
- | ErrorConstraintLeftover      a [(a, Constraint n)]
+ | ErrorConstraintsNotSatisfied a [(Excuse a n, DischargeError n)]
+ | ErrorConstraintLeftover      a [Excuse a n]
  | ErrorReturnNotAggregate a (Type n)
  | ErrorDuplicateFunctionNames a (Name n)
  | ErrorEmptyCase a (Exp a n)
@@ -168,7 +168,7 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
       vsep [
           "Unsolved constraints at " <+> pretty a
         , mempty
-        , vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
+        , indent 2 $ vcat (fmap pretty ds)
         ]
 
     ErrorReturnNotAggregate a t ->

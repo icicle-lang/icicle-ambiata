@@ -77,7 +77,7 @@ checkF' fun env
       args <- mapM (lookupArg subs env') (arguments fun)
 
       -- Find all leftover constraints and nub them
-      let constrs = fmap snd cons
+      let constrs = fmap excuseConstraint cons
 
       -- We want to remove any modes (temporalities or possibilities)
       -- that are bound by foralls with no constraints on them.

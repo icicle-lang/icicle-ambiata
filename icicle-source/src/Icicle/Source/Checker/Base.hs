@@ -116,7 +116,7 @@ defaultCheckOptions = optionSmallData
 
 
 type GenEnv n             = Map.Map (Name n) (FunctionType n)
-type GenConstraintSet a n = [(a, Constraint n)]
+type GenConstraintSet a n = [Excuse a n]
 
 data DischargeInfo a n = DischargeInfo
   { dischargeType :: Type n
@@ -125,7 +125,7 @@ data DischargeInfo a n = DischargeInfo
   }
  deriving Show
 
-instance (Pretty n) => Pretty (DischargeInfo a n) where
+instance (Pretty a, Pretty n) => Pretty (DischargeInfo a n) where
  pretty (DischargeInfo t cs s)
   = vsep ([ty] <> cons' <> subs')
   where
@@ -141,7 +141,7 @@ instance (Pretty n) => Pretty (DischargeInfo a n) where
     | otherwise
     = [subs]
 
-   cons = "C: " <> indent 0 (vsep $ fmap (pretty . snd) cs)
+   cons = "C: " <> indent 0 (vsep $ fmap pretty cs)
    subs = "S: " <> indent 0 (vsep $ fmap (\(k,v) -> pretty k <> " = " <> pretty v) $ Map.toList s)
 
 
@@ -196,7 +196,7 @@ type Exp'C   a n = Exp   (Annot a n) n
 
 -- | Add a constraint to the context.
 require :: a -> Constraint n -> GenConstraintSet a n
-require a c = [(a,c)]
+require a c = [Excuse a c []]
 
 -- | Discharge the constraints in some context after applying some type substitutions.
 --
@@ -210,11 +210,11 @@ discharge annotOf sub (q, s, conset)
  = do let annot     = annotOf q
       let log_ppr   = pretty q
       let log_info0 = DischargeInfo (annResult annot) conset s
-      let cs = nubConstraints $ fmap (\(a,c) -> (a, substC s c)) conset
+      let cs = nubConstraints $ fmap (\ex -> ex { excuseConstraint = substC s $ excuseConstraint ex }) conset
 
       case dischargeCS cs of
        Left errs -> do
-        checkLog (CheckLogDischargeError log_ppr log_info0 errs) 
+        checkLog (CheckLogDischargeError log_ppr log_info0 $ fmap (\(ex,er) -> (excuseAnnot ex, er)) errs)
         genHoistEither $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot annot) errs)
        Right (s', cs') -> do
         let s'' = compose s s'
@@ -310,5 +310,5 @@ substAnnot :: (Hashable n, Eq n) => SubstT n -> Annot a n -> Annot a n
 substAnnot s ann
  = ann
  { annResult = substT s $ annResult ann
- , annConstraints = nubConstraints $ fmap (\(a,c) -> (a, substC s c)) $ annConstraints ann
+ , annConstraints = nubConstraints $ fmap (\ex -> ex { excuseConstraint = substC s $ excuseConstraint ex }) $ annConstraints ann
  }

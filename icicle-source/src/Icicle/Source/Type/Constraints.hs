@@ -30,9 +30,8 @@ import           P hiding (join)
 
 -- | Result of discharging a single constraint
 data DischargeResult n
- -- | Don't yet know whether the constraint is satisfied
- -- This is really only for things like "IsNum a"
- = DischargeLeftover (Constraint n)
+ -- | Don't yet know whether the constraint is satisfied, and it doesn't change.
+ = DischargeLeftover
  -- | Constraint requires a substitution
  | DischargeSubst (SubstT n)
  deriving (Eq, Ord, Show, Generic)
@@ -79,7 +78,7 @@ dischargeC c
     CIsNum DoubleT
      -> return $ DischargeSubst Map.empty
     CIsNum (TypeVar _)
-     -> return $ DischargeLeftover c
+     -> return $ DischargeLeftover
     CIsNum t
      -> Left   $ NotANumber t
 
@@ -88,7 +87,7 @@ dischargeC c
     CPossibilityOfNum poss DoubleT
      -> dischargeC (CEquals poss PossibilityPossibly)
     CPossibilityOfNum _ (TypeVar _)
-     -> return $ DischargeLeftover c
+     -> return $ DischargeLeftover
     CPossibilityOfNum _ t
      -> Left   $ NotANumber t
 
@@ -113,9 +112,9 @@ dischargeC c
      -> dischargeC $ CEquals atemp btemp
 
     CTemporalityJoin _ _ (TypeVar _)
-     -> return $ DischargeLeftover c
+     -> return $ DischargeLeftover
     CTemporalityJoin _ (TypeVar _) _
-     -> return $ DischargeLeftover c
+     -> return $ DischargeLeftover
     CTemporalityJoin (TypeVar v) atemp btemp
      -> do temp <- lub atemp btemp
            return $ DischargeSubst $ Map.fromList [(v, temp)]
@@ -129,9 +128,9 @@ dischargeC c
      | def == body
      -> dischargeC (CEquals ret def)
     CReturnOfLetTemporalities _ (TypeVar _) _
-     -> return $ DischargeLeftover c
+     -> return $ DischargeLeftover
     CReturnOfLetTemporalities _ _ (TypeVar _)
-     -> return $ DischargeLeftover c
+     -> return $ DischargeLeftover
     CReturnOfLetTemporalities ret def body
      -> case returnOfLet def body of
          Just tmp
@@ -144,14 +143,14 @@ dischargeC c
          Just ret'
           -> dischargeC (CEquals ret ret')
          _
-          -> return $ DischargeLeftover c
+          -> return $ DischargeLeftover
 
     CPossibilityOfLatest ret tmp pos
      -> case possibilityOfLatest tmp pos of
          Just ret'
           -> dischargeC (CEquals ret ret')
          _
-          -> return $ DischargeLeftover c
+          -> return $ DischargeLeftover
 
 
     CPossibilityJoin ret PossibilityPossibly _
@@ -166,7 +165,7 @@ dischargeC c
      | y == z
      -> dischargeC (CEquals ret y)
     CPossibilityJoin _ _ _
-     -> return $ DischargeLeftover c
+     -> return $ DischargeLeftover
 
  where
   lub (TemporalityPure) x = return x
@@ -239,10 +238,10 @@ dischargeC'toplevel
         -> Either (DischargeError n) (DischargeResult n)
 dischargeC'toplevel cons
  = case dischargeC cons of
-    Right (DischargeLeftover cons')
-     | CTemporalityJoin a b c <- cons'
+    Right DischargeLeftover
+     | CTemporalityJoin a b c <- cons
      -> DischargeSubst <$> discharges [(a,b), (b,c)] Map.empty
-     | CPossibilityJoin a b c <- cons'
+     | CPossibilityJoin a b c <- cons
      -> DischargeSubst <$> discharges [(a,b), (b,c)] Map.empty
     dish
      -> dish
@@ -259,8 +258,8 @@ dischargeC'toplevel cons
 
 dischargeCS
         :: (Hashable n, Eq n)
-        => [(a, Constraint n)]
-        -> Either [(a, DischargeError n)] (SubstT n, [(a, Constraint n)])
+        => [Excuse a n]
+        -> Either [(Excuse a n, DischargeError n)] (SubstT n, [Excuse a n])
 dischargeCS = dischargeCS' dischargeC
 
 
@@ -269,8 +268,8 @@ dischargeCS = dischargeCS' dischargeC
 dischargeCS'
         :: (Hashable n, Eq n)
         => (Constraint n -> Either (DischargeError n) (DischargeResult n))
-        -> [(a, Constraint n)]
-        -> Either [(a, DischargeError n)] (SubstT n, [(a, Constraint n)])
+        -> [Excuse a n]
+        -> Either [(Excuse a n, DischargeError n)] (SubstT n, [Excuse a n])
 dischargeCS' solver
  -- Accumulators: substitution, leftover constraints and errors
  = go Map.empty [] []
@@ -283,14 +282,14 @@ dischargeCS' solver
    = Left errs
 
   -- Try to discharge one constraint
-  go s cs errs ((a,c):rest)
-   = case solver c of
+  go s cs errs (r : rest)
+   = case solver $ excuseConstraint r of
       -- Error, so just add it to the list
       Left e
-       -> go s cs ((a,e):errs) rest
+       -> go s cs ((r,e):errs) rest
       -- Leftover, so add to leftovers list
-      Right (DischargeLeftover c')
-       -> go s ((a,c'):cs) errs rest
+      Right DischargeLeftover
+       -> go s (r:cs) errs rest
       -- If the constraint results in a substitution,
       -- it might be able to discharge some earlier leftovers.
       -- Perform the substitution over the leftovers and the rest.
@@ -301,27 +300,31 @@ dischargeCS' solver
       Right (DischargeSubst s')
        | not $ Map.null s'
        -> go (compose s s') [] errs
-        $ fmap (substOver s') (cs <> rest)
+        $ fmap (substOver s' (excusePairOfExcuse r : excuseHistory r)) (cs <> rest)
        -- However, as a special case, if the substitution is empty
        -- we needn't re-check the leftovers
        | otherwise
        -> go s cs errs rest
 
-  substOver s (a,c)
-   = (a, substC s c)
+  substOver s history r
+   = let c  = excuseConstraint r
+         c' = substC s c
+     in if   c == c'
+        then r
+        else excuseRemember history r { excuseConstraint = c' }
 
 
 nubConstraints
     :: (Hashable n, Eq n)
-    => [(a, Constraint n)]
-    -> [(a, Constraint n)]
+    => [Excuse a n]
+    -> [Excuse a n]
 nubConstraints cs
  = concatMap removeEmpties
- $ nubBy ((==) `on` snd) cs
+ $ nubBy ((==) `on` excuseConstraint) cs
  where
-  removeEmpties (a,c)
-   | Right (DischargeSubst sub) <- dischargeC c
+  removeEmpties c
+   | Right (DischargeSubst sub) <- dischargeC $ excuseConstraint c
    , Map.null sub
    = []
    | otherwise
-   = [(a,c)]
+   = [c]

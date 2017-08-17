@@ -58,7 +58,7 @@ defaults topq
   -- Convert numeric constraints to Ints
   defaultNums
    = Map.fromList
-   $ concatMap (defaultOfConstraint . snd)
+   $ concatMap (defaultOfConstraint . excuseConstraint)
    $ annConstraints
    $ annotOfQuery topq
 
@@ -145,13 +145,13 @@ constraintsQ
 constraintsQ env q
  = do (x, cons) <- evalGenNoLog $ top
       -- We must have been able to solve all constraints except numeric requirements.
-      if   all (isNumConstraint . snd) cons
+      if   all (isNumConstraint . excuseConstraint) cons
       then right x
       else hoistEither
             $ errorNoSuggestions
             $ ErrorConstraintLeftover
                (annotOfQuery q)
-               (filter (not . isNumConstraint . snd) cons)
+               (filter (not . isNumConstraint . excuseConstraint) cons)
  where
   isNumConstraint CIsNum{}            = True
   isNumConstraint CPossibilityOfNum{} = True
