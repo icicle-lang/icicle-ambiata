@@ -15,13 +15,13 @@
 	url = https://github.com/ambiata/anemone
 [submodule "lib/zebra"]
 	path = lib/zebra
-	url = git@github.com:ambiata/zebra
+	url = https://github.com/ambiata/zebra
 [submodule "lib/snapper"]
 	path = lib/snapper
-	url = git@github.com:ambiata/snapper
+	url = https://github.com/ambiata/snapper
 [submodule "lib/piano"]
 	path = lib/piano
-	url = git@github.com:ambiata/piano
+	url = https://github.com/ambiata/piano
 [submodule "lib/viking"]
 	path = lib/viking
-	url = git@github.com:ambiata/viking
+	url = https://github.com/ambiata/viking
