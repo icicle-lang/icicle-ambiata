@@ -143,44 +143,32 @@ quantile_on_sorted p array
     -> None
    end.
 
+# Helper function for 'days_in' below
+map_update_days_in state previous_time current_time state_days =
+  let
+    n =
+      days between previous_time current_time
+  ~>
+  case map_lookup state state_days
+  | None ->
+      map_insert state n state_days
+  | Some n0 ->
+      map_insert state (n0 + n) state_days
+  end.
+
 # Count the days that an entity has spent in different states.
 # e.g. days_in state time now = [("NSW", 20), ("QLD", 1)]
-days_in x tx now
- =  let x'  = newest x
- ~> let tx' = newest tx
- ~> let nx' = days between tx' now
- ~> fold ds
-      = ((None, 0), map_create)
-      : case ds
-         |  ((None        , _     ), m)
-         -> ((Some (x, tx), 1     ), m)
-         |  ((Some (v, tv), nv    ), m)
-         -> (  let nx = days between tv tx
-            ~> let n  = nv + nx
-            ~> case v == x
-                | True
-                -> ((Some (x, tx), nv + nx), m)
-                | False
-                -> (  let m' = (  let nv_ = map_lookup v m
-                               ~> case nv_
-                                   | None
-                                   -> map_insert v n m
-                                   | Some nv'
-                                   -> map_insert v (n + nv') m
-                                  end
-                                )
-                   ~> (Some (x, tx), 0, m')
-                   )
-               end
-            )
+days_in state fact_time query_time =
+  fold1
+    stm =
+        ((state, fact_time), map_create)
+      : case stm | ((s, t), m) ->
+          ((state, fact_time), map_update_days_in s t fact_time m)
         end
- ~> let m   = snd ds
- ~> case map_lookup x' m
-     | None
-     -> map_insert x'  nx'     m
-     | Some n
-     -> map_insert x' (nx'+ n) m
-    end.
+  ~>
+  case stm | ((s, t), m) ->
+    map_update_days_in s t query_time m
+  end.
 
 # The offsets (in days) of facts.
 date_offset_days time

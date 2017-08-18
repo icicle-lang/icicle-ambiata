@@ -1,6 +1,6 @@
 Queries will no longer be evaluated using the C evaluator.
 Snapshot mode activated with a snapshot date of 2017-01-01.
-Loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+Loaded dictionary with 5 inputs, 0 outputs, 39 functions.
 Selected psv file as input: test/cli/repl/data.psv
 
   ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
@@ -15,7 +15,7 @@ Selected psv file as input: test/cli/repl/data.psv
      ░            ░
                   ░     :help for help
 
-λ Loaded dictionary with 4 inputs, 4 outputs, 38 functions.
+λ Loaded dictionary with 4 inputs, 4 outputs, 39 functions.
 λ Selected psv file as input: data/example/demographics.psv
 λ Queries will be evaluated using the core evaluator.
 λ Queries will be evaluated using the C evaluator.
@@ -112,7 +112,7 @@ C evaluation
 homer|2017
 marge|2017
 
-λ λ Snapshot mode activated with a snapshot date of 2016-01-01.
+λ λ Snapshot mode activated with a snapshot date of 2015-12-31.
 λ λ Core evaluation
 ---------------
 
@@ -129,21 +129,21 @@ marge|2016
 λ λ Core evaluation
 ---------------
 
-homer|( 7123.0
-      , [ 9497
-        , 8036
-        , 6210
-        , 2192
+homer|( 7122.0
+      , [ 9496
+        , 8035
+        , 6209
+        , 2191
         ] )
 
 C evaluation
 ------------
 
-homer|( 7123.0
-      , [ 9497
-        , 8036
-        , 6210
-        , 2192
+homer|( 7122.0
+      , [ 9496
+        , 8035
+        , 6209
+        , 2191
         ] )
 
 λ λ -- Invaild quantile arguments
@@ -151,39 +151,39 @@ homer|( 7123.0
 ---------------
 
 homer|( tombstone
-      , [ 9497
-        , 8036
-        , 6210
-        , 2192
+      , [ 9496
+        , 8035
+        , 6209
+        , 2191
         ] )
 
 C evaluation
 ------------
 
 homer|( tombstone
-      , [ 9497
-        , 8036
-        , 6210
-        , 2192
+      , [ 9496
+        , 8035
+        , 6209
+        , 2191
         ] )
 
-λ λ Loaded dictionary with 1 inputs, 0 outputs, 38 functions.
+λ λ Loaded dictionary with 1 inputs, 0 outputs, 39 functions.
 λ Selected psv file as input: test/cli/repl/t31-builtin/data.psv
-λ λ -- NY should be 1.5 years, CA should be 3 years, OR should be 0.5 years
+λ λ -- NY should be 1 year, CA should be 4 years, OR should be 1 year
 λ Core evaluation
 ---------------
 
 homer|[ ("CA", 1461)
-      , ("NY", 581)
-      , ("OR", 151)
+      , ("NY", 365)
+      , ("OR", 365)
       ]
 
 C evaluation
 ------------
 
 homer|[ ("CA", 1461)
-      , ("NY", 581)
-      , ("OR", 151)
+      , ("NY", 365)
+      , ("OR", 365)
       ]
 
 λ 

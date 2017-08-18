@@ -1,6 +1,6 @@
 Queries will no longer be evaluated using the C evaluator.
 Snapshot mode activated with a snapshot date of 2017-01-01.
-Loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+Loaded dictionary with 5 inputs, 0 outputs, 39 functions.
 Selected psv file as input: test/cli/repl/data.psv
 
   ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
@@ -17,7 +17,7 @@ Selected psv file as input: test/cli/repl/data.psv
 
 λ -- Load a zebra file
 λ Loaded dictionary with 1 inputs, 0 outputs, 0 functions.
-Loaded 38 functions from prelude.icicle
+Loaded 39 functions from prelude.icicle
 Selected zebra binary file as input: data/example/sample.zbin
 λ Queries will be evaluated using the C evaluator.
 λ Snapshot mode activated with a snapshot date of 2016-02-01.
