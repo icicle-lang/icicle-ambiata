@@ -1,6 +1,6 @@
 Queries will no longer be evaluated using the C evaluator.
 Snapshot mode activated with a snapshot date of 2017-01-01.
-Loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+Loaded dictionary with 5 inputs, 0 outputs, 39 functions.
 Selected psv file as input: test/cli/repl/data.psv
 
   ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
@@ -17,7 +17,7 @@ Selected psv file as input: test/cli/repl/data.psv
 
 λ Queries will be evaluated using the C evaluator.
 λ Queries will be evaluated using the core evaluator.
-λ λ Loaded dictionary with 5 inputs, 0 outputs, 38 functions.
+λ λ Loaded dictionary with 5 inputs, 0 outputs, 39 functions.
 λ Selected psv file as input: test/cli/repl/t30.4-array-updates/data.psv
 λ λ Core evaluation
 ---------------
