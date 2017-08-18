@@ -16,6 +16,7 @@ import           Disorder.Jack.Property (Property, counterexample)
 import           Disorder.Jack.Property.Diff (renderDiffs)
 
 import qualified Hedgehog
+import qualified Hedgehog.Internal.Source as Hedgehog
 
 import           P
 
@@ -44,22 +45,22 @@ infix 4 =~=
 
 infix 4 `hedgehogNanEq`
 
-hedgehogNanEq :: (NanEq a, Show a, Hedgehog.MonadTest m) => a -> a -> m ()
+hedgehogNanEq :: (NanEq a, Show a, Hedgehog.MonadTest m, Hedgehog.HasCallStack) => a -> a -> m ()
 hedgehogNanEq x0 y0 =
-  let
-    render =
-      case (Pretty.reify x0, Pretty.reify y0) of
-        (Just x, Just y) ->
-          renderDiffs x y
-        _ ->
-          ppShow x0 <>
-          " =/= " <>
-          ppShow y0
-    
-  in case nanEq x0 y0 of
-      True -> return ()
-      False -> do
-        Hedgehog.annotate "=== Not NaN equal ==="
-        Hedgehog.annotate render
-        Hedgehog.failure
+  Hedgehog.withFrozenCallStack $
+    let
+      render =
+        case (Pretty.reify x0, Pretty.reify y0) of
+          (Just x, Just y) ->
+            renderDiffs x y
+          _ ->
+            ppShow x0 <>
+            " =/= " <>
+            ppShow y0
 
+    in case nanEq x0 y0 of
+        True -> return ()
+        False -> do
+          Hedgehog.annotate "=== Not NaN equal ==="
+          Hedgehog.annotate render
+          Hedgehog.failure

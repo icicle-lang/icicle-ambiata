@@ -536,8 +536,31 @@ joinClusterInputs clusters inputs =
     else
       pure both
 
+runQueryAll ::
+      (InputColumn -> Either StencilError Stencil)
+    -> Runtime
+    -> MaximumMapSize
+    -> Input
+    -> Boxed.Vector key
+    -> EitherT RuntimeError IO (Output key)
+runQueryAll mkStencil runtime maxsize input keys = do
+  both <- hoistEither $ joinClusterInputs (runtimeClusters runtime) (inputColumns input)
+
+  inputs <-
+    hoistEither . first RuntimeStencilError .
+      traverse (\(cluster, column) -> ((cluster, column),) <$> mkStencil column) $ Map.elems both
+
+  let
+    mask =
+      dropAllEmpty .
+      Boxed.fromList $
+      fmap snd inputs
+
+  fmap (maskOutput mask . Output keys . Map.unions) . for inputs $ \((cluster, column), stencil) ->
+    runQuery cluster maxsize stencil column
+
 snapshotBlock :: Runtime -> MaximumMapSize -> SnapshotTime -> Input -> EitherT RuntimeError IO (Output SnapshotKey)
-snapshotBlock runtime maxsize stime input = do
+snapshotBlock runtime maxsize stime input =
   let
     eids =
       inputKey input
@@ -545,14 +568,13 @@ snapshotBlock runtime maxsize stime input = do
     keys =
       fmap SnapshotKey eids
 
-  both <- hoistEither $ joinClusterInputs (runtimeClusters runtime) (inputColumns input)
-
-  fmap (Output keys . Map.unions) . for (Map.elems both) $ \(cluster, column) -> do
-    stencil <- hoistEither . first RuntimeStencilError . snapshotStencil stime $ inputSegmentedTime column
-    runQuery cluster maxsize stencil column
+    mkStencil =
+      snapshotStencil stime . inputSegmentedTime
+  in
+    runQueryAll mkStencil runtime maxsize input keys
 
 chordBlock :: Runtime -> MaximumMapSize -> ChordDescriptor -> Input -> EitherT RuntimeError IO (Output ChordKey)
-chordBlock runtime maxsize descriptor input = do
+chordBlock runtime maxsize descriptor input =
   let
     eids =
       inputKey input
@@ -571,11 +593,10 @@ chordBlock runtime maxsize descriptor input = do
     qtimes =
       toSegmented $ fmap (Storable.convert . fmap snd) keyedTimes
 
-  both <- hoistEither $ joinClusterInputs (runtimeClusters runtime) (inputColumns input)
-
-  fmap (Output keys . Map.unions) . for (Map.elems both) $ \(cluster, column) -> do
-    stencil <- hoistEither . first RuntimeStencilError . chordStencil qtimes $ inputSegmentedTime column
-    runQuery cluster maxsize stencil column
+    mkStencil =
+      chordStencil qtimes . inputSegmentedTime
+  in
+    runQueryAll mkStencil runtime maxsize input keys
 
 ------------------------------------------------------------------------
 -- Skeleton for generated cluster state

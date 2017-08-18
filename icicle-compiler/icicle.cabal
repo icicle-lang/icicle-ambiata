@@ -154,6 +154,7 @@ library
                        Icicle.Runtime.Data.Array
                        Icicle.Runtime.Data.IO
                        Icicle.Runtime.Data.Logical
+                       Icicle.Runtime.Data.Mask
                        Icicle.Runtime.Data.Primitive
                        Icicle.Runtime.Data.Schema
                        Icicle.Runtime.Data.Striped

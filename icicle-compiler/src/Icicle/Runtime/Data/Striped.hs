@@ -16,6 +16,7 @@ module Icicle.Runtime.Data.Striped (
   , unsafeConcat
   , unsafeAppend
   , splitAt
+  , mask
 
   , meltedCount
   , toArrays
@@ -56,6 +57,7 @@ import           Icicle.Runtime.Data.Array (Array, ArrayError)
 import qualified Icicle.Runtime.Data.Array as Array
 import           Icicle.Runtime.Data.Logical (LogicalError)
 import qualified Icicle.Runtime.Data.Logical as Logical
+import           Icicle.Runtime.Data.Mask
 import           Icicle.Runtime.Data.Primitive
 import           Icicle.Runtime.Data.Schema (Schema)
 import qualified Icicle.Runtime.Data.Schema as Schema
@@ -1048,3 +1050,49 @@ splitAt i = \case
     in
       (Map ns0 k0 v0, Map ns1 k1 v1)
 {-# INLINABLE splitAt #-}
+
+mask :: Boxed.Vector Mask -> Column -> Column
+mask ms = \case
+  Unit n ->
+    Unit (Boxed.length . Boxed.filter isKeep $ Boxed.take n ms)
+
+  Bool xs ->
+    Bool (maskStorable ms xs)
+
+  Int xs ->
+    Int (maskStorable ms xs)
+
+  Double xs ->
+    Double (maskStorable ms xs)
+
+  Time xs ->
+    Time (maskStorable ms xs)
+
+  Sum tags xs ys ->
+    Sum (maskStorable ms tags) (mask ms xs) (mask ms ys)
+
+  Option tags xs ->
+    Option (maskStorable ms tags) (mask ms xs)
+
+  Result tags xs ->
+    Result (maskStorable ms tags) (mask ms xs)
+
+  Pair xs ys ->
+    Pair (mask ms xs) (mask ms ys)
+
+  Struct xss ->
+    Struct (fmap (fmap (mask ms)) xss)
+
+  String ns bss ->
+    String (maskStorable ms ns) (maskByteString (replicateMask ns ms) bss)
+
+  Array ns xs ->
+    Array (maskStorable ms ns) (mask (replicateMask ns ms) xs)
+
+  Map ns ks vs ->
+    let
+      mss =
+        replicateMask ns ms
+    in
+      Map (maskStorable ms ns) (mask mss ks) (mask mss vs)
+{-# INLINABLE mask #-}

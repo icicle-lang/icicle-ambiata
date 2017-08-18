@@ -16,17 +16,22 @@ module Icicle.Runtime.Stencil (
   , chordStencil
   , chordEntityStencil
   , snapshotStencil
+
+  , dropAllEmpty
+  , dropEmpty
   ) where
 
 import qualified Data.Text as Text
-import qualified Data.Vector as Boxed
 import qualified Data.Vector.Storable as Storable
 
 import           Foreign.Storable (Storable)
 
 import           Icicle.Runtime.Data
+import           Icicle.Runtime.Data.Mask
 
 import           P
+
+import qualified X.Data.Vector as Boxed
 
 import           Zebra.X.Vector.Segment (SegmentError)
 import qualified Zebra.X.Vector.Segment as Segment -- FIXME move to x-vector
@@ -124,3 +129,24 @@ chordStencil qtimes0 ftimes0 = do
 
   pure . Stencil $
     Boxed.zipWith chordEntityStencil qtimes ftimes
+
+dropZero :: Int64 -> Mask
+dropZero = \case
+  0 ->
+    Drop
+  _ ->
+    Keep
+
+dropEmpty :: Storable.Vector Int64 -> Boxed.Vector Mask
+dropEmpty =
+  fmap dropZero . Boxed.convert
+
+dropAllEmpty :: Boxed.Vector Stencil -> Boxed.Vector Mask
+dropAllEmpty =
+  let
+    from =
+      dropEmpty . stencilLength
+  in
+    Boxed.map (mconcat . Boxed.toList) .
+    Boxed.transpose .
+    Boxed.map (Boxed.concatMap from . unStencil)
