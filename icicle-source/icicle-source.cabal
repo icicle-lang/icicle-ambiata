@@ -10,6 +10,9 @@ cabal-version:         >= 1.8
 build-type:            Custom
 description:           Icicle Source language parser and type checker.
 
+extra-source-files:
+  data/libs/prelude.icicle
+
 library
   build-depends:
                        base                            >= 3          && < 5
