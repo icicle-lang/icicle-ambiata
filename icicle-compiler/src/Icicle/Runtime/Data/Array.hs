@@ -137,7 +137,6 @@ data ArrayError =
     ArrayElementsMustBeWordSize !Int
   | ArrayIndexOutOfBounds !ArrayIndex !ArrayLength
   | ArraySegmentDescriptorMismatch !ArrayLength !ArrayLength
-  | ArrayStringContainsNull !ByteString
     deriving (Eq, Ord, Show)
 
 renderArrayError :: ArrayError -> Text
@@ -148,9 +147,6 @@ renderArrayError = \case
     "Array index <" <> Text.pack (show ix) <> "> was out of bounds [0, " <> Text.pack (show len) <> ")"
   ArraySegmentDescriptorMismatch (ArrayLength m) (ArrayLength n) ->
     "Array length <" <> Text.pack (show n) <> "> did not match segment descriptor length <" <> Text.pack (show m) <> ">"
-  ArrayStringContainsNull bs ->
-    "Cannot convert the string " <> Text.pack (show (".." <> bs <> "..")) <>
-    ", because it contains \\NUL and the runtime uses C-strings which must be null-terminated."
 
 instance Show Array where
   showsPrec =
@@ -282,20 +278,6 @@ checkSegmentDescriptor ns m =
     else
       left $ ArraySegmentDescriptorMismatch m n
 {-# INLINABLE checkSegmentDescriptor #-}
-
-checkStringNull :: ByteString -> EitherT ArrayError IO ()
-checkStringNull bs =
-  case ByteString.elemIndex 0 bs of
-    Nothing ->
-      pure ()
-    Just ix ->
-      let
-        sample =
-          ByteString.take 11 $
-          ByteString.drop (ix - 5) bs
-      in
-        left $ ArrayStringContainsNull sample
-{-# INLINABLE checkStringNull #-}
 
 unsafeRead :: Storable a => Array -> ArrayIndex -> IO a
 unsafeRead array (ArrayIndex ix) =
@@ -503,7 +485,6 @@ unsafeFromStringSegments pool ns (PS fp off0 _) =
 fromStringSegments :: Mempool -> Storable.Vector ArrayLength -> ByteString -> EitherT ArrayError IO Array
 fromStringSegments pool ns bs = do
   checkSegmentDescriptor ns . fromIntegral $ ByteString.length bs
-  checkStringNull bs
   liftIO $! unsafeFromStringSegments pool ns bs
 {-# INLINABLE fromStringSegments #-}
 
