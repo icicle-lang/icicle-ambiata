@@ -1,0 +1,15 @@
+-- Simple trigonometry functions
+feature salary ~> acos 1
+feature salary ~> asin 1
+feature salary ~> atan 1
+feature salary ~> atan2 1 2
+feature salary ~> cos 1
+feature salary ~> cosh 1
+feature salary ~> sin 1
+feature salary ~> sinh 1
+feature salary ~> tan 1
+feature salary ~> tanh 1
+
+-- This makes sure Possiblies are being unwrapped and rewrapped correctly
+feature salary ~> atan2 (sin 1) (cos 1)
+feature salary ~> atan2 (sin (1/0)) (cos 1)

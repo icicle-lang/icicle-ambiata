@@ -1,0 +1,92 @@
+Queries will no longer be evaluated using the C evaluator.
+Snapshot mode activated with a snapshot date of 2017-01-01.
+Loaded dictionary with 5 inputs, 0 outputs, 39 functions.
+Selected psv file as input: test/cli/repl/data.psv
+
+  ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
+ ▓██▒▒██▀ ▀█  ▓██▒▒██▀ ▀█  ▓██▒    ▓█   ▀
+ ▒██▒▒▓█    ▄ ▒██▒▒▓█    ▄ ▒██░    ▒███
+ ░██░▒▓▓▄ ▄██▒░██░▒▓▓▄ ▄██▒▒██░    ▒▓█  ▄
+ ░██░▒ ▓███▀ ░░██░▒ ▓███▀ ░░██████▒░▒████▒
+ ░▓  ░ ░▒ ▒  ░░▓  ░ ░▒ ▒  ░░ ▒░▓  ░░░ ▒░ ░
+  ▒ ░  ░  ▒    ▒ ░  ░  ▒   ░ ░ ▒  ░ ░ ░  ░
+  ▒ ░░         ▒ ░░          ░ ░ REPL ░
+  ░  ░ ░       ░  ░ ░          ░  ░   ░  ░
+     ░            ░
+                  ░     :help for help
+
+λ -- Simple trigonometry functions
+λ Core evaluation
+---------------
+
+homer|0.0
+marge|0.0
+
+λ Core evaluation
+---------------
+
+homer|1.5707963267948966
+marge|1.5707963267948966
+
+λ Core evaluation
+---------------
+
+homer|0.7853981633974483
+marge|0.7853981633974483
+
+λ Core evaluation
+---------------
+
+homer|0.46364760900080615
+marge|0.46364760900080615
+
+λ Core evaluation
+---------------
+
+homer|0.5403023058681398
+marge|0.5403023058681398
+
+λ Core evaluation
+---------------
+
+homer|1.5430806348152437
+marge|1.5430806348152437
+
+λ Core evaluation
+---------------
+
+homer|0.8414709848078965
+marge|0.8414709848078965
+
+λ Core evaluation
+---------------
+
+homer|1.1752011936438014
+marge|1.1752011936438014
+
+λ Core evaluation
+---------------
+
+homer|1.557407724654902
+marge|1.557407724654902
+
+λ Core evaluation
+---------------
+
+homer|0.7615941559557649
+marge|0.7615941559557649
+
+λ λ -- This makes sure Possiblies are being unwrapped and rewrapped correctly
+λ Core evaluation
+---------------
+
+homer|1.0
+marge|1.0
+
+λ Core evaluation
+---------------
+
+homer|tombstone
+marge|tombstone
+
+λ 

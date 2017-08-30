@@ -61,9 +61,9 @@ Error
     
     exp : Double -> Possibly Double
     
-    day : Time -> Int
+    tan : Double -> Possibly Double
     
-    year : Time -> Int
+    day : Time -> Int
 
 λ λ -- Expect a parse error on unterminated string
 λ                  ^
