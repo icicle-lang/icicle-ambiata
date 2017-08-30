@@ -31,7 +31,6 @@ static idouble_t INLINE iint_extend   (iint_t    x)              { return x; }
 static iint_t    INLINE iint_neg      (iint_t    x)              { return -x; }
 static iint_t    INLINE iint_add      (iint_t    x, iint_t    y) { return x + y; }
 static iint_t    INLINE iint_sub      (iint_t    x, iint_t    y) { return x - y; }
-static iint_t    INLINE iint_mod      (iint_t    x, iint_t    y) { return x % y; }
 static iint_t    INLINE iint_mul      (iint_t    x, iint_t    y) { return x * y; }
 /* glibc abs actually has the same cycle count and latency as other abs tricks */
 static iint_t    INLINE iint_abs      (iint_t    x)              { return llabs (x); }
@@ -55,7 +54,6 @@ static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y;
 static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
 static idouble_t INLINE idouble_is_valid(idouble_t x)            { return isfinite(x); }
 static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }
-static idouble_t INLINE idouble_mod   (idouble_t x, idouble_t y) { return fmod(x, y); }
 static idouble_t INLINE idouble_mul   (idouble_t x, idouble_t y) { return x * y; }
 static idouble_t INLINE idouble_neg   (idouble_t x)              { return -x; }
 static idouble_t INLINE idouble_pow   (idouble_t x, idouble_t y) { return pow(x, y); }
