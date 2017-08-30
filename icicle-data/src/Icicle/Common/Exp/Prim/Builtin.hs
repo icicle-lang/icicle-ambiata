@@ -91,6 +91,7 @@ instance Pretty PrimBuiltinMath where
    PrimBuiltinCosh            -> "cosh#"
    PrimBuiltinSin             -> "sin#"
    PrimBuiltinSinh            -> "sinh#"
+   PrimBuiltinTan             -> "tan#"
    PrimBuiltinTanh            -> "tanh#"
 
 instance Pretty PrimBuiltinMap where
