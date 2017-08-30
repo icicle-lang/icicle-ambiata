@@ -16,6 +16,7 @@ Selected psv file as input: test/cli/repl/data.psv
                   ░     :help for help
 
 λ -- Simple trigonometry functions
+λ -- We need to test with boring numbers, because interesting numbers might print slightly differently
 λ Core evaluation
 ---------------
 
@@ -25,56 +26,56 @@ marge|0.0
 λ Core evaluation
 ---------------
 
-homer|1.5707963267948966
-marge|1.5707963267948966
+homer|0.0
+marge|0.0
 
 λ Core evaluation
 ---------------
 
-homer|0.7853981633974483
-marge|0.7853981633974483
+homer|0.0
+marge|0.0
 
 λ Core evaluation
 ---------------
 
-homer|0.46364760900080615
-marge|0.46364760900080615
+homer|0.0
+marge|0.0
 
 λ Core evaluation
 ---------------
 
-homer|0.5403023058681398
-marge|0.5403023058681398
+homer|1.0
+marge|1.0
 
 λ Core evaluation
 ---------------
 
-homer|1.5430806348152437
-marge|1.5430806348152437
+homer|1.0
+marge|1.0
 
 λ Core evaluation
 ---------------
 
-homer|0.8414709848078965
-marge|0.8414709848078965
+homer|0.0
+marge|0.0
 
 λ Core evaluation
 ---------------
 
-homer|1.1752011936438014
-marge|1.1752011936438014
+homer|0.0
+marge|0.0
 
 λ Core evaluation
 ---------------
 
-homer|1.557407724654902
-marge|1.557407724654902
+homer|0.0
+marge|0.0
 
 λ Core evaluation
 ---------------
 
-homer|0.7615941559557649
-marge|0.7615941559557649
+homer|0.0
+marge|0.0
 
 λ λ -- This makes sure Possiblies are being unwrapped and rewrapped correctly
 λ Core evaluation
