@@ -142,6 +142,67 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+     PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinAcos)
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VDouble $ acos i
+      | otherwise
+      -> primError
+
+     PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinAsin)
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VDouble $ asin i
+      | otherwise
+      -> primError
+
+     PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinAtan)
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VDouble $ atan i
+      | otherwise
+      -> primError
+
+     PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinAtan2)
+      | [VBase (VDouble i), VBase (VDouble j)] <- vs
+      -> return $ VBase $ VDouble $ atan2 i j
+      | otherwise
+      -> primError
+
+     PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinCos)
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VDouble $ cos i
+      | otherwise
+      -> primError
+
+     PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinCosh)
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VDouble $ cosh i
+      | otherwise
+      -> primError
+
+     PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinSin)
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VDouble $ sin i
+      | otherwise
+      -> primError
+
+     PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinSinh)
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VDouble $ sinh i
+      | otherwise
+      -> primError
+
+     PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinTan)
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VDouble $ tan i
+      | otherwise
+      -> primError
+
+     PrimBuiltinFun (PrimBuiltinMath  PrimBuiltinTanh)
+      | [VBase (VDouble i)] <- vs
+      -> return $ VBase $ VDouble $ tanh i
+      | otherwise
+      -> primError
+
+
      PrimBuiltinFun (PrimBuiltinMap (PrimBuiltinKeys _ _))
       | [VBase (VMap m)] <- vs
       -> return $ VBase $ VArray $ Map.keys m

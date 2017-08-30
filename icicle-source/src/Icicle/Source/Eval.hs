@@ -267,6 +267,46 @@ evalP ann p xs vs env
              | [VDouble i] <- args
              -> return $ VDouble $ sqrt i
              | otherwise -> err
+            BuiltinMath Acos
+             | [VDouble i] <- args
+             -> return $ VDouble $ acos i
+             | otherwise -> err
+            BuiltinMath Asin
+             | [VDouble i] <- args
+             -> return $ VDouble $ asin i
+             | otherwise -> err
+            BuiltinMath Atan
+             | [VDouble i] <- args
+             -> return $ VDouble $ atan i
+             | otherwise -> err
+            BuiltinMath Atan2
+             | [VDouble i, VDouble j] <- args
+             -> return $ VDouble $ atan2 i j
+             | otherwise -> err
+            BuiltinMath Cos
+             | [VDouble i] <- args
+             -> return $ VDouble $ cos i
+             | otherwise -> err
+            BuiltinMath Cosh
+             | [VDouble i] <- args
+             -> return $ VDouble $ cosh i
+             | otherwise -> err
+            BuiltinMath Sin
+             | [VDouble i] <- args
+             -> return $ VDouble $ sin i
+             | otherwise -> err
+            BuiltinMath Sinh
+             | [VDouble i] <- args
+             -> return $ VDouble $ sinh i
+             | otherwise -> err
+            BuiltinMath Tan
+             | [VDouble i] <- args
+             -> return $ VDouble $ tan i
+             | otherwise -> err
+            BuiltinMath Tanh
+             | [VDouble i] <- args
+             -> return $ VDouble $ tanh i
+             | otherwise -> err
             -- Use Doubles as only number representation.
             -- See Note: Numbers
             BuiltinMath ToDouble

@@ -76,6 +76,27 @@ primLookup' prim
      -> f0 [DoubleT] possiblyDouble
     Fun (BuiltinMath Sqrt)
      -> f0 [DoubleT] possiblyDouble
+    Fun (BuiltinMath Acos)
+     -> f0 [DoubleT] possiblyDouble
+    Fun (BuiltinMath Asin)
+     -> f0 [DoubleT] possiblyDouble
+    Fun (BuiltinMath Atan)
+     -> f0 [DoubleT] possiblyDouble
+    Fun (BuiltinMath Atan2)
+     -> f0 [DoubleT, DoubleT] possiblyDouble
+    Fun (BuiltinMath Cos)
+     -> f0 [DoubleT] possiblyDouble
+    Fun (BuiltinMath Cosh)
+     -> f0 [DoubleT] possiblyDouble
+    Fun (BuiltinMath Sin)
+     -> f0 [DoubleT] possiblyDouble
+    Fun (BuiltinMath Sinh)
+     -> f0 [DoubleT] possiblyDouble
+    Fun (BuiltinMath Tan)
+     -> f0 [DoubleT] possiblyDouble
+    Fun (BuiltinMath Tanh)
+     -> f0 [DoubleT] possiblyDouble
+
     -- But conversions are OK
     Fun (BuiltinMath ToDouble)
      -> fNumDefinitely $ \at -> ([at], DoubleT)
@@ -204,6 +225,16 @@ primReturnsPossibly p ty
     Fun (BuiltinMath Log)  -> True
     Fun (BuiltinMath Exp)  -> True
     Fun (BuiltinMath Sqrt) -> True
+    Fun (BuiltinMath Acos) -> True
+    Fun (BuiltinMath Asin) -> True
+    Fun (BuiltinMath Atan) -> True
+    Fun (BuiltinMath Atan2)-> True
+    Fun (BuiltinMath Cos)  -> True
+    Fun (BuiltinMath Cosh) -> True
+    Fun (BuiltinMath Sin)  -> True
+    Fun (BuiltinMath Sinh) -> True
+    Fun (BuiltinMath Tan)  -> True
+    Fun (BuiltinMath Tanh) -> True
     _                      -> False
 primReturnsPossibly _ _                          = False
 

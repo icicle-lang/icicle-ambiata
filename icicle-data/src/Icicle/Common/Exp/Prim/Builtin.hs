@@ -33,6 +33,16 @@ data PrimBuiltinMath
  | PrimBuiltinLog
  | PrimBuiltinExp
  | PrimBuiltinSqrt
+ | PrimBuiltinAcos
+ | PrimBuiltinAsin
+ | PrimBuiltinAtan
+ | PrimBuiltinAtan2
+ | PrimBuiltinCos
+ | PrimBuiltinCosh
+ | PrimBuiltinSin
+ | PrimBuiltinSinh
+ | PrimBuiltinTan
+ | PrimBuiltinTanh
  | PrimBuiltinDoubleIsValid
  deriving (Eq, Ord, Show, Enum, Bounded, Generic, NanEq)
 
@@ -73,6 +83,15 @@ instance Pretty PrimBuiltinMath where
    PrimBuiltinTruncate        -> "trunc#"
    PrimBuiltinToDoubleFromInt -> "doubleOfInt#"
    PrimBuiltinDoubleIsValid   -> "doubleIsValid#"
+   PrimBuiltinAcos            -> "acos#"
+   PrimBuiltinAsin            -> "asin#"
+   PrimBuiltinAtan            -> "atan#"
+   PrimBuiltinAtan2           -> "atan2#"
+   PrimBuiltinCos             -> "cos#"
+   PrimBuiltinCosh            -> "cosh#"
+   PrimBuiltinSin             -> "sin#"
+   PrimBuiltinSinh            -> "sinh#"
+   PrimBuiltinTanh            -> "tanh#"
 
 instance Pretty PrimBuiltinMap where
  pretty p = case p of

@@ -107,6 +107,16 @@ data Keyword =
  | Log
  | Exp
  | Sqrt
+ | Acos
+ | Asin
+ | Atan
+ | Atan2
+ | Cos
+ | Cosh
+ | Sin
+ | Sinh
+ | Tan
+ | Tanh
  | Abs
  | Double
  | Floor

@@ -255,6 +255,26 @@ convertPrim p ann resT xts = go p
    = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinExp
   gomath Sqrt
    = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinSqrt
+  gomath Acos
+   = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinAcos
+  gomath Asin
+   = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinAsin
+  gomath Atan
+   = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinAtan
+  gomath Atan2
+   = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinAtan2
+  gomath Cos
+   = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinCos
+  gomath Cosh
+   = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinCosh
+  gomath Sin
+   = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinSin
+  gomath Sinh
+   = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinSinh
+  gomath Tan
+   = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinTan
+  gomath Tanh
+   = primCheckDouble $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinTanh
 
   gomath Abs
    = case xts of

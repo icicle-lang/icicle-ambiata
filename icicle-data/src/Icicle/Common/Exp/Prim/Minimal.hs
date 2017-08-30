@@ -155,6 +155,27 @@ typeOfPrim p
     PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinToDoubleFromInt)
      -> FunT [funOfVal IntT] DoubleT
 
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinAtan2)
+     -> FunT [funOfVal DoubleT, funOfVal DoubleT] DoubleT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinAcos)
+     -> FunT [funOfVal DoubleT] DoubleT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinAsin)
+     -> FunT [funOfVal DoubleT] DoubleT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinAtan)
+     -> FunT [funOfVal DoubleT] DoubleT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinCos)
+     -> FunT [funOfVal DoubleT] DoubleT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinCosh)
+     -> FunT [funOfVal DoubleT] DoubleT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinSin)
+     -> FunT [funOfVal DoubleT] DoubleT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinSinh)
+     -> FunT [funOfVal DoubleT] DoubleT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinTan)
+     -> FunT [funOfVal DoubleT] DoubleT
+    PrimBuiltinFun    (PrimBuiltinMath PrimBuiltinTanh)
+     -> FunT [funOfVal DoubleT] DoubleT
+
     PrimBuiltinFun    (PrimBuiltinMap (PrimBuiltinKeys k v))
      -> FunT [funOfVal (MapT k v)] (ArrayT k)
     PrimBuiltinFun    (PrimBuiltinMap (PrimBuiltinVals k v))
