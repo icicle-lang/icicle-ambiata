@@ -176,18 +176,7 @@ genPrimTime = Gen.element
  , PM.PrimTimeProjectYear ]
 
 genPrimBuiltinMath :: Gen PM.PrimBuiltinMath
-genPrimBuiltinMath = Gen.element
-  [ PM.PrimBuiltinCeiling
-  , PM.PrimBuiltinFloor
-  , PM.PrimBuiltinTruncate
-  , PM.PrimBuiltinRound
-  , PM.PrimBuiltinToDoubleFromInt
-  , PM.PrimBuiltinPow
-  , PM.PrimBuiltinDiv
-  , PM.PrimBuiltinLog
-  , PM.PrimBuiltinExp
-  , PM.PrimBuiltinSqrt
-  , PM.PrimBuiltinDoubleIsValid ]
+genPrimBuiltinMath = Gen.enumBounded
 
 genPrimBuiltinMap :: Gen ValType -> Gen PM.PrimBuiltinMap
 genPrimBuiltinMap genT = Gen.choice

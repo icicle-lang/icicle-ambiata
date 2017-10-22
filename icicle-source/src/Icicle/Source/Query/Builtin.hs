@@ -32,6 +32,16 @@ data BuiltinMath
  | Exp
  | Sqrt
  | Abs
+ | Acos
+ | Asin
+ | Atan
+ | Atan2
+ | Cos
+ | Cosh
+ | Sin
+ | Sinh
+ | Tan
+ | Tanh
  | ToDouble
  | Floor
  | Ceiling
@@ -89,6 +99,16 @@ instance Pretty BuiltinMath where
  pretty Log         = "log"
  pretty Exp         = "exp"
  pretty Sqrt        = "sqrt"
+ pretty Acos        = "acos"
+ pretty Asin        = "asin"
+ pretty Atan        = "atan"
+ pretty Atan2       = "atan2"
+ pretty Cos         = "cos"
+ pretty Cosh        = "cosh"
+ pretty Sin         = "sin"
+ pretty Sinh        = "sinh"
+ pretty Tan         = "tan"
+ pretty Tanh        = "tanh"
  pretty ToDouble    = "double"
  pretty Abs         = "abs"
  pretty Floor       = "floor"

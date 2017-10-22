@@ -1,0 +1,16 @@
+-- Simple trigonometry functions
+-- We need to test with boring numbers, because interesting numbers might print slightly differently
+feature salary ~> acos 1
+feature salary ~> asin 0
+feature salary ~> atan 0
+feature salary ~> atan2 0 0
+feature salary ~> cos 0
+feature salary ~> cosh 0
+feature salary ~> sin 0
+feature salary ~> sinh 0
+feature salary ~> tan 0
+feature salary ~> tanh 0
+
+-- This makes sure Possiblies are being unwrapped and rewrapped correctly
+feature salary ~> atan2 (sin 1) (cos 1)
+feature salary ~> atan2 (sin (1/0)) (cos 1)

@@ -42,17 +42,27 @@ static iint_t    INLINE idouble_trunc (idouble_t x)              { return (iint_
 static iint_t    INLINE idouble_floor (idouble_t x)              { return floor(x); }
 static iint_t    INLINE idouble_ceil  (idouble_t x)              { return ceil(x); }
 static iint_t    INLINE idouble_round (idouble_t x)              { return round(x); }
-static idouble_t INLINE idouble_neg   (idouble_t x)              { return -x; }
-static idouble_t INLINE idouble_add   (idouble_t x, idouble_t y) { return x + y; }
-static idouble_t INLINE idouble_sub   (idouble_t x, idouble_t y) { return x - y; }
-static idouble_t INLINE idouble_mul   (idouble_t x, idouble_t y) { return x * y; }
-static idouble_t INLINE idouble_pow   (idouble_t x, idouble_t y) { return pow(x, y); }
-static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y; }
-static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }
-static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
-static idouble_t INLINE idouble_sqrt  (idouble_t x)              { return sqrt(x); }
 static idouble_t INLINE idouble_abs   (idouble_t x)              { return fabs(x); }
+static idouble_t INLINE idouble_acos  (idouble_t x)              { return acos(x); }
+static idouble_t INLINE idouble_add   (idouble_t x, idouble_t y) { return x + y; }
+static idouble_t INLINE idouble_asin  (idouble_t x)              { return asin(x); }
+static idouble_t INLINE idouble_atan  (idouble_t x)              { return atan(x); }
+static idouble_t INLINE idouble_atan2 (idouble_t x, idouble_t y) { return atan2(x, y); }
+static idouble_t INLINE idouble_cos   (idouble_t x)              { return cos(x); }
+static idouble_t INLINE idouble_cosh  (idouble_t x)              { return cosh(x); }
+static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y; }
+static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
 static idouble_t INLINE idouble_is_valid(idouble_t x)            { return isfinite(x); }
+static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }
+static idouble_t INLINE idouble_mul   (idouble_t x, idouble_t y) { return x * y; }
+static idouble_t INLINE idouble_neg   (idouble_t x)              { return -x; }
+static idouble_t INLINE idouble_pow   (idouble_t x, idouble_t y) { return pow(x, y); }
+static idouble_t INLINE idouble_sin   (idouble_t x)              { return sin(x); }
+static idouble_t INLINE idouble_sinh  (idouble_t x)              { return sinh(x); }
+static idouble_t INLINE idouble_sqrt  (idouble_t x)              { return sqrt(x); }
+static idouble_t INLINE idouble_sub   (idouble_t x, idouble_t y) { return x - y; }
+static idouble_t INLINE idouble_tan   (idouble_t x)              { return sin(x) / cos(x); }
+static idouble_t INLINE idouble_tanh  (idouble_t x)              { return tanh(x); }
 
 MK_SIMPLE_CMPS(idouble_t, idouble_)
 MK_SIMPLE_COPY(idouble_t, idouble_)
