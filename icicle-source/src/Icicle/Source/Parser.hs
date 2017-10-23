@@ -2,7 +2,7 @@
 module Icicle.Source.Parser (
     parseQueryTop
   , parseQuery
-  , parseTop
+  , parseFactName
   , parseFunctions
   , prettyParse
   , ParseError
@@ -39,8 +39,8 @@ parseQueryTop name inp
  = let toks = lexer "" inp
    in  runParser (consumeAll $ top name) () "" toks
 
-parseTop :: Text -> Either ParseError UnresolvedInputId
-parseTop inp
+parseFactName :: Text -> Either ParseError UnresolvedInputId
+parseFactName inp
  = let toks = lexer "" inp
    in  runParser (consumeAll pUnresolvedInputId) () "" toks
 
