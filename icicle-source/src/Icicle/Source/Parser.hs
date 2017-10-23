@@ -1,6 +1,8 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.Parser (
     parseQueryTop
+  , parseQuery
+  , parseFactName
   , parseFunctions
   , prettyParse
   , ParseError
@@ -10,7 +12,7 @@ module Icicle.Source.Parser (
 
 import Icicle.Source.Lexer.Lexer
 import Icicle.Source.Lexer.Token
-import Icicle.Source.Parser.Parser
+import Icicle.Source.Parser.Parser as Parser
 import Icicle.Source.Parser.Token
 
 import Icicle.Source.Query
@@ -36,6 +38,17 @@ parseQueryTop :: OutputId -> Text -> Either ParseError (QueryTop SourcePos Varia
 parseQueryTop name inp
  = let toks = lexer "" inp
    in  runParser (consumeAll $ top name) () "" toks
+
+parseFactName :: Text -> Either ParseError UnresolvedInputId
+parseFactName inp
+ = let toks = lexer "" inp
+   in  runParser (consumeAll pUnresolvedInputId) () "" toks
+
+parseQuery :: UnresolvedInputId -> OutputId -> Text -> Either ParseError (QueryTop SourcePos Variable)
+parseQuery v name inp = do
+  let toks = lexer "" inp
+  q <- runParser (consumeAll Parser.query) () "" toks
+  return $ QueryTop v name q
 
 consumeAll :: Parser a -> Parser a
 consumeAll f = do
