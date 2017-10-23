@@ -33,7 +33,7 @@ baseValueForType t
     UnitT
      -> return VUnit
     ErrorT
-     -> return $ VError ExceptTombstone
+     -> VError <$> genExceptionInfo
     BoolT
      -> VBool <$> Gen.bool
     TimeT
@@ -61,6 +61,18 @@ baseValueForType t
     StructT (StructType fs)
      -> Gen.small
       (VStruct <$> traverse baseValueForType fs)
+
+genExceptionInfo :: MonadGen m => m ExceptionInfo
+genExceptionInfo = do
+ -- Because of the melted representation of (Sum Error a), we cannot distinguish between these two:
+ -- > Left  ExceptNotAnError
+ -- > Right default
+ -- So we cannot generate NotAnError.
+ e <- Gen.enumBounded
+ case e of
+  ExceptNotAnError
+    -> return ExceptTombstone
+  _ -> return e
 
 r10 :: Integral a => Range a
 r10 = Range.linear 0 10

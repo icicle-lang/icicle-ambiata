@@ -335,13 +335,15 @@ compileQuery query = do
   -- Flatten Avalanche, not simplified.
   --
 
-  case Compiler.flattenAvalanche avalancheSimped of
+  case Compiler.flattenAvalancheUntyped avalancheSimped of
     Left err ->
       putSection "Flatten Avalanche (not simplified) error" err
 
     Right avalancheFlatUnsimped ->
       case Compiler.checkAvalanche $ Avalanche.eraseAnnotP avalancheFlatUnsimped of
-        Left err ->
+        Left err -> do
+          whenSet FlagFlattenNoSimp $
+            putSection "Flattened Avalanche (not simplified)" avalancheFlatUnsimped
           putSection "Flattened Avalanche (not simplified) type error" err
         Right flatUnsimpedChecked ->
           whenSet FlagFlattenNoSimp $

@@ -157,7 +157,7 @@ for_facts conv-1 : Time
                 }
                 else
                 {
-                    flat-35-simpflat-70 =w ExceptCannotCompute
+                    flat-35-simpflat-70 =w ExceptNotANumber
                     flat-35-simpflat-71 =w 0.0
                 }
                 
@@ -196,7 +196,7 @@ for_facts conv-1 : Time
                 }
                 else
                 {
-                    flat-28-simpflat-78 =w ExceptCannotCompute
+                    flat-28-simpflat-78 =w ExceptNotANumber
                     flat-28-simpflat-79 =w 0.0
                 }
                 
@@ -224,7 +224,7 @@ for_facts conv-1 : Time
                     }
                     else
                     {
-                        flat-32-simpflat-84 =w ExceptCannotCompute
+                        flat-32-simpflat-84 =w ExceptNotANumber
                         flat-32-simpflat-85 =w 0.0
                     }
                     
@@ -274,7 +274,7 @@ for_facts conv-1 : Time
                 }
                 else
                 {
-                    flat-25-simpflat-94 =w ExceptCannotCompute
+                    flat-25-simpflat-94 =w ExceptNotANumber
                     flat-25-simpflat-95 =w 0.0
                 }
                 
@@ -314,7 +314,7 @@ for_facts conv-1 : Time
                 }
                 else
                 {
-                    flat-19-simpflat-103 =w ExceptCannotCompute
+                    flat-19-simpflat-103 =w ExceptNotANumber
                     flat-19-simpflat-104 =w 0.0
                 }
                 
@@ -555,7 +555,7 @@ for_facts conv-1 : Time
             }
             else
             {
-                flat-44-simpflat-164 =w ExceptCannotCompute
+                flat-44-simpflat-164 =w ExceptNotANumber
                 flat-44-simpflat-165 =w 0.0
             }
             
@@ -583,7 +583,7 @@ for_facts conv-1 : Time
                 }
                 else
                 {
-                    flat-89-simpflat-170 =w ExceptCannotCompute
+                    flat-89-simpflat-170 =w ExceptNotANumber
                     flat-89-simpflat-171 =w 0.0
                 }
                 
@@ -629,7 +629,7 @@ for_facts conv-1 : Time
                     }
                     else
                     {
-                        flat-86-simpflat-180 =w ExceptCannotCompute
+                        flat-86-simpflat-180 =w ExceptNotANumber
                         flat-86-simpflat-181 =w 0.0
                     }
                     
@@ -679,7 +679,7 @@ for_facts conv-1 : Time
                 }
                 else
                 {
-                    flat-80-simpflat-190 =w ExceptCannotCompute
+                    flat-80-simpflat-190 =w ExceptNotANumber
                     flat-80-simpflat-191 =w 0.0
                 }
                 
@@ -732,7 +732,7 @@ for_facts conv-1 : Time
                         }
                         else
                         {
-                            flat-77-simpflat-202 =w ExceptCannotCompute
+                            flat-77-simpflat-202 =w ExceptNotANumber
                             flat-77-simpflat-203 =w 0.0
                         }
                         
@@ -782,7 +782,7 @@ for_facts conv-1 : Time
                     }
                     else
                     {
-                        flat-71-simpflat-212 =w ExceptCannotCompute
+                        flat-71-simpflat-212 =w ExceptNotANumber
                         flat-71-simpflat-213 =w 0.0
                     }
                     
@@ -832,7 +832,7 @@ for_facts conv-1 : Time
                 }
                 else
                 {
-                    flat-64-simpflat-222 =w ExceptCannotCompute
+                    flat-64-simpflat-222 =w ExceptNotANumber
                     flat-64-simpflat-223 =w 0.0
                 }
                 
@@ -1033,7 +1033,7 @@ if (eq#
         }
         else
         {
-            flat-121-simpflat-275 =w ExceptCannotCompute
+            flat-121-simpflat-275 =w ExceptNotANumber
             flat-121-simpflat-276 =w 0.0
         }
         
@@ -1061,7 +1061,7 @@ if (eq#
             }
             else
             {
-                flat-125-simpflat-281 =w ExceptCannotCompute
+                flat-125-simpflat-281 =w ExceptNotANumber
                 flat-125-simpflat-282 =w 0.0
             }
             
@@ -1109,7 +1109,7 @@ if (eq#
         }
         else
         {
-            flat-118-simpflat-291 =w ExceptCannotCompute
+            flat-118-simpflat-291 =w ExceptNotANumber
             flat-118-simpflat-292 =w 0.0
         }
         
@@ -1148,7 +1148,7 @@ if (eq#
         }
         else
         {
-            flat-115-simpflat-299 =w ExceptCannotCompute
+            flat-115-simpflat-299 =w ExceptNotANumber
             flat-115-simpflat-300 =w 0.0
         }
         
@@ -1317,7 +1317,7 @@ for_facts conv-1 : Time
                 }
                 else
                 {
-                    flat-35-simpflat-70 =w ExceptCannotCompute
+                    flat-35-simpflat-70 =w ExceptNotANumber
                     flat-35-simpflat-71 =w 0.0
                 }
                 
@@ -1356,7 +1356,7 @@ for_facts conv-1 : Time
                 }
                 else
                 {
-                    flat-28-simpflat-78 =w ExceptCannotCompute
+                    flat-28-simpflat-78 =w ExceptNotANumber
                     flat-28-simpflat-79 =w 0.0
                 }
                 
@@ -1384,7 +1384,7 @@ for_facts conv-1 : Time
                     }
                     else
                     {
-                        flat-32-simpflat-84 =w ExceptCannotCompute
+                        flat-32-simpflat-84 =w ExceptNotANumber
                         flat-32-simpflat-85 =w 0.0
                     }
                     
@@ -1434,7 +1434,7 @@ for_facts conv-1 : Time
                 }
                 else
                 {
-                    flat-25-simpflat-94 =w ExceptCannotCompute
+                    flat-25-simpflat-94 =w ExceptNotANumber
                     flat-25-simpflat-95 =w 0.0
                 }
                 
@@ -1474,7 +1474,7 @@ for_facts conv-1 : Time
                 }
                 else
                 {
-                    flat-19-simpflat-103 =w ExceptCannotCompute
+                    flat-19-simpflat-103 =w ExceptNotANumber
                     flat-19-simpflat-104 =w 0.0
                 }
                 
@@ -1715,7 +1715,7 @@ for_facts conv-1 : Time
             }
             else
             {
-                flat-44-simpflat-164 =w ExceptCannotCompute
+                flat-44-simpflat-164 =w ExceptNotANumber
                 flat-44-simpflat-165 =w 0.0
             }
             
@@ -1743,7 +1743,7 @@ for_facts conv-1 : Time
                 }
                 else
                 {
-                    flat-89-simpflat-170 =w ExceptCannotCompute
+                    flat-89-simpflat-170 =w ExceptNotANumber
                     flat-89-simpflat-171 =w 0.0
                 }
                 
@@ -1789,7 +1789,7 @@ for_facts conv-1 : Time
                     }
                     else
                     {
-                        flat-86-simpflat-180 =w ExceptCannotCompute
+                        flat-86-simpflat-180 =w ExceptNotANumber
                         flat-86-simpflat-181 =w 0.0
                     }
                     
@@ -1839,7 +1839,7 @@ for_facts conv-1 : Time
                 }
                 else
                 {
-                    flat-80-simpflat-190 =w ExceptCannotCompute
+                    flat-80-simpflat-190 =w ExceptNotANumber
                     flat-80-simpflat-191 =w 0.0
                 }
                 
@@ -1892,7 +1892,7 @@ for_facts conv-1 : Time
                         }
                         else
                         {
-                            flat-77-simpflat-202 =w ExceptCannotCompute
+                            flat-77-simpflat-202 =w ExceptNotANumber
                             flat-77-simpflat-203 =w 0.0
                         }
                         
@@ -1942,7 +1942,7 @@ for_facts conv-1 : Time
                     }
                     else
                     {
-                        flat-71-simpflat-212 =w ExceptCannotCompute
+                        flat-71-simpflat-212 =w ExceptNotANumber
                         flat-71-simpflat-213 =w 0.0
                     }
                     
@@ -1992,7 +1992,7 @@ for_facts conv-1 : Time
                 }
                 else
                 {
-                    flat-64-simpflat-222 =w ExceptCannotCompute
+                    flat-64-simpflat-222 =w ExceptNotANumber
                     flat-64-simpflat-223 =w 0.0
                 }
                 
@@ -2193,7 +2193,7 @@ if (eq#
         }
         else
         {
-            flat-121-simpflat-275 =w ExceptCannotCompute
+            flat-121-simpflat-275 =w ExceptNotANumber
             flat-121-simpflat-276 =w 0.0
         }
         
@@ -2221,7 +2221,7 @@ if (eq#
             }
             else
             {
-                flat-125-simpflat-281 =w ExceptCannotCompute
+                flat-125-simpflat-281 =w ExceptNotANumber
                 flat-125-simpflat-282 =w 0.0
             }
             
@@ -2269,7 +2269,7 @@ if (eq#
         }
         else
         {
-            flat-118-simpflat-291 =w ExceptCannotCompute
+            flat-118-simpflat-291 =w ExceptNotANumber
             flat-118-simpflat-292 =w 0.0
         }
         
@@ -2308,7 +2308,7 @@ if (eq#
         }
         else
         {
-            flat-115-simpflat-299 =w ExceptCannotCompute
+            flat-115-simpflat-299 =w ExceptNotANumber
             flat-115-simpflat-300 =w 0.0
         }
         
@@ -2813,7 +2813,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                         flatzm35zmsimpflatzm70 = ierror_not_an_error;                 /* write */
                         flatzm35zmsimpflatzm71 = idouble_sub (convzm10zmavalzm1zmsimpflatzm54, szmreifyzm6zmconvzm11zmavalzm0zmsimpflatzm60); /* write */
                     } else {
-                        flatzm35zmsimpflatzm70 = ierror_cannot_compute;               /* write */
+                        flatzm35zmsimpflatzm70 = ierror_not_a_number;                 /* write */
                         flatzm35zmsimpflatzm71 = 0.0;                                 /* write */
                     }
                     
@@ -2840,7 +2840,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                         flatzm28zmsimpflatzm78 = ierror_not_an_error;                 /* write */
                         flatzm28zmsimpflatzm79 = idouble_add (szmreifyzm6zmconvzm11zmavalzm0zmsimpflatzm61, 1.0); /* write */
                     } else {
-                        flatzm28zmsimpflatzm78 = ierror_cannot_compute;               /* write */
+                        flatzm28zmsimpflatzm78 = ierror_not_a_number;                 /* write */
                         flatzm28zmsimpflatzm79 = 0.0;                                 /* write */
                     }
                     
@@ -2858,7 +2858,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                             flatzm32zmsimpflatzm84 = ierror_not_an_error;             /* write */
                             flatzm32zmsimpflatzm85 = idouble_div (flatzm13zmsimpflatzm75, flatzm28zmsimpflatzm81); /* write */
                         } else {
-                            flatzm32zmsimpflatzm84 = ierror_cannot_compute;           /* write */
+                            flatzm32zmsimpflatzm84 = ierror_not_a_number;             /* write */
                             flatzm32zmsimpflatzm85 = 0.0;                             /* write */
                         }
                         
@@ -2894,7 +2894,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                         flatzm25zmsimpflatzm94 = ierror_not_an_error;                 /* write */
                         flatzm25zmsimpflatzm95 = idouble_add (szmreifyzm6zmconvzm11zmavalzm0zmsimpflatzm60, flatzm14zmsimpflatzm91); /* write */
                     } else {
-                        flatzm25zmsimpflatzm94 = ierror_cannot_compute;               /* write */
+                        flatzm25zmsimpflatzm94 = ierror_not_a_number;                 /* write */
                         flatzm25zmsimpflatzm95 = 0.0;                                 /* write */
                     }
                     
@@ -2922,7 +2922,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                         flatzm19zmsimpflatzm103 = ierror_not_an_error;                /* write */
                         flatzm19zmsimpflatzm104 = idouble_add (szmreifyzm6zmconvzm11zmavalzm0zmsimpflatzm61, 1.0); /* write */
                     } else {
-                        flatzm19zmsimpflatzm103 = ierror_cannot_compute;              /* write */
+                        flatzm19zmsimpflatzm103 = ierror_not_a_number;                /* write */
                         flatzm19zmsimpflatzm104 = 0.0;                                /* write */
                     }
                     
@@ -3103,7 +3103,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                     flatzm44zmsimpflatzm164   = ierror_not_an_error;                  /* write */
                     flatzm44zmsimpflatzm165   = idouble_add (azmconvzm76zmavalzm2zmsimpflatzm157, 1.0); /* write */
                 } else {
-                    flatzm44zmsimpflatzm164   = ierror_cannot_compute;                /* write */
+                    flatzm44zmsimpflatzm164   = ierror_not_a_number;                  /* write */
                     flatzm44zmsimpflatzm165   = 0.0;                                  /* write */
                 }
                 
@@ -3121,7 +3121,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                         flatzm89zmsimpflatzm170 = ierror_not_an_error;                /* write */
                         flatzm89zmsimpflatzm171 = idouble_sub (convzm75zmavalzm3zmsimpflatzm151, azmconvzm76zmavalzm2zmsimpflatzm158); /* write */
                     } else {
-                        flatzm89zmsimpflatzm170 = ierror_cannot_compute;              /* write */
+                        flatzm89zmsimpflatzm170 = ierror_not_a_number;                /* write */
                         flatzm89zmsimpflatzm171 = 0.0;                                /* write */
                     }
                     
@@ -3152,7 +3152,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                             flatzm86zmsimpflatzm180 = ierror_not_an_error;            /* write */
                             flatzm86zmsimpflatzm181 = idouble_div (flatzm45zmsimpflatzm175, flatzm44zmsimpflatzm167); /* write */
                         } else {
-                            flatzm86zmsimpflatzm180 = ierror_cannot_compute;          /* write */
+                            flatzm86zmsimpflatzm180 = ierror_not_a_number;            /* write */
                             flatzm86zmsimpflatzm181 = 0.0;                            /* write */
                         }
                         
@@ -3188,7 +3188,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                         flatzm80zmsimpflatzm190 = ierror_not_an_error;                /* write */
                         flatzm80zmsimpflatzm191 = idouble_add (azmconvzm76zmavalzm2zmsimpflatzm158, flatzm46zmsimpflatzm187); /* write */
                     } else {
-                        flatzm80zmsimpflatzm190 = ierror_cannot_compute;              /* write */
+                        flatzm80zmsimpflatzm190 = ierror_not_a_number;                /* write */
                         flatzm80zmsimpflatzm191 = 0.0;                                /* write */
                     }
                     
@@ -3223,7 +3223,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                                 flatzm77zmsimpflatzm202 = ierror_not_an_error;        /* write */
                                 flatzm77zmsimpflatzm203 = idouble_sub (convzm75zmavalzm3zmsimpflatzm151, flatzm47zmsimpflatzm195); /* write */
                             } else {
-                                flatzm77zmsimpflatzm202 = ierror_cannot_compute;      /* write */
+                                flatzm77zmsimpflatzm202 = ierror_not_a_number;        /* write */
                                 flatzm77zmsimpflatzm203 = 0.0;                        /* write */
                             }
                             
@@ -3259,7 +3259,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                             flatzm71zmsimpflatzm212 = ierror_not_an_error;            /* write */
                             flatzm71zmsimpflatzm213 = idouble_mul (flatzm45zmsimpflatzm175, flatzm67zmsimpflatzm209); /* write */
                         } else {
-                            flatzm71zmsimpflatzm212 = ierror_cannot_compute;          /* write */
+                            flatzm71zmsimpflatzm212 = ierror_not_a_number;            /* write */
                             flatzm71zmsimpflatzm213 = 0.0;                            /* write */
                         }
                         
@@ -3295,7 +3295,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                         flatzm64zmsimpflatzm222 = ierror_not_an_error;                /* write */
                         flatzm64zmsimpflatzm223 = idouble_add (azmconvzm76zmavalzm2zmsimpflatzm159, flatzm48zmsimpflatzm219); /* write */
                     } else {
-                        flatzm64zmsimpflatzm222 = ierror_cannot_compute;              /* write */
+                        flatzm64zmsimpflatzm222 = ierror_not_a_number;                /* write */
                         flatzm64zmsimpflatzm223 = 0.0;                                /* write */
                     }
                     
@@ -3476,7 +3476,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                 flatzm121zmsimpflatzm275      = ierror_not_an_error;                  /* write */
                 flatzm121zmsimpflatzm276      = idouble_sub (azmconvzm76zmsimpflatzm261, 1.0); /* write */
             } else {
-                flatzm121zmsimpflatzm275      = ierror_cannot_compute;                /* write */
+                flatzm121zmsimpflatzm275      = ierror_not_a_number;                  /* write */
                 flatzm121zmsimpflatzm276      = 0.0;                                  /* write */
             }
             
@@ -3494,7 +3494,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                     flatzm125zmsimpflatzm281  = ierror_not_an_error;                  /* write */
                     flatzm125zmsimpflatzm282  = idouble_div (azmconvzm76zmsimpflatzm263, flatzm121zmsimpflatzm278); /* write */
                 } else {
-                    flatzm125zmsimpflatzm281  = ierror_cannot_compute;                /* write */
+                    flatzm125zmsimpflatzm281  = ierror_not_a_number;                  /* write */
                     flatzm125zmsimpflatzm282  = 0.0;                                  /* write */
                 }
                 
@@ -3530,7 +3530,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                 flatzm118zmsimpflatzm291      = ierror_not_an_error;                  /* write */
                 flatzm118zmsimpflatzm292      = idouble_sqrt (flatzm110zmsimpflatzm288); /* write */
             } else {
-                flatzm118zmsimpflatzm291      = ierror_cannot_compute;                /* write */
+                flatzm118zmsimpflatzm291      = ierror_not_a_number;                  /* write */
                 flatzm118zmsimpflatzm292      = 0.0;                                  /* write */
             }
             
@@ -3557,7 +3557,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                 flatzm115zmsimpflatzm299      = ierror_not_an_error;                  /* write */
                 flatzm115zmsimpflatzm300      = idouble_mul (flatzm106zmsimpflatzm270, flatzm111zmsimpflatzm296); /* write */
             } else {
-                flatzm115zmsimpflatzm299      = ierror_cannot_compute;                /* write */
+                flatzm115zmsimpflatzm299      = ierror_not_a_number;                  /* write */
                 flatzm115zmsimpflatzm300      = 0.0;                                  /* write */
             }
             

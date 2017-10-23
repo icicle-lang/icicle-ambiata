@@ -186,7 +186,7 @@ typeOfPrim p
     PrimBuiltinFun    (PrimBuiltinArray (PrimBuiltinLength t))
      -> FunT [funOfVal (ArrayT t)] IntT
     PrimBuiltinFun    (PrimBuiltinArray (PrimBuiltinIndex t))
-     -> FunT [funOfVal (ArrayT t), funOfVal IntT] t
+     -> FunT [funOfVal (ArrayT t), funOfVal IntT] (SumT ErrorT t)
 
     -- All relations are binary to bool
     PrimRelation _ val

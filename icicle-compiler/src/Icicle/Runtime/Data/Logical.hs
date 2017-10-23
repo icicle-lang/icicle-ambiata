@@ -272,6 +272,18 @@ prettyValue p schema = \case
       pure $
         annotate AnnError "CannotCompute"
 
+  Error NotANumber64
+    | Schema.Result _ <- schema
+    ->
+      pure $
+        annotate AnnError "NotANumber"
+
+  Error IndexOutOfBounds64
+    | Schema.Result _ <- schema
+    ->
+      pure $
+        annotate AnnError "IndexOutOfBounds"
+
   Error (Error64 x)
     | Schema.Result _ <- schema
     ->

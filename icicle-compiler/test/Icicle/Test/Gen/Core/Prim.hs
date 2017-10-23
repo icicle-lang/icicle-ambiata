@@ -183,12 +183,11 @@ genPrimBuiltinMap genT = Gen.choice
     [ PM.PrimBuiltinKeys <$> genOrdValTypeOf' genT <*> genT
     , PM.PrimBuiltinVals <$> genOrdValTypeOf' genT <*> genT ]
 
--- TODO: missing PrimBuiltinIndex; modify index to be safe.
--- Returning an Option would probably be fine for Core, if we had an explicitly unsafe primitive in Flat.
 genPrimBuiltinArray :: Gen ValType -> Gen PM.PrimBuiltinArray
 genPrimBuiltinArray genT = Gen.choice
   [ PM.PrimBuiltinSort <$> genT
-  , PM.PrimBuiltinLength <$> genT ]
+  , PM.PrimBuiltinLength <$> genT
+  , PM.PrimBuiltinIndex <$> genT ]
 
 genPrimBuiltinFun :: Gen ValType -> Gen PM.PrimBuiltinFun
 genPrimBuiltinFun genT = Gen.choice

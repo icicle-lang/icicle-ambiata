@@ -456,9 +456,8 @@ primCheckDouble fx = do
 
   let xvalid = apps (bf $ Min.PrimBuiltinMath $ Min.PrimBuiltinDoubleIsValid) [ v'x ]
 
-  -- TODO: add ExceptNotANumber
   let verr   = CE.XValue () (T.SumT T.ErrorT T.DoubleT)
-             $ V.VLeft $ V.VError V.ExceptCannotCompute
+             $ V.VLeft $ V.VError V.ExceptNotANumber
   let vright = apps (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT T.DoubleT)
              [ v'x ]
 

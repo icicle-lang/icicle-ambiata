@@ -137,8 +137,31 @@ flatX a_fresh xx stm
       -- User arrays
       Core.PrimMinimal (Min.PrimBuiltinFun (Min.PrimBuiltinArray (Min.PrimBuiltinLength t)))
        -> primApps (Flat.PrimProject $ Flat.PrimProjectArrayLength t) xs []
+
       Core.PrimMinimal (Min.PrimBuiltinFun (Min.PrimBuiltinArray (Min.PrimBuiltinIndex t)))
-       -> primApps (Flat.PrimUnsafe $ Flat.PrimUnsafeArrayIndex t) xs []
+       | [array, ix] <- xs
+       -> flatX' array
+       $ \array'
+       -> flatX' ix
+       $ \ix'
+       -> do accN <- fresh
+             stm' <- stm (xVar accN)
+
+             let accT = SumT ErrorT t
+             let lenX = xPrim (Flat.PrimProject $ Flat.PrimProjectArrayLength t) `makeApps'` [array']
+             let zero = xValue IntT $ VInt 0
+             let ge   = xPrim (Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationGe IntT) `makeApps'` [ix', zero]
+             let lt   = xPrim (Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationLt IntT) `makeApps'` [ix', lenX]
+             let if1 a b = If a b mempty
+
+             let unsafeIndex  = xPrim (Flat.PrimUnsafe $ Flat.PrimUnsafeArrayIndex t) `makeApps'` [array', ix']
+             let unsafeWrap   = xPrim (Flat.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight ErrorT t) `makeApps'` [unsafeIndex]
+             let writeIf      = if1 ge $ if1 lt $ Write accN unsafeWrap
+
+             return $ InitAccumulator
+                    (Accumulator accN accT (xValue accT $ VLeft $ VError ExceptIndexOutOfBounds))
+                    (writeIf <> Read accN accN accT stm')
+
 
       -- Implement heap sort in Avalanche so that it can be melted.
       Core.PrimMinimal (Min.PrimBuiltinFun (Min.PrimBuiltinArray (Min.PrimBuiltinSort t)))

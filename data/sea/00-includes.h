@@ -35,6 +35,8 @@ static const ierror_t ierror_not_an_error           = 0;
 static const ierror_t ierror_tombstone              = 1;
 static const ierror_t ierror_fold1_no_value         = 2;
 static const ierror_t ierror_cannot_compute         = 3;
+static const ierror_t ierror_not_a_number           = 4;
+static const ierror_t ierror_index_out_of_bounds    = 5;
 
 static const iunit_t iunit  = 0x13013;
 static const ibool_t ifalse = 0;

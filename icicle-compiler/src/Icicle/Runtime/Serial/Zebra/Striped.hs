@@ -122,9 +122,9 @@ snoc xs0 x =
     Cons.from hd (tl <> Boxed.singleton x)
 
 -- FIXME x-vector
-from4 :: a -> a -> a -> a -> Cons Boxed.Vector a
-from4 x y z w =
-  Cons.unsafeFromList [x, y, z, w]
+from6 :: a -> a -> a -> a -> a -> a -> Cons Boxed.Vector a
+from6 u v w x y z=
+  Cons.unsafeFromList [u, v, w, x, y, z]
 
 -- FIXME zebra-core
 takeOption :: Zebra.Column -> Either Schema.SchemaError (Zebra.Default, Storable.Vector Zebra.Tag, Zebra.Column)
@@ -319,6 +319,10 @@ decodeResultTags =
       pure Fold1NoValue64
     3 ->
       pure CannotCompute64
+    4 ->
+      pure NotANumber64
+    5 ->
+      pure IndexOutOfBounds64
     n ->
       Left $ ZebraStripedUnknownResultTag n
 
@@ -372,7 +376,9 @@ decodeColumn = \case
       [Zebra.Variant "success" x,
        Zebra.Variant "tombstone" (Zebra.Unit _),
        Zebra.Variant "fold1_no_value" (Zebra.Unit _),
-       Zebra.Variant "cannot_compute" (Zebra.Unit _)] ->
+       Zebra.Variant "cannot_compute" (Zebra.Unit _),
+       Zebra.Variant "not_a_number" (Zebra.Unit _),
+       Zebra.Variant "index_out_of_bounds" (Zebra.Unit _)] ->
         Icicle.Result <$> decodeResultTags tags <*> decodeColumn x
 
       _ ->
@@ -598,6 +604,10 @@ encodeErrorTags =
       pure 2
     CannotCompute64 ->
       pure 3
+    NotANumber64 ->
+      pure 4
+    IndexOutOfBounds64 ->
+      pure 5
     n ->
       Left $ ZebraStripedUnknownError64 n
 
@@ -645,11 +655,13 @@ encodeColumn = \case
   Icicle.Result tags x ->
     Zebra.Enum Zebra.DenyDefault
       <$> encodeErrorTags tags
-      <*> (from4
+      <*> (from6
         <$> (Zebra.Variant "success" <$> encodeColumn x)
         <*> pure (Zebra.Variant "tombstone" . Zebra.Unit $ Storable.length tags)
         <*> pure (Zebra.Variant "fold1_no_value" . Zebra.Unit $ Storable.length tags)
-        <*> pure (Zebra.Variant "cannot_compute" . Zebra.Unit $ Storable.length tags))
+        <*> pure (Zebra.Variant "cannot_compute" . Zebra.Unit $ Storable.length tags)
+        <*> pure (Zebra.Variant "not_a_number" . Zebra.Unit $ Storable.length tags)
+        <*> pure (Zebra.Variant "index_out_of_bounds" . Zebra.Unit $ Storable.length tags))
 
   Icicle.Pair x y ->
     fmap (Zebra.Struct Zebra.DenyDefault) $

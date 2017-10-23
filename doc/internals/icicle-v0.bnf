@@ -295,6 +295,8 @@
                |  ExceptTombstone
                |  ExceptFold1NoValue
                |  ExceptCannotCompute
+               |  ExceptNotANumber
+               |  ExceptIndexOutOfBounds
 
 <window>      ::= <integer> <window-unit>
                |  between <integer> <window-unit> and <integer> <window-unit>

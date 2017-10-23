@@ -29,6 +29,8 @@ module Icicle.Runtime.Data.Primitive (
   , pattern Tombstone64
   , pattern Fold1NoValue64
   , pattern CannotCompute64
+  , pattern NotANumber64
+  , pattern IndexOutOfBounds64
   , fromExceptionInfo
   , fromError64
   , isError
@@ -151,11 +153,15 @@ instance Storable UnpackedTime64 where
 newtype Error64 =
   Error64 {
       unError64 :: Word64
-    } deriving (Eq, Ord, Generic, Storable)
+    } deriving (Eq, Ord, Generic, Storable, Enum)
 
 instance Show Error64 where
   showsPrec =
     gshowsPrec
+
+instance Bounded Error64 where
+  minBound = NotAnError64
+  maxBound = IndexOutOfBounds64
 
 -- | A named struct field.
 --
@@ -226,6 +232,18 @@ pattern CannotCompute64 :: Error64
 pattern CannotCompute64 =
   Error64 3
 
+#if __GLASGOW_HASKELL__ >= 800
+pattern NotANumber64 :: Error64
+#endif
+pattern NotANumber64 =
+  Error64 4
+
+#if __GLASGOW_HASKELL__ >= 800
+pattern IndexOutOfBounds64 :: Error64
+#endif
+pattern IndexOutOfBounds64 =
+  Error64 5
+
 fromExceptionInfo :: ExceptionInfo -> Error64
 fromExceptionInfo = \case
   ExceptNotAnError ->
@@ -236,6 +254,10 @@ fromExceptionInfo = \case
     Fold1NoValue64
   ExceptCannotCompute ->
     CannotCompute64
+  ExceptNotANumber ->
+    NotANumber64
+  ExceptIndexOutOfBounds ->
+    IndexOutOfBounds64
 {-# INLINE fromExceptionInfo #-}
 
 isError :: Error64 -> Bool
@@ -256,6 +278,10 @@ fromError64 = \case
     Just ExceptFold1NoValue
   CannotCompute64 ->
     Just ExceptCannotCompute
+  NotANumber64 ->
+    Just ExceptNotANumber
+  IndexOutOfBounds64 ->
+    Just ExceptIndexOutOfBounds
   _ ->
     Nothing
 {-# INLINE fromError64 #-}

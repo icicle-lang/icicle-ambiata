@@ -116,7 +116,9 @@ data ExceptionInfo
  | ExceptTombstone
  | ExceptFold1NoValue
  | ExceptCannotCompute
- deriving (Show, Ord, Eq, Generic)
+ | ExceptNotANumber
+ | ExceptIndexOutOfBounds
+ deriving (Show, Ord, Eq, Generic, Enum, Bounded)
 
 instance NFData ExceptionInfo
 instance NanEq ExceptionInfo
