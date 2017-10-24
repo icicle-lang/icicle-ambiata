@@ -98,7 +98,7 @@ Read(buf)
 
 #define MK_BUF_READ(n,t)                                                        \
                                                                                 \
-static ARRAY(t##_t) INLINE BUF_FUN(n,t,read) (anemone_mempool_t *pool, BUF_T(n,t) *buf)\
+static ARRAY(t##_t) NOINLINE BUF_FUN(n,t,read) (anemone_mempool_t *pool, BUF_T(n,t) *buf)\
 {                                                                               \
     iint_t size = buf->size;                                                    \
     iint_t head = buf->head;                                                    \
