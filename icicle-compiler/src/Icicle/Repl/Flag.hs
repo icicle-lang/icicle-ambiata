@@ -8,9 +8,12 @@ module Icicle.Repl.Flag (
   , namedFlags
   , whenSet
   , ifSet
+  , timeSection
+  , timeSectionWith
   ) where
 
 import           Control.Monad.State.Class (MonadState, gets)
+import           Control.Monad.IO.Class (MonadIO)
 
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -18,6 +21,7 @@ import qualified Data.Set as Set
 import           Data.String (String)
 
 import           Icicle.Repl.Data
+import           Icicle.Command.Timer
 
 import           P
 
@@ -138,6 +142,11 @@ allFlags = [
       "Queries will be evaluated using the C evaluator."
       "Queries will no longer be evaluated using the C evaluator."
       "Show the result, using C evaluation."
+
+  , FlagInfo FlagStatTime "time"
+      "Time breakdown will be shown during evaluation."
+      "Time breakdown will be hidden during evaluation."
+      "Show the time breakdown during evaluation."
   ]
 
 namedFlags :: Map String Flag
@@ -157,3 +166,14 @@ ifSet :: MonadState State m => Flag -> m a -> m a -> m a
 ifSet flag t f = do
   flags <- gets stateFlags
   if Set.member flag flags then t else f
+
+timeSection :: (MonadState State m, MonadIO m) => Text -> m (m ())
+timeSection section = ifSet FlagStatTime (startTimer_ section) (return (return ()))
+
+timeSectionWith :: (MonadState State m, MonadIO m) => Text -> m a -> m a
+timeSectionWith section action = do
+  time <- timeSection section
+  ret  <- action
+  time
+  return ret
+
