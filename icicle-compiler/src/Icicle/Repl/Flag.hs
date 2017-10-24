@@ -37,7 +37,7 @@ allFlags = [
   , FlagInfo FlagTypeCheckLog "type-check-log"
       "The type checking log will be displayed during evaluation."
       "The type checking log will be hidden during evaluation."
-      "" -- FIXME
+      "Show the type checking log."
 
   , FlagInfo FlagBigData "big-data"
       "Queries are now subject to \"big data\" restrictions."
@@ -94,20 +94,20 @@ allFlags = [
       "Queries will no longer be evaluated using the avalanche evaluator."
       "Show the result, using avalanche evaluation."
 
-  , FlagInfo FlagFlattenSimp "flatten-simp"
-      "The flattened avalanche will be shown during evaluation."
-      "The flattened avalanche will be hidden during evaluation."
-      "Show the flattened avalanche conversion."
+  , FlagInfo FlagFlattenSimp "flatten"
+      "The flattened simplified avalanche will be shown during evaluation."
+      "The flattened simplified avalanche will be hidden during evaluation."
+      "Show the flattened avalanche conversion after simplifier."
 
-  , FlagInfo FlagFlattenNoSimp "flatten-no-simp"
-      "flatten-no-simp is now on."
-      "flatten-no-simp is now off."
-      "" -- FIXME more details
+  , FlagInfo FlagFlattenNoSimp "flatten-pre-simp"
+      "The flattened (unsimplified) avalanche will be shown during evaluation."
+      "The flattened (unsimplified) avalanche will be hidden during evaluation."
+      "Show the flattened avalanche before simplifier."
 
   , FlagInfo FlagFlattenSimpCheck "flatten-simp-check"
-      "flatten-simp-check is now on."
-      "flatten-simp-check is now off."
-      "" -- FIXME more details
+      "Typechecking will occur during flatten simplifier."
+      "No typechecking will occur during flatten simplifier."
+      "Perform typechecking between every stage of flatten simplifier."
 
   , FlagInfo FlagSeaPreamble "c-preamble"
       "The C preamble will be shown during evaluation."
