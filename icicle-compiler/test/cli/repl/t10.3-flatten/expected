@@ -17,7 +17,7 @@ Selected psv file as input: test/cli/repl/data.psv
 
 λ -- Show everything
 λ The core will be simplified prior to evaluation.
-The flattened avalanche will be shown during evaluation.
+The flattened simplified avalanche will be shown during evaluation.
 λ λ -- A rather complicated feature to convert to Avalanche
 λ Flattened (simplified), not typechecked
 ---------------------------------------

@@ -68,6 +68,7 @@ data Flag =
   | FlagSeaLLVM
   | FlagSeaRuntime
   | FlagSeaEval
+  | FlagStatTime
     deriving (Eq, Ord, Show)
 
 data FlagInfo =

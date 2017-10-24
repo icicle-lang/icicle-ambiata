@@ -1,5 +1,5 @@
 -- Show everything
-:set +flatten-simp +c
+:set +flatten +c
 
 -- Enable C evaluation
 :set +c-eval
@@ -11,7 +11,7 @@ feature injury ~> mean (double severity) * (filter location == "torso" ~> sd sev
 feature salary ~> max (days between `1980-01-06` time days after `2000-01-01`)
 
 -- Math
-:set -c -flatten-simp
+:set -c -flatten
 
 feature injury ~> newest (sqrt (-1))
 

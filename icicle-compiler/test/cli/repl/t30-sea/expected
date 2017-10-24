@@ -16,7 +16,7 @@ Selected psv file as input: test/cli/repl/data.psv
                   ░     :help for help
 
 λ -- Show everything
-λ The flattened avalanche will be shown during evaluation.
+λ The flattened simplified avalanche will be shown during evaluation.
 The C will be shown during evaluation.
 λ λ -- Enable C evaluation
 λ Queries will be evaluated using the C evaluator.
@@ -3963,7 +3963,7 @@ marge|2009-12-12
 
 λ λ -- Math
 λ The C will be hidden during evaluation.
-The flattened avalanche will be hidden during evaluation.
+The flattened simplified avalanche will be hidden during evaluation.
 λ λ Core evaluation
 ---------------
 

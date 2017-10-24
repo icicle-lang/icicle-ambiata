@@ -244,6 +244,8 @@ compileQuery query = do
     sourceOid =
       [outputid|repl:output|]
 
+  timeCompileSource <- timeSection "Compile Source"
+
   parsed <-
     hoistEither . first QuerySourceError $
       Source.sourceParseQT sourceOid (Text.pack query)
@@ -293,6 +295,9 @@ compileQuery query = do
     finalSource =
       reified
 
+  timeCompileSource
+  timeCompileCore <- timeSection "Compile Core"
+
   --
   -- Core, simplified and unsimplified.
   --
@@ -320,6 +325,9 @@ compileQuery query = do
         putSection "Core type" . Pretty.vsep . with coreType $ \(oid, typ) ->
           Pretty.prettyTypedBest (Pretty.annotate Pretty.AnnBinding $ Pretty.pretty oid) (Pretty.pretty typ)
 
+  timeCompileCore
+  timeCompileAvalanche <- timeSection "Compile Avalanche"
+
   --
   -- Avalanche, simplified.
   --
@@ -330,6 +338,9 @@ compileQuery query = do
 
   whenSet FlagAvalanche $
     putSection "Avalanche (simplified)" avalancheSimped
+
+  timeCompileAvalanche
+  timeCompileFlatten <- timeSection "Compile Flattened Avalanche"
 
   --
   -- Flatten Avalanche, not simplified.
@@ -358,7 +369,12 @@ compileQuery query = do
       (pure $ Compiler.coreFlatten_ (Avalanche.SimpOpts True True) core)
       (pure $ Compiler.coreFlatten core)
 
-  case avalancheFlatSimped of
+  avalancheFlatSimped `seq` return ()
+  timeCompileFlatten
+
+  timeCompileCheck <- timeSection "Compile Flattened Avalanche Check"
+
+  ret <- case avalancheFlatSimped of
     Left err -> do
       putSection "Flatten Avalanche (simplified) error" err
       pure $
@@ -385,9 +401,12 @@ compileQuery query = do
           pure $
             CompiledQuery sourceOid finalSource core (Just flatChecked)
 
+  timeCompileCheck
+  return ret
+
 evaluateCore :: CompiledQuery -> [AsAt Fact] -> Repl ()
 evaluateCore compiled facts =
-  whenSet FlagCoreEval $ do
+  whenSet FlagCoreEval $ timeSectionWith "Evaluate Core" $ do
     context <- getEvalContext
     case Compiler.coreEval context facts (compiledSource compiled) (compiledCore compiled) of
       Left err ->
@@ -401,17 +420,17 @@ evaluateAvalanche compiled facts = do
     Nothing ->
       pure ()
     Just avalanche ->
-      whenSet FlagAvalancheEval $ do
+      whenSet FlagAvalancheEval $ timeSectionWith "Evaluate Avalanche" $ do
         context <- getEvalContext
         case Compiler.avalancheEval context facts (compiledSource compiled) (Avalanche.reannotP (const ()) avalanche) of
           Left err ->
-            putSection "Avalanche evalutation error" err
+            putSection "Avalanche evaluation error" err
 
           Right x ->
             putSection "Avalanche evaluation" $ ppResults x
 
-compileSea :: CompiledQuery -> EitherT QueryError Repl ()
-compileSea compiled =
+renderCompiledSea :: CompiledQuery -> EitherT QueryError Repl ()
+renderCompiledSea compiled =
   case compiledAvalanche compiled of
     Nothing ->
       pure ()
@@ -437,7 +456,7 @@ compileSea compiled =
             putSection "C" x
 
       whenSet FlagSeaAssembly $ do
-        result <- liftIO . runEitherT $ Sea.assemblyOfPrograms "icicle-repl" [(iid, flatList)]
+        result <- timeSectionWith "Compile Sea to Assembly" $ liftIO . runEitherT $ Sea.assemblyOfPrograms "icicle-repl" [(iid, flatList)]
         case result of
           Left err ->
             putSection "C assembly error" err
@@ -445,7 +464,7 @@ compileSea compiled =
             putSection "C assembly" x
 
       whenSet FlagSeaLLVM $ do
-        result <- liftIO . runEitherT $ Sea.irOfPrograms "icicle-repl" [(iid, flatList)]
+        result <- timeSectionWith "Compile Sea to LLVM" $ liftIO . runEitherT $ Sea.irOfPrograms "icicle-repl" [(iid, flatList)]
         case result of
           Left err ->
             putSection "C LLVM IR error" err
@@ -458,7 +477,8 @@ evaluateSea compiled facts =
     Nothing ->
       pure ()
     Just avalanche ->
-      whenSet FlagSeaEval $ do
+      -- TODO: finer-grained timing
+      whenSet FlagSeaEval $ timeSectionWith "Compile & Evaluate Sea" $ do
         context <- getEvalContext
         result <- liftIO . runEitherT $ Compiler.seaEval context facts (compiledSource compiled) avalanche
         case result of
@@ -508,24 +528,30 @@ evaluateZebra compiled path = do
           Runtime.AvalancheContext "Icicle.Repl.Query.evaluateZebra" $
           Map.fromList [(iid, avalanche :| [])]
 
+      timeCompile <- timeSection "Compile Sea"
+
       context <-
+        timeSectionWith "Compile Sea Avalanche->Sea" $
         hoistEither . first QueryRuntimeError $
           Runtime.compileAvalanche context0
 
       runtime <-
+        timeSectionWith "Compile Sea Sea->object" $
         firstT QueryRuntimeError $
           Runtime.compileSea Sea.SkipJetskiCache context
+
+      timeCompile
 
       whenSet FlagSeaRuntime $
         putSection "C runtime" (ppShow runtime)
 
-      whenSet FlagSeaEval $ do
+      whenSet FlagSeaEval $ timeSectionWith "Evaluate Zebra" $ do
         mapSize <- Runtime.MaximumMapSize . fromIntegral <$> gets stateMaxMapSize
         time <- Runtime.SnapshotTime . Runtime.QueryTime . Runtime.Time64 .
           packedOfTime . exclusiveSnapshotTime <$> gets stateSnapshotDate
 
         limit <- gets stateLimit
-        minput0 <- readZebraRows limit path
+        minput0 <- timeSectionWith "Evaluate Zebra Open" $ readZebraRows limit path
 
         case minput0 of
           Nothing ->
@@ -537,22 +563,28 @@ evaluateZebra compiled path = do
                 fmap (Runtime.clusterInputSchema . Sea.clusterAnnotation) $ Runtime.runtimeClusters runtime
 
             zschema <-
+              timeSectionWith "Evaluate Zebra Schema" $
               hoistEither . first QueryRuntimeZebraSchemaError $
                 Runtime.encodeInputSchemas inputSchemas
 
             input1 <-
+              timeSectionWith "Evaluate Zebra Transmute" $
               hoistEither . first QueryZebraStripedError $
                 Zebra.transmute zschema (Runtime.shiftTable input0)
 
             input <-
+              timeSectionWith "Evaluate Zebra Decode" $
               hoistEither . first QueryRuntimeZebraStripedError $
                 Runtime.decodeInput input1
 
             output0 <-
+              timeSectionWith "Evaluate Zebra Snapshot" $
               firstT QueryRuntimeError . hoist liftIO $
                 Runtime.snapshotBlock runtime mapSize time input
 
-            output1 <- hoistEither $ fromOutput (compiledOutputId compiled) output0
+            output1 <- 
+              timeSectionWith "Evaluate Zebra Output" $
+              hoistEither $ fromOutput (compiledOutputId compiled) output0
 
             let
               output =
@@ -566,8 +598,9 @@ evaluateZebra compiled path = do
 evaluateQuery :: String -> Repl ()
 evaluateQuery query =
   runEitherRepl $ do
-    compiled <- compileQuery query
-    compileSea compiled
+    compiled <- timeSectionWith "Compile Query" $ compileQuery query
+
+    renderCompiledSea compiled
 
     input <- gets stateInput
     case input of
@@ -585,3 +618,4 @@ evaluateQuery query =
 
       InputZebra path -> do
         evaluateZebra compiled path
+
