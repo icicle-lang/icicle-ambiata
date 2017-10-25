@@ -137,6 +137,10 @@ library
                        Icicle.Internal.Aeson
                        Icicle.Internal.Rename
 
+                       Icicle.Canyon.FromAvalanche
+                       Icicle.Canyon.Program
+                       Icicle.Canyon.Statement
+
                        Icicle.Repl
                        Icicle.Repl.Data
                        Icicle.Repl.Flag
@@ -172,13 +176,13 @@ library
                        Icicle.Sea.Data
                        Icicle.Sea.Error
                        Icicle.Sea.Eval.Base
-                       Icicle.Sea.FromAvalanche
-                       Icicle.Sea.FromAvalanche.Analysis
-                       Icicle.Sea.FromAvalanche.Base
-                       Icicle.Sea.FromAvalanche.Prim
-                       Icicle.Sea.FromAvalanche.Program
-                       Icicle.Sea.FromAvalanche.State
-                       Icicle.Sea.FromAvalanche.Type
+                       Icicle.Sea.FromCanyon
+                       Icicle.Sea.FromCanyon.Analysis
+                       Icicle.Sea.FromCanyon.Base
+                       Icicle.Sea.FromCanyon.Prim
+                       Icicle.Sea.FromCanyon.Program
+                       Icicle.Sea.FromCanyon.State
+                       Icicle.Sea.FromCanyon.Type
                        Icicle.Sea.Header
                        Icicle.Sea.IO.Offset
                        Icicle.Sea.Name

@@ -72,7 +72,7 @@ import qualified Icicle.Runtime.Data.Striped as Striped
 import           Icicle.Runtime.Stencil
 import           Icicle.Sea.Data
 import qualified Icicle.Sea.Eval.Base as Sea
-import qualified Icicle.Sea.FromAvalanche.State as Sea
+import qualified Icicle.Sea.FromCanyon.State as Sea
 import           Icicle.Sea.Header
 import qualified Icicle.Sea.IO.Offset as Offset
 

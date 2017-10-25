@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ViewPatterns #-}
-module Icicle.Sea.FromAvalanche.Base (
+module Icicle.Sea.FromCanyon.Base (
     SeaString
   , takeSeaString
   , seaOfChar

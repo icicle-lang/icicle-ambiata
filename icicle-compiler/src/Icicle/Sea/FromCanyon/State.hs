@@ -3,7 +3,7 @@
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE QuasiQuotes       #-}
-module Icicle.Sea.FromAvalanche.State (
+module Icicle.Sea.FromCanyon.State (
     nameOfCluster
   , nameOfCluster'
   , nameOfKernel
@@ -42,8 +42,7 @@ import qualified Data.Map as Map
 import qualified Data.List.NonEmpty as NonEmpty
 import           Data.List.NonEmpty (NonEmpty(..))
 
-import           Icicle.Avalanche.Prim.Flat
-import           Icicle.Avalanche.Program
+import           Icicle.Canyon.Program
 
 import           Icicle.Common.Annot
 import           Icicle.Common.Type
@@ -54,8 +53,8 @@ import           Icicle.Internal.Pretty
 
 import           Icicle.Sea.Data
 import           Icicle.Sea.Error
-import           Icicle.Sea.FromAvalanche.Analysis
-import           Icicle.Sea.FromAvalanche.Type
+import           Icicle.Sea.FromCanyon.Analysis
+import           Icicle.Sea.FromCanyon.Type
 import           Icicle.Sea.Name
 
 import           P
@@ -65,7 +64,7 @@ clusterOfPrograms ::
      (Pretty n, Eq n)
   => ClusterId
   -> InputId
-  -> NonEmpty (Program (Annot a) n Prim)
+  -> NonEmpty (Program (Annot a) n)
   -> Either SeaError (Cluster () ())
 clusterOfPrograms cid iid programs@(program :| _) =
   case factVarsOfProgram program of
@@ -100,7 +99,7 @@ kernelOfProgram ::
      (Pretty n, Eq n)
   => ClusterId
   -> KernelIndex
-  -> Program (Annot a) n Prim
+  -> Program (Annot a) n
   -> Kernel ()
 kernelOfProgram cid kix program =
   Kernel {

@@ -38,9 +38,9 @@ import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
 
 import           Icicle.Sea.Data
 import           Icicle.Sea.Error (SeaError(..))
-import           Icicle.Sea.FromAvalanche.Program (seaOfPrograms)
-import           Icicle.Sea.FromAvalanche.State (clusterOfPrograms)
-import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
+import           Icicle.Sea.FromCanyon.Program (seaOfPrograms)
+import           Icicle.Sea.FromCanyon.State (clusterOfPrograms)
+import           Icicle.Sea.FromCanyon.Type (seaOfDefinitions)
 import           Icicle.Sea.Header
 import           Icicle.Sea.Preamble (seaPreamble)
 
@@ -110,7 +110,7 @@ codeOfPrograms ::
   -> [(InputId, NonEmpty (Program (Annot a) n Prim))]
   -> Either SeaError Text
 codeOfPrograms fingerprint programs = do
-  let defs = seaOfDefinitions (concatMap (NonEmpty.toList . snd) programs)
+  let defs = seaOfDefinitions (concatMap ( . NonEmpty.toList . snd) programs)
 
   progs <- zipWithM (\ix (a, p) -> seaOfPrograms ix a p) [0..] programs
   clusters <- zipWithM (\ix (a, p) -> clusterOfPrograms ix a p) [0..] programs

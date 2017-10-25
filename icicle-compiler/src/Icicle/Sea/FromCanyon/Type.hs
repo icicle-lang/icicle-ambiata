@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards     #-}
-module Icicle.Sea.FromAvalanche.Type (
+module Icicle.Sea.FromCanyon.Type (
     seaOfDefinitions
   , prefixOfArithType
   , prefixOfValType
@@ -18,8 +18,7 @@ import qualified Data.Set           as Set
 import qualified Data.List          as List
 import           Data.Functor.Identity
 
-import           Icicle.Avalanche.Prim.Flat
-import           Icicle.Avalanche.Program
+import           Icicle.Canyon.Program
 
 import           Icicle.Common.Annot
 import           Icicle.Common.Exp
@@ -28,7 +27,7 @@ import           Icicle.Common.FixT
 
 import           Icicle.Internal.Pretty
 
-import           Icicle.Sea.FromAvalanche.Analysis
+import           Icicle.Sea.FromCanyon.Analysis
 
 import           P
 import qualified Prelude as Savage
@@ -36,7 +35,7 @@ import qualified Prelude as Savage
 
 ------------------------------------------------------------------------
 
-seaOfDefinitions :: [Program (Annot a) n Prim] -> Doc
+seaOfDefinitions :: [Program (Annot a) n] -> Doc
 seaOfDefinitions programs
  = vsep
  [ ""
@@ -69,7 +68,7 @@ defDepth t
      ArrayT t' -> 1 + defDepth t'
      _         -> 1
 
-expandedTypesOfProgram :: Program (Annot a) n Prim -> Set ValType
+expandedTypesOfProgram :: Program (Annot a) n -> Set ValType
 expandedTypesOfProgram =
  expandedTypesOf . typesOfProgram
 

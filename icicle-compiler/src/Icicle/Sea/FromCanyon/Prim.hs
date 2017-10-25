@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 
-module Icicle.Sea.FromAvalanche.Prim (
+module Icicle.Sea.FromCanyon.Prim (
     seaOfXPrim
   , seaOfPrimDocApps
   , PrimDoc (..)
@@ -17,8 +17,8 @@ import           Icicle.Common.Type
 
 import           Icicle.Internal.Pretty
 
-import           Icicle.Sea.FromAvalanche.Base
-import           Icicle.Sea.FromAvalanche.Type
+import           Icicle.Sea.FromCanyon.Base
+import           Icicle.Sea.FromCanyon.Type
 
 import           P
 

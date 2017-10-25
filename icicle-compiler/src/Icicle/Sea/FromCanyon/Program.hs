@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module Icicle.Sea.FromAvalanche.Program (
+module Icicle.Sea.FromCanyon.Program (
     seaOfPrograms
   , seaOfXValue
   , nameOfCluster
@@ -13,8 +13,8 @@ module Icicle.Sea.FromAvalanche.Program (
   ) where
 
 import           Icicle.Avalanche.Prim.Flat
-import           Icicle.Avalanche.Program
-import           Icicle.Avalanche.Statement.Statement
+import           Icicle.Canyon.Program
+import           Icicle.Canyon.Statement
 
 import           Icicle.Common.Annot
 import           Icicle.Common.Base
@@ -27,11 +27,10 @@ import           Icicle.Internal.Pretty
 
 import           Icicle.Sea.Data
 import           Icicle.Sea.Error
-import           Icicle.Sea.FromAvalanche.Analysis
-import           Icicle.Sea.FromAvalanche.Base
-import           Icicle.Sea.FromAvalanche.Prim
-import           Icicle.Sea.FromAvalanche.State
-import           Icicle.Sea.FromAvalanche.Type
+import           Icicle.Sea.FromCanyon.Base
+import           Icicle.Sea.FromCanyon.Prim
+import           Icicle.Sea.FromCanyon.State
+import           Icicle.Sea.FromCanyon.Type
 import           Icicle.Sea.Name
 
 import           P hiding (head)
@@ -40,8 +39,6 @@ import qualified Data.List as List
 import qualified Data.List.NonEmpty as NonEmpty
 import           Data.List.NonEmpty ( NonEmpty(..) )
 
-import qualified Data.Map as Map
-
 
 ------------------------------------------------------------------------
 
@@ -49,7 +46,7 @@ seaOfPrograms ::
      (Show a, Show n, Pretty n, Eq n)
   => ClusterId
   -> InputId
-  -> NonEmpty (Program (Annot a) n Prim)
+  -> NonEmpty (Program (Annot a) n)
   -> Either SeaError Doc
 seaOfPrograms cid iid programs = do
   cluster <- clusterOfPrograms cid iid programs
@@ -61,14 +58,10 @@ seaOfKernel ::
      (Show a, Show n, Pretty n, Eq n)
   => Cluster c k
   -> Kernel k
-  -> Program (Annot a) n Prim
+  -> Program (Annot a) n
   -> Doc
 seaOfKernel cluster kernel program =
   let
-    acc_names =
-      fmap (first mangle) . Map.toList $
-        accumsOfProgram program `Map.union` readsOfProgram program
-
     time_name =
       mangle . bindtime $ program
 
@@ -80,8 +73,6 @@ seaOfKernel cluster kernel program =
       , "#line 1 \"kernel function" <+> seaOfClusterInfo cluster <+> pretty (nameOfKernel kernel) <> "\""
       , "void " <> pretty (nameOfKernel kernel) <> "(" <> pretty (nameOfClusterState cluster) <+> "*s)"
       , "{"
-      , indent 4 . vsep . fmap (uncurry defOfAccumulator) $ acc_names
-      , ""
       , indent 4 $
           assign (defOfVar' 1 "anemone_mempool_t" "mempool") "s->mempool;"
 
@@ -96,17 +87,13 @@ seaOfKernel cluster kernel program =
       , "}"
       ]
 
-defOfAccumulator :: SeaName -> ValType -> Doc
-defOfAccumulator n t =
-  defOfVar 0 t (prettySeaName n) <> semi
-
 ------------------------------------------------------------------------
 
 seaOfStatement ::
      (Show a, Show n, Pretty n, Eq n)
   => Cluster c k
   -> Kernel k
-  -> Statement (Annot a) n Prim
+  -> Statement (Annot a) n
   -> Doc
 seaOfStatement cluster kernel stmt
  = case stmt of
@@ -120,9 +107,8 @@ seaOfStatement cluster kernel stmt
       -> seaOfStatement cluster kernel s <> line
       <> seaOfStatement cluster kernel (Block ss)
 
-     Let name xx stmt'
+     Let name xt xx stmt'
       | n <- mangle name
-      , xt <- valTypeOfExp xx
       -> assign (defOfVar 0 xt $ prettySeaName n) (seaOfExp xx) <> semi <> suffix "let" <> line
       <> seaOfStatement cluster kernel stmt'
 
@@ -193,18 +179,6 @@ seaOfStatement cluster kernel stmt
             , "}"
             , ""
             ]
-
-     InitAccumulator acc stmt'
-      | Accumulator name _ xx <- acc
-      , n <- mangle name
-      -> assign (prettySeaName n) (seaOfExp xx) <> semi <> suffix "init" <> line
-      <> seaOfStatement cluster kernel stmt'
-
-     Read name_val name_acc _ stmt'
-      | n_val <- mangle name_val
-      , n_acc <- mangle name_acc
-      -> assign (prettySeaName n_val) (prettySeaName n_acc) <> semi <> suffix "read" <> line
-      <> seaOfStatement cluster kernel stmt'
 
      Write name xx
       | n <- mangle name

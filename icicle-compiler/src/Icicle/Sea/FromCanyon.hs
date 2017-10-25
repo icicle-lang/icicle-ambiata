@@ -1,12 +1,11 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
-module Icicle.Sea.FromAvalanche (
+module Icicle.Sea.FromCanyon (
     seaOfPrograms
   , factVarsOfProgram
-  , accumsOfProgram
   , outputsOfProgram
   ) where
 
-import           Icicle.Sea.FromAvalanche.Program
-import           Icicle.Sea.FromAvalanche.Analysis
+import           Icicle.Sea.FromCanyon.Program
+import           Icicle.Sea.FromCanyon.Analysis

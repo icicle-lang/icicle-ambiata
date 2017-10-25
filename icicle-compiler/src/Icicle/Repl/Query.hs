@@ -53,7 +53,7 @@ import qualified Icicle.Runtime.Evaluator as Runtime
 import qualified Icicle.Runtime.Serial.Zebra as Runtime
 import qualified Icicle.Sea.Data as Sea
 import qualified Icicle.Sea.Eval.Base as Sea
-import qualified Icicle.Sea.FromAvalanche.Program as Sea
+import qualified Icicle.Sea.FromCanyon.Program as Sea
 import qualified Icicle.Sea.Preamble as Sea
 import qualified Icicle.Serial as Serial
 import qualified Icicle.Source.PrettyAnnot as Source
