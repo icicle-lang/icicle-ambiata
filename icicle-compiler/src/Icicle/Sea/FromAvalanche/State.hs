@@ -22,22 +22,14 @@ module Icicle.Sea.FromAvalanche.State (
   , clusterInputNew
   , clusterInputTime
   , clusterNewCount
-  , clusterInputRes
-  , clusterInputHas
-  , nameOfResumable
-  , nameOfResumableHasFlagsStart
-  , nameOfResumableHasFlagsEnd
 
-  -- * Prefixes for facts/resumables.
-  , hasPrefix
-  , resPrefix
+  -- * Fact prefix
   , newPrefix
 
   , seaOfKernelOutput
   ) where
 
 import qualified Data.List as List
-import qualified Data.Map as Map
 
 import qualified Data.List.NonEmpty as NonEmpty
 import           Data.List.NonEmpty (NonEmpty(..))
@@ -97,8 +89,7 @@ clusterOfPrograms cid iid programs@(program :| _) =
         }
 
 kernelOfProgram ::
-     (Pretty n, Eq n)
-  => ClusterId
+     ClusterId
   -> KernelIndex
   -> Program (Annot a) n Prim
   -> Kernel ()
@@ -106,9 +97,6 @@ kernelOfProgram cid kix program =
   Kernel {
       kernelId =
         KernelId cid kix
-
-    , kernelResumables =
-        fmap (first mangle) $ Map.toList (resumablesOfProgram program)
 
     , kernelOutputs =
         outputsOfProgram program
@@ -177,8 +165,6 @@ seaOfClusterState cluster =
     , "    /* inputs */"
     , indent 4 (defOfVar_ 0 (pretty (clusterInputTypeName cluster)) "input;")
     , vsep . fmap seaOfKernelOutput . NonEmpty.toList $ clusterKernels cluster
-    , vsep . fmap seaOfKernelFlags . NonEmpty.toList $ clusterKernels cluster
-    , vsep . fmap seaOfKernelResumables . NonEmpty.toList $ clusterKernels cluster
     , "}" <+> pretty (nameOfClusterState cluster) <> ";"
     , ""
     , "iint_t " <> pretty (nameOfClusterStateSize cluster) <+> "()"
@@ -194,32 +180,6 @@ seaOfKernelOutput kernel =
     , "    /* kernel " <> prettyKernelId (kernelId kernel) <> " outputs */"
     , indent 4 .
         vsep . concat . fmap defsOfOutput $ kernelOutputs kernel
-    ]
-
-seaOfKernelFlags :: Kernel a -> Doc
-seaOfKernelFlags kernel =
-  vsep [
-      ""
-    -- Grouping all the has_* flags together lets us set them all to false with a single memset.
-    -- Surprisingly, this can save a large amount of compilation time.
-    , "    /* kernel " <> prettyKernelId (kernelId kernel) <> " flags */"
-    , indent 4 $
-        defOfVar 0 BoolT (nameOfResumableHasFlagsStart kernel) <> semi
-
-    , indent 4 .
-        vsep . fmap (defHasOfResumable kernel . first renderSeaName) $ kernelResumables kernel
-
-    , indent 4 $
-        defOfVar 0 BoolT (nameOfResumableHasFlagsEnd kernel) <> semi
-    ]
-
-seaOfKernelResumables :: Kernel a -> Doc
-seaOfKernelResumables kernel =
-  vsep [
-      ""
-    , "    /* kernel " <> prettyKernelId (kernelId kernel) <> " resumables */"
-    , indent 4 .
-        vsep . fmap (defValueOfResumable kernel . first renderSeaName) $ kernelResumables kernel
     ]
 
 ------------------------------------------------------------------------
@@ -249,30 +209,6 @@ defOfFactField (name, ty) =
 
 ------------------------------------------------------------------------
 
-defValueOfResumable :: Kernel a -> (Text, ValType) -> Doc
-defValueOfResumable compute (n, t)
- =  defOfVar 0 t     (pretty resPrefix <> nameOfResumable compute (pretty n)) <> semi
-
-defHasOfResumable :: Kernel a -> (Text, ValType) -> Doc
-defHasOfResumable compute (n, _)
- =  defOfVar 0 BoolT (pretty hasPrefix <> nameOfResumable compute (pretty n)) <> semi
-
-nameOfKernelId :: KernelId -> Doc
-nameOfKernelId (KernelId cid kix) =
-  prettyClusterId cid <> "_" <> prettyKernelIndex kix
-
-nameOfResumable :: Kernel a -> Doc -> Doc
-nameOfResumable kernel n =
-  nameOfKernelId (kernelId kernel) <> "_" <> n
-
-nameOfResumableHasFlagsStart :: Kernel a -> Doc
-nameOfResumableHasFlagsStart kernel =
-  "has_flags_start_" <> nameOfKernelId (kernelId kernel)
-
-nameOfResumableHasFlagsEnd :: Kernel a -> Doc
-nameOfResumableHasFlagsEnd kernel =
-  "has_flags_end_" <> nameOfKernelId (kernelId kernel)
-
 defsOfOutput :: (OutputId, MeltedType) -> [Doc]
 defsOfOutput (n, MeltedType _ ts) =
   List.zipWith (defOfOutputIx n) [0..] ts
@@ -282,17 +218,6 @@ defOfOutputIx n ix t =
   defOfVar 0 t (prettySeaName $ mangleIx n ix) <> semi
 
 ------------------------------------------------------------------------
-
--- | Prefix used for the member that represents whether its companion resumable
--- is set or not.
-hasPrefix :: Text
-hasPrefix =
-  "has_"
-
--- | Prefix used for the member that represents a resumable.
-resPrefix :: Text
-resPrefix =
-  "res_"
 
 -- | Prefix for new facts.
 newPrefix :: Text
@@ -323,12 +248,3 @@ clusterNewCount :: Doc
 clusterNewCount =
   "input.new_count"
 
--- Resumables are not in the input struct for now.
-
-clusterInputRes :: Doc -> Doc
-clusterInputRes n =
-  pretty resPrefix <> n
-
-clusterInputHas :: Doc -> Doc
-clusterInputHas n =
-  pretty hasPrefix <> n

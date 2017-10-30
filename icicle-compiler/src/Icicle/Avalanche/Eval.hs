@@ -258,12 +258,6 @@ evalStmt evalPrim xh values ah stmt
               (v:[], Nothing) -> return (ah, [(n, v)])
               (_,    Nothing) -> Left (RuntimeErrorOutputTypeMismatch n t vs)
 
-    LoadResumable _ _
-     -> returnHeap ah
-
-    SaveResumable _ _
-     -> returnHeap ah
-
  where
   -- Go through all the substatements
   go xh' = evalStmt evalPrim xh' values

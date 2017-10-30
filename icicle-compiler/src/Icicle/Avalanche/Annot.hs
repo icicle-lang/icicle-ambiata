@@ -57,10 +57,6 @@ reannotS f ss
     Output n vt xs
      -> Output n vt (fmap (first (reannotX f)) xs)
 
-    LoadResumable n vt -> LoadResumable n vt
-    SaveResumable n vt -> SaveResumable n vt
-
-
 
 reannotA :: (a -> a') -> Accumulator a n p -> Accumulator a' n p
 reannotA f aa

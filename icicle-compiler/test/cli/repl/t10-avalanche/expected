@@ -29,8 +29,6 @@ conv-3 : Int =
 
 acc-c-conv-10 =i Right 0 : Sum Error Int
 acc-conv-25 =i Buf [] : Buf 3 (Sum Error Int)
-load_resumable acc-conv-25
-load_resumable acc-c-conv-10
 
 for_facts conv-1 : Time
         , conv-0 : (Sum Error Int, Time) {
@@ -74,8 +72,6 @@ for_facts conv-1 : Time
                      anf-3
 }
 
-save_resumable acc-conv-25
-save_resumable acc-c-conv-10
 conv-25 =r acc-conv-25
 c-conv-10 =r acc-c-conv-10
 conv-30 = Sum_fold#
@@ -111,7 +107,6 @@ conv-3 : Int =
   MAX_MAP_SIZE
 
 acc-conv-36 =i Right (Map []) : Sum Error (Map Time (Buf 2 (Sum Error Int, Time)))
-load_resumable acc-conv-36
 
 for_facts conv-1 : Time
         , conv-0 : (Sum Error Int, Time) {
@@ -141,7 +136,6 @@ for_facts conv-1 : Time
                      conv-36-aval-0
 }
 
-save_resumable acc-conv-36
 conv-36 =r acc-conv-36
 conv-37 = Sum_fold#
             (\conv-29 -> left# conv-29)

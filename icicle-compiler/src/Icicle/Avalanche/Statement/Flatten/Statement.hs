@@ -87,9 +87,4 @@ flattenS a_fresh s
      $ \xs'
      -> return $ Output n t (List.zip xs' ts)
 
-    LoadResumable n t
-     -> return $ LoadResumable n t
-    SaveResumable n t
-     -> return $ SaveResumable n t
-
 

@@ -378,7 +378,6 @@ pKernel =
   Aeson.withObject "Kernel" $ \o ->
     Kernel
       <$> withKey "kernel_id" o pKernelId
-      <*> withKey "resumables" o (pList "Array (SeaName, ValType)" pNamedType)
       <*> withKey "outputs" o (pList "Array (OutputId, MeltedType)" pMeltedOutput)
       <*> pure ()
 
@@ -387,8 +386,6 @@ ppKernel x =
   Aeson.object [
       "kernel_id" .=
         ppKernelId (kernelId x)
-    , "resumables" .=
-        ppList ppNamedType (kernelResumables x)
     , "outputs" .=
         ppList ppMeltedOutput (kernelOutputs x)
     ]
@@ -458,7 +455,6 @@ headerKeyOrder = [
 
   -- Kernel
   , "kernel_id"
-  , "resumables"
   , "outputs"
 
   -- (Name, MeltedType)

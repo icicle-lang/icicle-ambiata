@@ -210,27 +210,11 @@ seaOfStatement cluster kernel stmt
       | n <- mangle name
       -> assign (prettySeaName n) (seaOfExp xx) <> semi <> suffix "write"
 
-     LoadResumable name _
-      | n <- mangle name
-      , nd <- prettySeaName n
-      -> vsep [ ""
-              , "if (" <> stHas n <> ") {"
-              , indent 4 $ assign nd (stRes n) <> semi <> suffix "load"
-              , "}" ]
-
-     SaveResumable name _
-      | n <- mangle name
-      , nd <- prettySeaName n
-      -> assign (stHas n) "itrue"       <> semi <> suffix "save" <> line
-      <> assign (stRes n) nd <> semi <> suffix "save" <> line
-
      Output n _ xts
       | ixAssign <- \ix xx -> assign ("s->" <> (prettySeaName $ mangleIx n ix)) (seaOfExp xx) <> semi <> suffix "output"
       -> vsep (List.zipWith ixAssign [0..] (fmap fst xts))
   where
    stNew   n = "s->" <> clusterInputNew (prettySeaName n)
-   stRes   n = "s->" <> clusterInputRes (nameOfResumable kernel $ prettySeaName n)
-   stHas   n = "s->" <> clusterInputHas (nameOfResumable kernel $ prettySeaName n)
    stCount   = "s->" <> clusterNewCount
 
 

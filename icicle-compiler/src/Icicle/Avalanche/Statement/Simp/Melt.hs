@@ -101,20 +101,6 @@ meltAccumulators a_fresh statements
            -> go . Block
             $ fmap (\(na,ix) -> Write na (primUnpack ix tp x)) nis
 
-          LoadResumable n _
-           | Just (tp, nas) <- Map.lookup n env'
-           , Just ts        <- tryMeltType tp
-           , nts            <- List.zip nas ts
-           -> go . Block
-            $ fmap (\(na,t) -> LoadResumable na t) nts
-
-          SaveResumable n _
-           | Just (tp, nas) <- Map.lookup n env'
-           , Just ts        <- tryMeltType tp
-           , nts            <- List.zip nas ts
-           -> go . Block
-            $ fmap (\(na,t) -> SaveResumable na t) nts
-
           _
            -> return (env', stmt)
 

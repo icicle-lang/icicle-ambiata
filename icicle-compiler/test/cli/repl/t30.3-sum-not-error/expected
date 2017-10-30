@@ -44,20 +44,6 @@ typedef struct {
     ibool_t          replZCoutputzsixzs1;
     iint_t           replZCoutputzsixzs2;
     idouble_t        replZCoutputzsixzs3;
-
-    /* kernel 0:0 flags */
-    ibool_t          has_flags_start_0_0;
-    ibool_t          has_0_0_acczmperhapszmconvzm4zmsimpflatzm5;
-    ibool_t          has_0_0_acczmperhapszmconvzm4zmsimpflatzm7;
-    ibool_t          has_0_0_acczmperhapszmconvzm4zmsimpflatzm6;
-    ibool_t          has_0_0_acczmperhapszmconvzm4zmsimpflatzm8;
-    ibool_t          has_flags_end_0_0;
-
-    /* kernel 0:0 resumables */
-    ierror_t         res_0_0_acczmperhapszmconvzm4zmsimpflatzm5;
-    iint_t           res_0_0_acczmperhapszmconvzm4zmsimpflatzm7;
-    ibool_t          res_0_0_acczmperhapszmconvzm4zmsimpflatzm6;
-    idouble_t        res_0_0_acczmperhapszmconvzm4zmsimpflatzm8;
 } icluster_0_t;
 
 iint_t size_of_icluster_0 ()
@@ -117,22 +103,6 @@ void icluster_0_kernel_0(icluster_0_t *s)
     acczmperhapszmconvzm4zmsimpflatzm6        = ifalse;                               /* init */
     acczmperhapszmconvzm4zmsimpflatzm7        = 0;                                    /* init */
     acczmperhapszmconvzm4zmsimpflatzm8        = 0.0;                                  /* init */
-    
-    if (s->has_0_0_acczmperhapszmconvzm4zmsimpflatzm5) {
-        acczmperhapszmconvzm4zmsimpflatzm5    = s->res_0_0_acczmperhapszmconvzm4zmsimpflatzm5; /* load */
-    }
-    
-    if (s->has_0_0_acczmperhapszmconvzm4zmsimpflatzm6) {
-        acczmperhapszmconvzm4zmsimpflatzm6    = s->res_0_0_acczmperhapszmconvzm4zmsimpflatzm6; /* load */
-    }
-    
-    if (s->has_0_0_acczmperhapszmconvzm4zmsimpflatzm7) {
-        acczmperhapszmconvzm4zmsimpflatzm7    = s->res_0_0_acczmperhapszmconvzm4zmsimpflatzm7; /* load */
-    }
-    
-    if (s->has_0_0_acczmperhapszmconvzm4zmsimpflatzm8) {
-        acczmperhapszmconvzm4zmsimpflatzm8    = s->res_0_0_acczmperhapszmconvzm4zmsimpflatzm8; /* load */
-    }
     
     const iint_t     new_count                = s->input.new_count;
     const ierror_t  *const new_convzm0zmsimpflatzm45 = s->input.new_convzm0zmsimpflatzm45;
@@ -232,18 +202,6 @@ void icluster_0_kernel_0(icluster_0_t *s)
         acczmperhapszmconvzm4zmsimpflatzm7    = flatzm0zmsimpflatzm39;                /* write */
         acczmperhapszmconvzm4zmsimpflatzm8    = flatzm0zmsimpflatzm40;                /* write */
     }
-    
-    s->has_0_0_acczmperhapszmconvzm4zmsimpflatzm5 = itrue;                            /* save */
-    s->res_0_0_acczmperhapszmconvzm4zmsimpflatzm5 = acczmperhapszmconvzm4zmsimpflatzm5; /* save */
-    
-    s->has_0_0_acczmperhapszmconvzm4zmsimpflatzm6 = itrue;                            /* save */
-    s->res_0_0_acczmperhapszmconvzm4zmsimpflatzm6 = acczmperhapszmconvzm4zmsimpflatzm6; /* save */
-    
-    s->has_0_0_acczmperhapszmconvzm4zmsimpflatzm7 = itrue;                            /* save */
-    s->res_0_0_acczmperhapszmconvzm4zmsimpflatzm7 = acczmperhapszmconvzm4zmsimpflatzm7; /* save */
-    
-    s->has_0_0_acczmperhapszmconvzm4zmsimpflatzm8 = itrue;                            /* save */
-    s->res_0_0_acczmperhapszmconvzm4zmsimpflatzm8 = acczmperhapszmconvzm4zmsimpflatzm8; /* save */
     
     perhapszmconvzm4zmsimpflatzm41            = acczmperhapszmconvzm4zmsimpflatzm5;   /* read */
     perhapszmconvzm4zmsimpflatzm42            = acczmperhapszmconvzm4zmsimpflatzm6;   /* read */

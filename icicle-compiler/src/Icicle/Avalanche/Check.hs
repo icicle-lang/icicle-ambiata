@@ -157,19 +157,6 @@ checkStatement frag ctx stmt
 
                return (Output n t xts')
 
-        LoadResumable n t
-         -> do t' <- maybeToRight (ProgramErrorNoSuchAccumulator n)
-                   $ Map.lookup n $ ctxAcc ctx
-
-               requireSame (ProgramErrorWrongValType n) t t'
-               return (LoadResumable n t)
-
-        SaveResumable n t
-         -> do t' <- maybeToRight (ProgramErrorNoSuchAccumulator n)
-                   $ Map.lookup n $ ctxAcc ctx
-
-               requireSame (ProgramErrorWrongValType n) t t'
-               return (SaveResumable n t)
 
 
 checkAccumulator
@@ -233,12 +220,6 @@ statementContext frag ctx stmt
      -> return ctx
 
     Output _ _ _
-     -> return ctx
-
-    LoadResumable _ _
-     -> return ctx
-
-    SaveResumable _ _
      -> return ctx
 
  where
