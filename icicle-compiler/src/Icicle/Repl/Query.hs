@@ -437,7 +437,7 @@ renderCompiledSea compiled =
     Just avalanche -> do
       let
         flatList =
-          avalanche :| []
+          Runtime.canyonOfAvalanche avalanche :| []
 
       whenSet FlagSeaPreamble $
         putSection "C preamble" Sea.seaPreamble

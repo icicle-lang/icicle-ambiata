@@ -22,27 +22,25 @@ import           P
 
 import           Data.Hashable
 
-fromAvalanche :: Hashable n => n -> n -> a -> Avalanche.Program (Annot a) n Prim -> Program (Annot a) n
-fromAvalanche n_let n_acc a_fresh p = Program
+fromAvalanche :: Hashable n => n -> n -> Avalanche.Program (Annot ()) n Prim -> Program (Annot ()) n
+fromAvalanche n_let n_acc p = Program
  { input      = Avalanche.input      p
- , bindtime   = Avalanche.bindtime   p
- , maxMapSize = Avalanche.maxMapSize p
+ , bindtime   = modName n_let $ Avalanche.bindtime   p
+ , maxMapSize = modName n_let $ Avalanche.maxMapSize p
  , statements = fromAvalancheStatement 
    (FromOptions
       (modName n_let)
-      (modName n_acc)
-      (\t _ -> Annot (FunT [] t) a_fresh))
+      (modName n_acc))
    $ Avalanche.statements p
  }
 
-data FromOptions a n n'
+data FromOptions n n'
  = FromOptions
  { prefixLet :: Name n -> Name n'
  , prefixAccumulator :: Name n -> Name n'
- , annotationOfName :: ValType -> Name n' -> Annot a
  }
 
-fromAvalancheStatement :: FromOptions a n n' -> Avalanche.Statement (Annot a) n Prim -> Statement (Annot a) n'
+fromAvalancheStatement :: FromOptions n n' -> Avalanche.Statement (Annot ()) n Prim -> Statement (Annot ()) n'
 fromAvalancheStatement info = \case
   Avalanche.Let n x s
    -> Let (prefixLet info n) (functionReturns $ annType $ annotOfExp x) (renameX x)
@@ -52,9 +50,9 @@ fromAvalancheStatement info = \case
    -> If (renameX e) (go a) (go b)
 
   Avalanche.While mode counter t e s
-   -> While mode (prefixLet info counter) t (renameX e)
+   -> While mode (prefixAccumulator info counter) t (renameX e)
     $ go s
-  
+
   Avalanche.ForeachInts mode counter from to s
    -> ForeachInts mode (prefixLet info counter) (renameX from) (renameX to)
     $ go s
@@ -86,15 +84,15 @@ fromAvalancheStatement info = \case
     $ fmap (first renameX) xts
 
   Avalanche.LoadResumable n t
-   -> LoadResumable (prefixLet info n) t
+   -> LoadResumable (prefixAccumulator info n) t
 
   Avalanche.SaveResumable n t
-   -> SaveResumable (prefixLet info n) t
+   -> SaveResumable (prefixAccumulator info n) t
 
  where
   go = fromAvalancheStatement info
 
   renameX = renameExp $ prefixLet info
 
-  expOfAccumulator t n = XVar (annotationOfName info t n) n
+  expOfAccumulator t n = XVar (Annot (FunT [] t) ()) n
 

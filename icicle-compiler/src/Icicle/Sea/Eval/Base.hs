@@ -26,8 +26,7 @@ import qualified Data.List.NonEmpty as NonEmpty
 import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.Text as T
 
-import           Icicle.Avalanche.Prim.Flat (Prim)
-import           Icicle.Avalanche.Program (Program)
+import           Icicle.Canyon.Program (Program)
 
 import           Icicle.Common.Annot (Annot)
 
@@ -85,9 +84,9 @@ defaultCompilerOptions = [
   ]
 
 assemblyOfPrograms ::
-     (Show a, Show n, Pretty n, Eq n)
+     (Show n, Pretty n, Eq n)
   => Fingerprint
-  -> [(InputId, NonEmpty (Program (Annot a) n Prim))]
+  -> [(InputId, NonEmpty (Program (Annot ()) n))]
   -> EitherT SeaError IO Text
 assemblyOfPrograms fingerprint programs = do
   code <- hoistEither (codeOfPrograms fingerprint programs)
@@ -95,9 +94,9 @@ assemblyOfPrograms fingerprint programs = do
   firstT SeaJetskiError (compileAssembly options code)
 
 irOfPrograms ::
-     (Show a, Show n, Pretty n, Eq n)
+     (Show n, Pretty n, Eq n)
   => Fingerprint
-  -> [(InputId, NonEmpty (Program (Annot a) n Prim))]
+  -> [(InputId, NonEmpty (Program (Annot ()) n))]
   -> EitherT SeaError IO Text
 irOfPrograms fingerprint programs = do
   code <- hoistEither (codeOfPrograms fingerprint programs)
@@ -105,12 +104,12 @@ irOfPrograms fingerprint programs = do
   firstT SeaJetskiError (compileIR options code)
 
 codeOfPrograms ::
-     (Show a, Show n, Pretty n, Eq n)
+     (Show n, Pretty n, Eq n)
   => Fingerprint
-  -> [(InputId, NonEmpty (Program (Annot a) n Prim))]
+  -> [(InputId, NonEmpty (Program (Annot ()) n))]
   -> Either SeaError Text
 codeOfPrograms fingerprint programs = do
-  let defs = seaOfDefinitions (concatMap ( . NonEmpty.toList . snd) programs)
+  let defs = seaOfDefinitions (concatMap (NonEmpty.toList . snd) programs)
 
   progs <- zipWithM (\ix (a, p) -> seaOfPrograms ix a p) [0..] programs
   clusters <- zipWithM (\ix (a, p) -> clusterOfPrograms ix a p) [0..] programs

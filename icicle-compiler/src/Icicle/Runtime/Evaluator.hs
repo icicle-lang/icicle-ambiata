@@ -22,6 +22,8 @@ module Icicle.Runtime.Evaluator (
   , compileSea
   , compileSeaWith
 
+  , canyonOfAvalanche
+
   , Sea.getCompilerOptions
 
   , snapshotBlock
@@ -39,13 +41,14 @@ import           Control.Exception.Lifted (bracket)
 import           Control.Monad.IO.Class (MonadIO(..))
 
 import qualified Data.Foldable as Foldable
+import           Data.Hashable (Hashable)
 import qualified Data.List as List
 import           Data.List.NonEmpty (NonEmpty(..))
 import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Set (Set)
 import qualified Data.Set as Set
-import           Data.String (String)
+import           Data.String (String, IsString)
 import qualified Data.Text as Text
 import qualified Data.Vector as Boxed
 import qualified Data.Vector.Storable as Storable
@@ -58,6 +61,8 @@ import           GHC.Generics (Generic)
 
 import qualified Icicle.Avalanche.Prim.Flat as Avalanche
 import qualified Icicle.Avalanche.Program as Avalanche
+import qualified Icicle.Canyon.FromAvalanche as Canyon
+import qualified Icicle.Canyon.Program as Canyon
 import           Icicle.Common.Annot (Annot)
 import           Icicle.Common.Type (ValType(..))
 import           Icicle.Data.Name
@@ -190,10 +195,10 @@ indent4 :: String -> String
 indent4 =
   List.unlines . fmap ("    " <>) . List.lines
 
-data AvalancheContext a n =
+data AvalancheContext n =
   AvalancheContext {
       avalancheFingerprint :: !Fingerprint
-    , avalanchePrograms :: !(Map InputId (NonEmpty (Avalanche.Program (Annot a) n Avalanche.Prim)))
+    , avalanchePrograms :: !(Map InputId (NonEmpty (Avalanche.Program (Annot ()) n Avalanche.Prim)))
     } deriving (Eq, Show)
 
 data SeaContext =
@@ -336,7 +341,7 @@ resolveClusterKernelIO library cluster = do
           info
       }
 
-compileAvalanche :: (Show a, Show n, Pretty n, Eq n) => AvalancheContext a n -> Either RuntimeError SeaContext
+compileAvalanche :: (Hashable n, IsString n, Show n, Pretty n, Eq n) => AvalancheContext n -> Either RuntimeError SeaContext
 compileAvalanche context =
   let
     fingerprint =
@@ -344,9 +349,17 @@ compileAvalanche context =
 
     programs =
       Map.toList $ avalanchePrograms context
+
+    canyons =
+      fmap (second $ fmap canyonOfAvalanche) programs
   in
     fmap SeaContext . first RuntimeSeaError $
-      Sea.codeOfPrograms fingerprint programs
+      Sea.codeOfPrograms fingerprint canyons
+
+-- TODO: move elsewhere and perform actual transforms
+canyonOfAvalanche :: (Hashable n, IsString n) => Avalanche.Program (Annot ()) n Avalanche.Prim -> Canyon.Program (Annot ()) n
+canyonOfAvalanche =
+ Canyon.fromAvalanche "exp" "acc"
 
 fromUseJetskiCache :: UseJetskiCache -> Jetski.CacheLibrary
 fromUseJetskiCache = \case
