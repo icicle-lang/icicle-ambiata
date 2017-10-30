@@ -66,11 +66,6 @@ freshenS payload a_fresh statements
     Output n t xts
      -> Output n t <$> mapM (\(x',t') -> (,) <$> goX x' <*> return t') xts
 
-    LoadResumable{}
-     -> return statements
-    SaveResumable{}
-     -> return statements
-
  where
   goX x
    | Map.null payload

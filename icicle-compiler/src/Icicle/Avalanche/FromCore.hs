@@ -58,9 +58,7 @@ programFromCore namer p
         let factBinds   = FactBinds (C.factTimeName p) [(C.factValName p, inputType')]
         let factLoop    = ForeachFacts factBinds inputType'
                         $ Block factStmts
-        let inner       = mconcat (fmap loadResumables accNames) <>
-                          factLoop                               <>
-                          mconcat (fmap saveResumables accNames) <>
+        let inner       = factLoop                               <>
                           readaccums accNames (lets (C.postcomps p) outputs)
 
         accs <- createAccums Map.empty (C.streams p) inner
@@ -102,12 +100,6 @@ programFromCore namer p
    = Block
    $ Map.elems
    $ Map.intersectionWithKey (\n x t -> A.Output n t [(x, t)]) outputExps outputTypes
-
-  loadResumables (n, ty)
-   = LoadResumable (namerAccPrefix namer n) ty
-
-  saveResumables (n, ty)
-   = SaveResumable (namerAccPrefix namer n) ty
 
   readaccum (n, ty)
    = Read n (namerAccPrefix namer n) ty

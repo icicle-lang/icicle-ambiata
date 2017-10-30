@@ -68,11 +68,6 @@ data Statement a n p
  -- | Emit a value to output
  | Output !OutputId !ValType ![(Exp a n p, ValType)]
 
- -- | Load an accumulator from history. Must be before any fact loops.
- | LoadResumable !(Name n) !ValType
-
- -- | Save an accumulator to history. Must be after all fact loops.
- | SaveResumable !(Name n) !ValType
  deriving (Eq, Ord, Show, Generic)
 
 instance (NFData a, NFData n, NFData p) => NFData (Statement a n p)
@@ -163,10 +158,6 @@ transformUDStmt fun env statements
            -> return $ Write n x
           Output n t xs
            -> return $ Output n t xs
-          LoadResumable n t
-           -> return $ LoadResumable n t
-          SaveResumable n t
-           -> return $ SaveResumable n t
 {-# INLINE transformUDStmt #-}
 
 
@@ -212,10 +203,6 @@ foldStmt down up rjoin env res statements
            -> up e' res s
           Output{}
            -> up e' res s
-          LoadResumable{}
-           -> up e' res s
-          SaveResumable{}
-           -> up e' res s
 {-# INLINE foldStmt #-}
 
 
@@ -249,11 +236,6 @@ instance TransformX Statement where
 
      Output n ty xs
       -> Output n ty <$> traverse (\(x,t) -> (,) <$> exps x <*> pure t) xs
-
-     LoadResumable n t
-      -> LoadResumable <$> names n <*> pure t
-     SaveResumable n t
-      -> SaveResumable <$> names n <*> pure t
 
   where
    go  = transformX names exps
@@ -348,12 +330,6 @@ instance (Pretty n, Pretty p) => Pretty (Statement a n p) where
           --     foo
           --   , bar
           indent 4 $ prettyFactParts AnnVariable xs
-
-    LoadResumable n _t ->
-      prettyKeyword "load_resumable" <+> annotate AnnVariable (pretty n)
-
-    SaveResumable n _t ->
-      prettyKeyword "save_resumable" <+> annotate AnnVariable (pretty n)
 
    where
     subscope stmt

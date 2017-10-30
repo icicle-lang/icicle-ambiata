@@ -238,10 +238,6 @@ forwardStmts a_fresh statements
        -> return (foldl (flip Map.delete) e (fmap fst $ factBindsAll ns), s)
       Block{}
        -> return (e,s)
-      LoadResumable{}
-       -> return (e,s)
-      SaveResumable{}
-       -> return (e,s)
 
 -- | Funky renaming for C
 -- Rename reads from accumulators to refer to the accumulator name.
@@ -518,8 +514,6 @@ freevarsStmt = go
 
        -- Anything else, we don't care, the transforms don't touch them
        Output n t xs     -> Output n t (fmap (first freevarsExp) xs)
-       LoadResumable n t -> LoadResumable n t
-       SaveResumable n t -> SaveResumable n t
 
 freevarsAcc
   :: (Hashable n, Eq n)
@@ -553,10 +547,6 @@ killNoEffect = fst . go Set.empty
            | otherwise
            -> (ss, True)
          Output _ _ _
-           -> (ss, True)
-         LoadResumable _ _
-           -> (ss, True)
-         SaveResumable _ _
            -> (ss, True)
 
          -- We can ignore the newly created var

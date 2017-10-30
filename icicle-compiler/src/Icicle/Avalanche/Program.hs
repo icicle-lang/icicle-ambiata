@@ -76,11 +76,6 @@ renameProgram f p
         -> Write (f n) (renameExp f x)
       Output o t xs
         -> Output o t (fmap (first (renameExp f)) xs)
-      LoadResumable n t
-        -> LoadResumable (f n) t
-      SaveResumable n t
-        -> SaveResumable (f n) t
-
 
 -- Pretty printing -------------
 

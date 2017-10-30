@@ -57,8 +57,6 @@ factVarsOfStatement stmt
      InitAccumulator _ ss  -> factVarsOfStatement ss
      Read _ _ _ ss         -> factVarsOfStatement ss
      Write _ _             -> Nothing
-     LoadResumable _ _     -> Nothing
-     SaveResumable _ _     -> Nothing
      Output _ _ _          -> Nothing
      While     _ _ _ _ ss  -> factVarsOfStatement ss
      ForeachInts _ _ _ _ ss-> factVarsOfStatement ss
@@ -89,9 +87,6 @@ resumablesOfStatement stmt
      Write _ _             -> Map.empty
      Output _ _ _          -> Map.empty
 
-     LoadResumable n t     -> Map.singleton n t
-     SaveResumable n t     -> Map.singleton n t
-
 ------------------------------------------------------------------------
 
 accumsOfProgram :: Eq n => Program (Annot a) n Prim -> Map (Name n) (ValType)
@@ -111,8 +106,6 @@ accumsOfStatement stmt
      ForeachFacts _ _ ss     -> accumsOfStatement ss
      Read _ _ _ ss           -> accumsOfStatement ss
      Write _ _               -> Map.empty
-     LoadResumable _ _       -> Map.empty
-     SaveResumable _ _       -> Map.empty
      Output _ _ _            -> Map.empty
 
      InitAccumulator (Accumulator n avt _) ss
@@ -138,8 +131,6 @@ readsOfStatement stmt
      ForeachFacts _ _ ss     -> readsOfStatement ss
      InitAccumulator _ ss    -> readsOfStatement ss
      Write _ _               -> Map.empty
-     LoadResumable _ _       -> Map.empty
-     SaveResumable _ _       -> Map.empty
      Output _ _ _            -> Map.empty
 
      Read n _ vt ss
@@ -166,9 +157,6 @@ outputsOfStatement stmt
      InitAccumulator _ ss    -> outputsOfStatement ss
      Read _ _ _ ss           -> outputsOfStatement ss
      Write _ _               -> Map.empty
-     LoadResumable _ _       -> Map.empty
-     SaveResumable _ _       -> Map.empty
-
      Output n t xts
       -> Map.singleton n $ MeltedType t (fmap snd xts)
 
@@ -208,12 +196,6 @@ typesOfStatement stmt
      Read _ _ vt ss
       -> Set.singleton vt `Set.union`
          typesOfStatement ss
-
-     LoadResumable _ vt
-      -> Set.singleton vt
-
-     SaveResumable _ vt
-      -> Set.singleton vt
 
      -- vt is the unmelted type, which is not actually part of the program
      Output _ _vt xs

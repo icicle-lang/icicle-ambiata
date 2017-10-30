@@ -56,7 +56,6 @@ data Cluster c k =
 data Kernel k =
   Kernel {
       kernelId :: !KernelId
-    , kernelResumables :: ![(SeaName, ValType)]
     , kernelOutputs :: ![(OutputId, MeltedType)]
     , kernelAnnotation :: !k
     } deriving (Eq, Ord, Show, Generic, Functor, Foldable, Traversable)

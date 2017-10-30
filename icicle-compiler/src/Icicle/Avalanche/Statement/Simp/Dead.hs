@@ -106,14 +106,6 @@ deadS us statements
      -> let xsU = fmap (usageX.fst) xts
         in  (mconcat (us : xsU), mempty, Output n t xts)
 
-    -- Load and save resumables are very special.
-    -- They themselves do not count as "using" the accumulator,
-    -- but on the other hand we cannot get rid of them?
-    LoadResumable n t
-     -> (us, mempty, LoadResumable n t)
-    SaveResumable n t
-     -> (us, mempty, SaveResumable n t)
-
 
 -- | Find fixpoint of loop usage
 -- Will this terminate?
@@ -166,12 +158,6 @@ killAccumulators accs statements
    , Just xx         <- Map.lookup acc accs
    = return ((), Let n xx ss)
    | Write acc _ <- s
-   , Map.member acc accs
-   = return ((), mempty)
-   | LoadResumable acc _ <- s
-   , Map.member acc accs
-   = return ((), mempty)
-   | SaveResumable acc _ <- s
    , Map.member acc accs
    = return ((), mempty)
 
