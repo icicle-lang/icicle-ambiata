@@ -10,13 +10,16 @@ module Icicle.Repl.Option (
   , setMaxMapSize
   , showOptions
 
+  , setCFlags
+  , getCFlags
+
   , takeOptionInfo
   , putAllOption
   , putOption
   ) where
 
 import           Control.Monad.IO.Class (MonadIO(..))
-import           Control.Monad.State (MonadState(..), modify)
+import           Control.Monad.State (MonadState(..), modify, gets)
 
 import qualified Data.List as List
 import qualified Data.Map as Map
@@ -28,6 +31,10 @@ import           Icicle.Data.Time
 import           Icicle.Repl.Data
 import           Icicle.Repl.Flag
 import           Icicle.Repl.Monad
+
+import qualified Icicle.Sea.Eval.Base as Sea
+
+import qualified Jetski as Jetski
 
 import           P
 
@@ -72,6 +79,8 @@ showOptions = do
   s <- get
   xs <- traverse takeOptionInfo allFlags
   putAllOption xs
+  prefix <- liftIO Sea.getCompilerOptions
+
   liftIO $ IO.putStrLn ""
   putAllOption [
       OptionInfo "max-map-size" .
@@ -80,6 +89,8 @@ showOptions = do
         Text.unpack . renderDate $ stateSnapshotDate s
     , OptionInfo "input" .
         show $ stateInput s
+    , OptionInfo "c-flags (prefix)"
+        ("(" <> (Text.unpack $ Text.intercalate " " prefix) <> ") " <> stateCFlags s)
     ]
 
   liftIO $ IO.putStrLn ""
@@ -132,6 +143,21 @@ setLimit n = do
   modify $ \s ->
     s { stateLimit = n }
 
+setCFlags :: String -> Repl ()
+setCFlags n = do
+  prefix <- liftIO Sea.getCompilerOptions
+  liftIO . IO.putStrLn $
+    "The c-flags have been set to (prefix):\n    (" <> (Text.unpack $ Text.intercalate " " prefix) <> ") " <> n
+  modify $ \s ->
+    s { stateCFlags = n }
+
+getCFlags :: Repl [Jetski.CompilerOption]
+getCFlags = do
+  prefix <- liftIO Sea.getCompilerOptions
+  suffix <- Text.splitOn " " . Text.pack <$> gets stateCFlags
+  return (prefix <> suffix)
+
+
 setOption :: SetOption -> Repl ()
 setOption = \case
   SetShowOptions ->
@@ -146,3 +172,5 @@ setOption = \case
     setMaxMapSize size
   SetLimit n ->
     setLimit n
+  SetCFlags n ->
+    setCFlags n

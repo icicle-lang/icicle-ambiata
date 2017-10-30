@@ -93,6 +93,8 @@ getInitialState = do
                 []
               UseColor ->
                 [FlagColor]
+
+      , stateCFlags = "-O0 -DICICLE_ASSERT=0"
       }
 
 readDotFile :: MonadIO m => FilePath -> m [String]
