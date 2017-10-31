@@ -41,6 +41,12 @@ group_vals k v = vals (group k ~> v).
 
 return v = newest v.
 
+# Are any elements true
+any x = fold a = False : a || x ~> a.
+
+# Are all elements true
+all x = fold a = True : a && x ~> a.
+
 ##################
 ### Statistics ###
 ##################
