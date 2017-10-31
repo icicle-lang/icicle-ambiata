@@ -65,14 +65,16 @@ anormalAllVars a_fresh xx
 
  where
   insertBinding (x,bs) (n,b)
-   | n `Set.member` bs
+   | n `Set.member` snd (annotOfExp x)
    = do n' <- fresh
-        let a' = (a_fresh, Set.union (snd $ annotOfExp x) (snd $ annotOfExp b))
+        let u = Set.union (snd $ annotOfExp x) (snd $ annotOfExp b)
+        let a' = (a_fresh, u)
         x' <- subst1 a' n (XVar a' n') x
         return (XLet a' n' b x', bs)
 
    | otherwise
-   = do let a' = (a_fresh, Set.union (snd $ annotOfExp x) (snd $ annotOfExp b))
+   = do let u = Set.union (snd $ annotOfExp x) (snd $ annotOfExp b)
+        let a' = (a_fresh, u)
         let x' = XLet a' n b x
         return (x', Set.insert n bs)
 
