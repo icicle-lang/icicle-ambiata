@@ -60,23 +60,25 @@ anormalAllVars :: (Hashable n, Eq n) => a -> Exp (Ann a n) n p -> Fresh n (Exp (
 anormalAllVars a_fresh xx
  = do   (bs, x)  <- pullSubExps a_fresh xx
 
-        (ret,_) <- foldM insertBinding (x,Set.empty) (reverse bs)
+        (ret,_) <- foldM insertBinding (x, snd $ annotOfExp x) (reverse bs)
         return ret
 
  where
   insertBinding (x,bs) (n,b)
-   | n `Set.member` snd (annotOfExp x)
+   | n `Set.member` bs
    = do n' <- fresh
-        let u = Set.union (snd $ annotOfExp x) (snd $ annotOfExp b)
-        let a' = (a_fresh, u)
+        let bs' = Set.insert n'
+                $ Set.union (snd $ annotOfExp b) bs
+        let a' = (a_fresh, bs')
         x' <- subst1 a' n (XVar a' n') x
-        return (XLet a' n' b x', bs)
+        return (XLet a' n' b x', bs')
 
    | otherwise
-   = do let u = Set.union (snd $ annotOfExp x) (snd $ annotOfExp b)
-        let a' = (a_fresh, u)
+   = do let bs' = Set.insert n
+                $ Set.union (snd $ annotOfExp b) bs
+        let a' = (a_fresh, bs')
         let x' = XLet a' n b x
-        return (x', Set.insert n bs)
+        return (x', bs)
 
 -- | Recursively pull out sub-expressions to be bound
 pullSubExps :: (Hashable n, Eq n) => a -> Exp (Ann a n) n p -> Fresh n ([(Name n, Exp (Ann a n) n p)], Exp (Ann a n) n p)
