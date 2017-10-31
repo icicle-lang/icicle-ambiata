@@ -130,20 +130,20 @@ void icluster_0_kernel_0(icluster_0_t *s)
             flatzm3zmsimpflatzm20             = 0.0;                                  /* init */
             
             if (perhapszmconvzm4zmavalzm0zmsimpflatzm10) {
+                iint_t           simpflatzm0  = idouble_trunc (perhapszmconvzm4zmavalzm0zmsimpflatzm12); /* let */
                 flatzm3zmsimpflatzm17         = ierror_not_an_error;                  /* write */
                 flatzm3zmsimpflatzm18         = ifalse;                               /* write */
-                iint_t           simpflatzm59 = idouble_trunc (perhapszmconvzm4zmavalzm0zmsimpflatzm12); /* let */
-                flatzm3zmsimpflatzm19         = iint_add (simpflatzm59, 1);           /* write */
+                flatzm3zmsimpflatzm19         = iint_add (simpflatzm0, 1);            /* write */
                 flatzm3zmsimpflatzm20         = 0.0;                                  /* write */
             } else {
-                idouble_t        simpflatzm66 = iint_extend (perhapszmconvzm4zmavalzm0zmsimpflatzm11); /* let */
-                idouble_t        convzm8      = idouble_add (simpflatzm66, 1.0);      /* let */
+                idouble_t        simpflatzm3  = iint_extend (perhapszmconvzm4zmavalzm0zmsimpflatzm11); /* let */
+                idouble_t        convzm8      = idouble_add (simpflatzm3, 1.0);       /* let */
                 flatzm6zmsimpflatzm21         = ierror_not_an_error;                  /* init */
                 flatzm6zmsimpflatzm22         = 0.0;                                  /* init */
                 
                 if (idouble_is_valid (convzm8)) {
                     flatzm6zmsimpflatzm21     = ierror_not_an_error;                  /* write */
-                    flatzm6zmsimpflatzm22     = idouble_add (simpflatzm66, 1.0);      /* write */
+                    flatzm6zmsimpflatzm22     = idouble_add (simpflatzm3, 1.0);       /* write */
                 } else {
                     flatzm6zmsimpflatzm21     = ierror_not_a_number;                  /* write */
                     flatzm6zmsimpflatzm22     = 0.0;                                  /* write */
