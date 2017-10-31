@@ -137,6 +137,7 @@ simpFlattened
 simpFlattened a_fresh opts p
  = do s' <-  return (Right (statements p))
          >>= check1 "simp_exp"       (transformX return (simp a_fresh))
+         >>= pass (return . pullLets)
          >>= check1 "melt"           (melt a_fresh)
          >>= pass                    (transformX return (simpAnn a_fresh))
          >>= traverse (fixpointEither crunch)

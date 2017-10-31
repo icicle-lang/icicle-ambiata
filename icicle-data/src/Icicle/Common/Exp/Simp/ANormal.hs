@@ -68,9 +68,8 @@ anormalAllVars a_fresh xx
    | n `Set.member` bs
    = do n' <- fresh
         let a' = (a_fresh, Set.union (snd $ annotOfExp x) (snd $ annotOfExp b))
-        let x' = XLet a' n' b x
-        x'' <- subst1 a' n (XVar a' n') x'
-        return (x'', bs)
+        x' <- subst1 a' n (XVar a' n') x
+        return (XLet a' n' b x', bs)
 
    | otherwise
    = do let a' = (a_fresh, Set.union (snd $ annotOfExp x) (snd $ annotOfExp b))
