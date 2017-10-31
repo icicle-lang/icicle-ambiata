@@ -108,6 +108,12 @@ pSetLimit = do
     <$> pLexeme Lexer.integer
     <?> "integer value for output limit"
 
+pSetCFlags :: Mega.Parser SetOption
+pSetCFlags = do
+  _ <- pLexeme $ Mega.string "cflags"
+  SetCFlags
+    <$> Mega.manyTill Mega.anyChar Mega.eol
+
 pSetFlag :: Mega.Parser SetOption
 pSetFlag =
   Mega.choice [
@@ -121,6 +127,7 @@ pSetOption =
       pSetSnapshot
     , pSetMaxMapSize
     , pSetLimit
+    , pSetCFlags
     ]
 
 pSet :: Mega.Parser Command

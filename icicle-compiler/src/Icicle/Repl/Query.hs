@@ -42,6 +42,7 @@ import qualified Icicle.Internal.Pretty as Pretty
 import           Icicle.Repl.Data
 import           Icicle.Repl.Flag
 import           Icicle.Repl.Monad
+import           Icicle.Repl.Option
 import           Icicle.Repl.Pretty
 import           Icicle.Repl.Source
 import qualified Icicle.Runtime.Data as Runtime
@@ -448,6 +449,8 @@ renderCompiledSea compiled =
         hoistEither . first QueryCompilerError $
           Compiler.sourceInputId (compiledSource compiled) dictionary
 
+      cflags <- lift getCFlags
+
       whenSet FlagSea $
         case Sea.seaOfPrograms 0 iid flatList of
           Left err ->
@@ -456,7 +459,7 @@ renderCompiledSea compiled =
             putSection "C" x
 
       whenSet FlagSeaAssembly $ do
-        result <- timeSectionWith "Compile Sea to Assembly" $ liftIO . runEitherT $ Sea.assemblyOfPrograms "icicle-repl" [(iid, flatList)]
+        result <- timeSectionWith "Compile Sea to Assembly" $ liftIO . runEitherT $ Sea.assemblyOfPrograms cflags "icicle-repl" [(iid, flatList)]
         case result of
           Left err ->
             putSection "C assembly error" err
@@ -464,7 +467,7 @@ renderCompiledSea compiled =
             putSection "C assembly" x
 
       whenSet FlagSeaLLVM $ do
-        result <- timeSectionWith "Compile Sea to LLVM" $ liftIO . runEitherT $ Sea.irOfPrograms "icicle-repl" [(iid, flatList)]
+        result <- timeSectionWith "Compile Sea to LLVM" $ liftIO . runEitherT $ Sea.irOfPrograms cflags "icicle-repl" [(iid, flatList)]
         case result of
           Left err ->
             putSection "C LLVM IR error" err
@@ -480,7 +483,8 @@ evaluateSea compiled facts =
       -- TODO: finer-grained timing
       whenSet FlagSeaEval $ timeSectionWith "Compile & Evaluate Sea" $ do
         context <- getEvalContext
-        result <- liftIO . runEitherT $ Compiler.seaEval context facts (compiledSource compiled) avalanche
+        cflags <- getCFlags
+        result <- liftIO . runEitherT $ Compiler.seaEvalWith cflags context facts (compiledSource compiled) avalanche
         case result of
           Left err ->
             putSection "C evaluation error" $ Compiler.renderCompilerSeaError err
@@ -535,10 +539,12 @@ evaluateZebra compiled path = do
         hoistEither . first QueryRuntimeError $
           Runtime.compileAvalanche context0
 
+      cflags <- lift getCFlags
+
       runtime <-
         timeSectionWith "Compile Sea Sea->object" $
         firstT QueryRuntimeError $
-          Runtime.compileSea Sea.SkipJetskiCache context
+          Runtime.compileSeaWith cflags Sea.SkipJetskiCache context
 
       timeCompile
 

@@ -6,6 +6,7 @@
 {-# LANGUAGE ViewPatterns #-}
 module Icicle.Compiler.Sea (
     seaEval
+  , seaEvalWith
   , fromInputs
   , fromOutputs
 
@@ -40,10 +41,13 @@ import qualified Icicle.Runtime.Evaluator as Runtime
 import qualified Icicle.Sea.Data as Sea
 import qualified Icicle.Source.Query as Query
 
+import qualified Jetski as Jetski
+
 import           System.IO (IO)
 
 import           P
 
+import           Control.Monad.Trans.Class (lift)
 import           X.Control.Monad.Trans.Either (EitherT, hoistEither)
 
 
@@ -146,7 +150,18 @@ seaEval ::
   -> Source.QueryTyped Source.Var
   -> AvalProgramTyped  Source.Var Flat.Prim
   -> EitherT CompilerSeaError IO [Result]
-seaEval ctx facts0 (renameQT unVar -> query) program = do
+seaEval ctx facts0 query program = do
+  options <- lift Runtime.getCompilerOptions
+  seaEvalWith options ctx facts0 query program
+
+seaEvalWith ::
+     [Jetski.CompilerOption]
+  -> Common.EvalContext
+  -> [AsAt Fact]
+  -> Source.QueryTyped Source.Var
+  -> AvalProgramTyped  Source.Var Flat.Prim
+  -> EitherT CompilerSeaError IO [Result]
+seaEvalWith options ctx facts0 (renameQT unVar -> query) program = do
   let
     iid =
       case Query.queryInput query of
@@ -163,7 +178,7 @@ seaEval ctx facts0 (renameQT unVar -> query) program = do
 
   context <- hoistEither . first CompilerSeaRuntimeError . Runtime.compileAvalanche $
     Runtime.AvalancheContext "Icicle.Compiler.Sea.seaEval" (Map.singleton iid (program :| []))
-  runtime <- firstT CompilerSeaRuntimeError $ Runtime.compileSea Runtime.SkipJetskiCache context
+  runtime <- firstT CompilerSeaRuntimeError $ Runtime.compileSeaWith options Runtime.SkipJetskiCache context
 
   cluster <- hoistEither . maybeToRight CompilerSeaNoInputs . listToMaybe . Map.elems $ Runtime.runtimeClusters runtime
 

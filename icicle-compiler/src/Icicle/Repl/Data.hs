@@ -99,6 +99,7 @@ data State =
     , stateSnapshotDate :: !Date
     , stateMaxMapSize :: !Int
     , stateLimit :: !Int
+    , stateCFlags :: !String
     , stateFlags :: !(Set Flag)
     } deriving (Eq, Show)
 
@@ -109,6 +110,7 @@ data SetOption =
   | SetSnapshot !Date
   | SetMaxMapSize !Int
   | SetLimit !Int
+  | SetCFlags !String
     deriving (Eq, Ord, Show)
 
 data Command =

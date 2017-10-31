@@ -86,22 +86,22 @@ defaultCompilerOptions = [
 
 assemblyOfPrograms ::
      (Show a, Show n, Pretty n, Eq n)
-  => Fingerprint
+  => [CompilerOption]
+  -> Fingerprint
   -> [(InputId, NonEmpty (Program (Annot a) n Prim))]
   -> EitherT SeaError IO Text
-assemblyOfPrograms fingerprint programs = do
+assemblyOfPrograms options fingerprint programs = do
   code <- hoistEither (codeOfPrograms fingerprint programs)
-  options <- getCompilerOptions
   firstT SeaJetskiError (compileAssembly options code)
 
 irOfPrograms ::
      (Show a, Show n, Pretty n, Eq n)
-  => Fingerprint
+  => [CompilerOption]
+  -> Fingerprint
   -> [(InputId, NonEmpty (Program (Annot a) n Prim))]
   -> EitherT SeaError IO Text
-irOfPrograms fingerprint programs = do
+irOfPrograms options fingerprint programs = do
   code <- hoistEither (codeOfPrograms fingerprint programs)
-  options <- getCompilerOptions
   firstT SeaJetskiError (compileIR options code)
 
 codeOfPrograms ::
