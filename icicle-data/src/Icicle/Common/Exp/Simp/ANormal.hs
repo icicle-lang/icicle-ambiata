@@ -59,65 +59,23 @@ anormal a_fresh xx
 anormalAllVars :: (Hashable n, Eq n) => a -> Exp (Ann a n) n p -> Fresh n (Exp (Ann a n) n p)
 anormalAllVars a_fresh xx
  = do   (bs, x)  <- pullSubExps a_fresh xx
-        -- Get the union of all the variables
-        let !allNames = varsOfLets bs x
-        -- and rename the outside binds if they are used
-        (bs',x') <- renames allNames bs [] x
 
-        -- Tag the result with the union of the original bindings (bs)
-        -- as well as the new names of the bindings.
-        let !allNames' = allNames <> Set.fromList (fmap fst bs')
-        let !ret       = makeLets (a_fresh, allNames') bs' x'
+        (ret,_) <- foldM insertBinding (x,Set.empty) (reverse bs)
         return ret
 
  where
-  -- All the variables inside the bindings
-  varsOfLets bs x
-   = Set.unions
-   $ fmap (snd.annotOfExp)
-   $ x : fmap snd bs
-
-  -- The sub-expressions of x might already have let bindings, and we're
-  -- going to pull those out.
-  --
-  -- However, this actually changes the scope of those let bindings
-  -- as they will now encompass any bindings in other sub-expressions.
-  --
-  -- If the same name is used in multiple places, we'll introduce shadowing, which is
-  -- outlawed by the type checker.
-  --
-  -- So, we look at each binding, and if it would shadow something, we rename it.
-  renames _ [] seen  x
-   = return (seen, x)
-
-  renames allNames ((n,b):bs) seen x
-   -- Check if n is used anywhere else, including as a later binding name
-   |  n `Set.member` (allNames <> Set.fromList (fmap fst bs))
+  insertBinding (x,bs) (n,b)
+   | n `Set.member` bs
    = do n' <- fresh
-        -- Lets are non-recursive, so "b" will not change.
+        let a' = (a_fresh, Set.union (snd $ annotOfExp x) (snd $ annotOfExp b))
+        let x' = XLet a' n' b x
+        x'' <- subst1 a' n (XVar a' n') x'
+        return (x'', bs)
 
-        -- We need to convert the rest of the bindings into a
-        -- series of lets that we can substitute on.
-        --
-        -- Note that mapping subst over (fmap snd bs) wouldn't work - because we'd lose
-        -- valuable shadowing information from the names in (fmap fst bs).
-        -- (that is, if one of bs is also named "n")
-        let a_fresh' = (a_fresh, allNames)
-        let lets = makeLets a_fresh' bs x
-        -- Substitute with the new name
-        lets' <- subst1 a_fresh' n (XVar a_fresh' n') lets
-
-        -- It's silly, but we need to pull back out to a list of bindings again.
-        -- We could save some work by going backwards, but this way seems simpler for now.
-        let (bs',x') = takeLets lets'
-
-        -- Proceed.
-        renames allNames bs' (seen <> [(n', b)]) x'
-
-   -- The name isn't used elsewhere, so we don't need to rename it. Add it unchanged
    | otherwise
-   = renames allNames bs (seen <> [(n,b)]) x
-
+   = do let a' = (a_fresh, Set.union (snd $ annotOfExp x) (snd $ annotOfExp b))
+        let x' = XLet a' n b x
+        return (x', Set.insert n bs)
 
 -- | Recursively pull out sub-expressions to be bound
 pullSubExps :: (Hashable n, Eq n) => a -> Exp (Ann a n) n p -> Fresh n ([(Name n, Exp (Ann a n) n p)], Exp (Ann a n) n p)
