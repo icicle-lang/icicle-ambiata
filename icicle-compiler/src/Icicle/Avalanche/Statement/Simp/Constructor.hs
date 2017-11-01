@@ -141,7 +141,7 @@ constructor a_fresh statements
           Let n x ss
            -> do x' <- goX env x
                  let !env'
-                        | pertinent x
+                        | pertinent x'
                         = Map.insert n x' env
                         | otherwise
                         = Map.delete n env
@@ -459,17 +459,8 @@ constructor a_fresh statements
    = True
    | XVar{} <- x
    = True
-
-   | Just (p,_) <- takePrimApps x
-   = case p of
-      PrimMinimal _ -> False
-      PrimProject{} -> True
-      PrimUnsafe{} -> True
-      PrimArray{} -> True
-      PrimMelt{} -> True
-      PrimMap{} -> True
-      PrimBuf{} -> True
-
+   | Just (PrimMelt{},_) <- takePrimApps x
+   = True
    | otherwise
    = False
 
