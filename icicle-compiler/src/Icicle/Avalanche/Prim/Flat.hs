@@ -228,8 +228,8 @@ meltLogical t
 
     OptionT a   -> rep BoolT <> meltLogical a
 
-    ArrayT a -> nested ArrayT   (meltLogical a)
-    BufT i a -> nested (BufT i) (meltLogical a)
+    ArrayT a -> nested ArrayT   (meltType a)
+    BufT i a -> nested (BufT i) (meltType a)
     MapT k v -> meltLogical (ArrayT k) <> meltLogical (ArrayT v)
 
     StructT (StructType fs)
@@ -240,10 +240,44 @@ meltLogical t
      -> concat $ fmap meltLogical (Map.elems fs)
  where
   rep t' = [MeltRep t']
-  nested f = fmap (MeltRep . f . repOfMelt)
+  nested f = fmap (MeltRep . f)
 
+-- | Specialised:
+-- meltType = fmap repOfMelt . meltLogical
 meltType :: ValType -> [ValType]
-meltType = fmap repOfMelt . meltLogical
+meltType t
+ = case t of
+    UnitT   -> rep t
+    IntT    -> rep t
+    DoubleT -> rep t
+    BoolT   -> rep t
+    TimeT   -> rep t
+    StringT -> rep t
+    ErrorT  -> rep t
+
+    PairT   a b -> meltType a <> meltType b
+
+    SumT    a b
+     | ErrorT <- a
+     -> [ErrorT]   <> meltType b
+     | otherwise
+     -> rep BoolT  <> meltType a <> meltType b
+
+    OptionT a   -> rep BoolT <> meltType a
+
+    ArrayT a -> fmap ArrayT (meltType a)
+    BufT i a -> fmap (BufT i) (meltType a)
+    MapT k v -> meltType (ArrayT k) <> meltType (ArrayT v)
+
+    StructT (StructType fs)
+     | Map.null fs
+     -> rep UnitT
+
+     | otherwise
+     -> concat $ fmap meltType (Map.elems fs)
+ where
+  rep t' = [t']
+
 
 tryMeltType :: ValType -> Maybe [ValType]
 tryMeltType t
