@@ -71,9 +71,10 @@ for_facts conv-1 : Time
           flat-0-simpflat-43
           ExceptNotAnError)
     {
+        simpflat-1 = doubleOfInt#
+                       flat-0-simpflat-44
         flat-1-simpflat-45 =w ExceptNotAnError
-        flat-1-simpflat-46 =w doubleOfInt#
-                                flat-0-simpflat-44
+        flat-1-simpflat-46 =w simpflat-1
     }
     else
     {
@@ -140,9 +141,7 @@ for_facts conv-1 : Time
                 if (doubleIsValid# conv-24)
                 {
                     flat-35-simpflat-70 =w ExceptNotAnError
-                    flat-35-simpflat-71 =w sub#
-                                             conv-10-aval-1-simpflat-54
-                                             s-reify-6-conv-11-aval-0-simpflat-60
+                    flat-35-simpflat-71 =w conv-24
                 }
                 else
                 {
@@ -179,9 +178,7 @@ for_facts conv-1 : Time
                 if (doubleIsValid# conv-29)
                 {
                     flat-28-simpflat-78 =w ExceptNotAnError
-                    flat-28-simpflat-79 =w add#
-                                             s-reify-6-conv-11-aval-0-simpflat-61
-                                             1.0
+                    flat-28-simpflat-79 =w conv-29
                 }
                 else
                 {
@@ -207,9 +204,7 @@ for_facts conv-1 : Time
                     if (doubleIsValid# conv-33)
                     {
                         flat-32-simpflat-84 =w ExceptNotAnError
-                        flat-32-simpflat-85 =w div#
-                                                 flat-13-simpflat-75
-                                                 flat-28-simpflat-81
+                        flat-32-simpflat-85 =w conv-33
                     }
                     else
                     {
@@ -257,9 +252,7 @@ for_facts conv-1 : Time
                 if (doubleIsValid# conv-39)
                 {
                     flat-25-simpflat-94 =w ExceptNotAnError
-                    flat-25-simpflat-95 =w add#
-                                             s-reify-6-conv-11-aval-0-simpflat-60
-                                             flat-14-simpflat-91
+                    flat-25-simpflat-95 =w conv-39
                 }
                 else
                 {
@@ -297,9 +290,7 @@ for_facts conv-1 : Time
                 if (doubleIsValid# conv-44)
                 {
                     flat-19-simpflat-103 =w ExceptNotAnError
-                    flat-19-simpflat-104 =w add#
-                                              s-reify-6-conv-11-aval-0-simpflat-61
-                                              1.0
+                    flat-19-simpflat-104 =w conv-44
                 }
                 else
                 {
@@ -445,10 +436,11 @@ for_facts conv-1 : Time
           flat-36-simpflat-136
           ExceptNotAnError)
     {
+        simpflat-11 = eq#
+                        flat-36-simpflat-137
+                        "torso"
         flat-37-simpflat-138 =w ExceptNotAnError
-        flat-37-simpflat-139 =w eq#
-                                  flat-36-simpflat-137
-                                  "torso"
+        flat-37-simpflat-139 =w simpflat-11
     }
     else
     {
@@ -500,9 +492,10 @@ for_facts conv-1 : Time
               flat-39-simpflat-144
               ExceptNotAnError)
         {
+            simpflat-13 = doubleOfInt#
+                            flat-39-simpflat-145
             flat-40-simpflat-146 =w ExceptNotAnError
-            flat-40-simpflat-147 =w doubleOfInt#
-                                      flat-39-simpflat-145
+            flat-40-simpflat-147 =w simpflat-13
         }
         else
         {
@@ -538,9 +531,7 @@ for_facts conv-1 : Time
             if (doubleIsValid# conv-83)
             {
                 flat-44-simpflat-164 =w ExceptNotAnError
-                flat-44-simpflat-165 =w add#
-                                          a-conv-76-aval-2-simpflat-157
-                                          1.0
+                flat-44-simpflat-165 =w conv-83
             }
             else
             {
@@ -566,9 +557,7 @@ for_facts conv-1 : Time
                 if (doubleIsValid# conv-88)
                 {
                     flat-89-simpflat-170 =w ExceptNotAnError
-                    flat-89-simpflat-171 =w sub#
-                                              conv-75-aval-3-simpflat-151
-                                              a-conv-76-aval-2-simpflat-158
+                    flat-89-simpflat-171 =w conv-88
                 }
                 else
                 {
@@ -612,9 +601,7 @@ for_facts conv-1 : Time
                     if (doubleIsValid# conv-96)
                     {
                         flat-86-simpflat-180 =w ExceptNotAnError
-                        flat-86-simpflat-181 =w div#
-                                                  flat-45-simpflat-175
-                                                  flat-44-simpflat-167
+                        flat-86-simpflat-181 =w conv-96
                     }
                     else
                     {
@@ -662,9 +649,7 @@ for_facts conv-1 : Time
                 if (doubleIsValid# conv-102)
                 {
                     flat-80-simpflat-190 =w ExceptNotAnError
-                    flat-80-simpflat-191 =w add#
-                                              a-conv-76-aval-2-simpflat-158
-                                              flat-46-simpflat-187
+                    flat-80-simpflat-191 =w conv-102
                 }
                 else
                 {
@@ -715,9 +700,7 @@ for_facts conv-1 : Time
                         if (doubleIsValid# conv-112)
                         {
                             flat-77-simpflat-202 =w ExceptNotAnError
-                            flat-77-simpflat-203 =w sub#
-                                                      conv-75-aval-3-simpflat-151
-                                                      flat-47-simpflat-195
+                            flat-77-simpflat-203 =w conv-112
                         }
                         else
                         {
@@ -765,9 +748,7 @@ for_facts conv-1 : Time
                     if (doubleIsValid# conv-118)
                     {
                         flat-71-simpflat-212 =w ExceptNotAnError
-                        flat-71-simpflat-213 =w mul#
-                                                  flat-45-simpflat-175
-                                                  flat-67-simpflat-209
+                        flat-71-simpflat-213 =w conv-118
                     }
                     else
                     {
@@ -815,9 +796,7 @@ for_facts conv-1 : Time
                 if (doubleIsValid# conv-124)
                 {
                     flat-64-simpflat-222 =w ExceptNotAnError
-                    flat-64-simpflat-223 =w add#
-                                              a-conv-76-aval-2-simpflat-159
-                                              flat-48-simpflat-219
+                    flat-64-simpflat-223 =w conv-124
                 }
                 else
                 {
@@ -1005,9 +984,7 @@ if (eq#
         if (doubleIsValid# conv-151)
         {
             flat-121-simpflat-275 =w ExceptNotAnError
-            flat-121-simpflat-276 =w sub#
-                                       a-conv-76-simpflat-261
-                                       1.0
+            flat-121-simpflat-276 =w conv-151
         }
         else
         {
@@ -1033,9 +1010,7 @@ if (eq#
             if (doubleIsValid# conv-157)
             {
                 flat-125-simpflat-281 =w ExceptNotAnError
-                flat-125-simpflat-282 =w div#
-                                           a-conv-76-simpflat-263
-                                           flat-121-simpflat-278
+                flat-125-simpflat-282 =w conv-157
             }
             else
             {
@@ -1082,8 +1057,7 @@ if (eq#
         if (doubleIsValid# conv-171)
         {
             flat-118-simpflat-291 =w ExceptNotAnError
-            flat-118-simpflat-292 =w sqrt#
-                                       flat-110-simpflat-288
+            flat-118-simpflat-292 =w conv-171
         }
         else
         {
@@ -1120,9 +1094,7 @@ if (eq#
         if (doubleIsValid# conv-179)
         {
             flat-115-simpflat-299 =w ExceptNotAnError
-            flat-115-simpflat-300 =w mul#
-                                       flat-106-simpflat-270
-                                       flat-111-simpflat-296
+            flat-115-simpflat-300 =w conv-179
         }
         else
         {
@@ -1209,9 +1181,10 @@ for_facts conv-1 : Time
           flat-0-simpflat-43
           ExceptNotAnError)
     {
+        simpflat-1 = doubleOfInt#
+                       flat-0-simpflat-44
         flat-1-simpflat-45 =w ExceptNotAnError
-        flat-1-simpflat-46 =w doubleOfInt#
-                                flat-0-simpflat-44
+        flat-1-simpflat-46 =w simpflat-1
     }
     else
     {
@@ -1278,9 +1251,7 @@ for_facts conv-1 : Time
                 if (doubleIsValid# conv-24)
                 {
                     flat-35-simpflat-70 =w ExceptNotAnError
-                    flat-35-simpflat-71 =w sub#
-                                             conv-10-aval-1-simpflat-54
-                                             s-reify-6-conv-11-aval-0-simpflat-60
+                    flat-35-simpflat-71 =w conv-24
                 }
                 else
                 {
@@ -1317,9 +1288,7 @@ for_facts conv-1 : Time
                 if (doubleIsValid# conv-29)
                 {
                     flat-28-simpflat-78 =w ExceptNotAnError
-                    flat-28-simpflat-79 =w add#
-                                             s-reify-6-conv-11-aval-0-simpflat-61
-                                             1.0
+                    flat-28-simpflat-79 =w conv-29
                 }
                 else
                 {
@@ -1345,9 +1314,7 @@ for_facts conv-1 : Time
                     if (doubleIsValid# conv-33)
                     {
                         flat-32-simpflat-84 =w ExceptNotAnError
-                        flat-32-simpflat-85 =w div#
-                                                 flat-13-simpflat-75
-                                                 flat-28-simpflat-81
+                        flat-32-simpflat-85 =w conv-33
                     }
                     else
                     {
@@ -1395,9 +1362,7 @@ for_facts conv-1 : Time
                 if (doubleIsValid# conv-39)
                 {
                     flat-25-simpflat-94 =w ExceptNotAnError
-                    flat-25-simpflat-95 =w add#
-                                             s-reify-6-conv-11-aval-0-simpflat-60
-                                             flat-14-simpflat-91
+                    flat-25-simpflat-95 =w conv-39
                 }
                 else
                 {
@@ -1435,9 +1400,7 @@ for_facts conv-1 : Time
                 if (doubleIsValid# conv-44)
                 {
                     flat-19-simpflat-103 =w ExceptNotAnError
-                    flat-19-simpflat-104 =w add#
-                                              s-reify-6-conv-11-aval-0-simpflat-61
-                                              1.0
+                    flat-19-simpflat-104 =w conv-44
                 }
                 else
                 {
@@ -1583,10 +1546,11 @@ for_facts conv-1 : Time
           flat-36-simpflat-136
           ExceptNotAnError)
     {
+        simpflat-11 = eq#
+                        flat-36-simpflat-137
+                        "torso"
         flat-37-simpflat-138 =w ExceptNotAnError
-        flat-37-simpflat-139 =w eq#
-                                  flat-36-simpflat-137
-                                  "torso"
+        flat-37-simpflat-139 =w simpflat-11
     }
     else
     {
@@ -1638,9 +1602,10 @@ for_facts conv-1 : Time
               flat-39-simpflat-144
               ExceptNotAnError)
         {
+            simpflat-13 = doubleOfInt#
+                            flat-39-simpflat-145
             flat-40-simpflat-146 =w ExceptNotAnError
-            flat-40-simpflat-147 =w doubleOfInt#
-                                      flat-39-simpflat-145
+            flat-40-simpflat-147 =w simpflat-13
         }
         else
         {
@@ -1676,9 +1641,7 @@ for_facts conv-1 : Time
             if (doubleIsValid# conv-83)
             {
                 flat-44-simpflat-164 =w ExceptNotAnError
-                flat-44-simpflat-165 =w add#
-                                          a-conv-76-aval-2-simpflat-157
-                                          1.0
+                flat-44-simpflat-165 =w conv-83
             }
             else
             {
@@ -1704,9 +1667,7 @@ for_facts conv-1 : Time
                 if (doubleIsValid# conv-88)
                 {
                     flat-89-simpflat-170 =w ExceptNotAnError
-                    flat-89-simpflat-171 =w sub#
-                                              conv-75-aval-3-simpflat-151
-                                              a-conv-76-aval-2-simpflat-158
+                    flat-89-simpflat-171 =w conv-88
                 }
                 else
                 {
@@ -1750,9 +1711,7 @@ for_facts conv-1 : Time
                     if (doubleIsValid# conv-96)
                     {
                         flat-86-simpflat-180 =w ExceptNotAnError
-                        flat-86-simpflat-181 =w div#
-                                                  flat-45-simpflat-175
-                                                  flat-44-simpflat-167
+                        flat-86-simpflat-181 =w conv-96
                     }
                     else
                     {
@@ -1800,9 +1759,7 @@ for_facts conv-1 : Time
                 if (doubleIsValid# conv-102)
                 {
                     flat-80-simpflat-190 =w ExceptNotAnError
-                    flat-80-simpflat-191 =w add#
-                                              a-conv-76-aval-2-simpflat-158
-                                              flat-46-simpflat-187
+                    flat-80-simpflat-191 =w conv-102
                 }
                 else
                 {
@@ -1853,9 +1810,7 @@ for_facts conv-1 : Time
                         if (doubleIsValid# conv-112)
                         {
                             flat-77-simpflat-202 =w ExceptNotAnError
-                            flat-77-simpflat-203 =w sub#
-                                                      conv-75-aval-3-simpflat-151
-                                                      flat-47-simpflat-195
+                            flat-77-simpflat-203 =w conv-112
                         }
                         else
                         {
@@ -1903,9 +1858,7 @@ for_facts conv-1 : Time
                     if (doubleIsValid# conv-118)
                     {
                         flat-71-simpflat-212 =w ExceptNotAnError
-                        flat-71-simpflat-213 =w mul#
-                                                  flat-45-simpflat-175
-                                                  flat-67-simpflat-209
+                        flat-71-simpflat-213 =w conv-118
                     }
                     else
                     {
@@ -1953,9 +1906,7 @@ for_facts conv-1 : Time
                 if (doubleIsValid# conv-124)
                 {
                     flat-64-simpflat-222 =w ExceptNotAnError
-                    flat-64-simpflat-223 =w add#
-                                              a-conv-76-aval-2-simpflat-159
-                                              flat-48-simpflat-219
+                    flat-64-simpflat-223 =w conv-124
                 }
                 else
                 {
@@ -2143,9 +2094,7 @@ if (eq#
         if (doubleIsValid# conv-151)
         {
             flat-121-simpflat-275 =w ExceptNotAnError
-            flat-121-simpflat-276 =w sub#
-                                       a-conv-76-simpflat-261
-                                       1.0
+            flat-121-simpflat-276 =w conv-151
         }
         else
         {
@@ -2171,9 +2120,7 @@ if (eq#
             if (doubleIsValid# conv-157)
             {
                 flat-125-simpflat-281 =w ExceptNotAnError
-                flat-125-simpflat-282 =w div#
-                                           a-conv-76-simpflat-263
-                                           flat-121-simpflat-278
+                flat-125-simpflat-282 =w conv-157
             }
             else
             {
@@ -2220,8 +2167,7 @@ if (eq#
         if (doubleIsValid# conv-171)
         {
             flat-118-simpflat-291 =w ExceptNotAnError
-            flat-118-simpflat-292 =w sqrt#
-                                       flat-110-simpflat-288
+            flat-118-simpflat-292 =w conv-171
         }
         else
         {
@@ -2258,9 +2204,7 @@ if (eq#
         if (doubleIsValid# conv-179)
         {
             flat-115-simpflat-299 =w ExceptNotAnError
-            flat-115-simpflat-300 =w mul#
-                                       flat-106-simpflat-270
-                                       flat-111-simpflat-296
+            flat-115-simpflat-300 =w conv-179
         }
         else
         {
@@ -2646,8 +2590,9 @@ void icluster_0_kernel_0(icluster_0_t *s)
         flatzm1zmsimpflatzm46                 = 0.0;                                  /* init */
         
         if (ierror_eq (flatzm0zmsimpflatzm43, ierror_not_an_error)) {
+            idouble_t        simpflatzm1      = iint_extend (flatzm0zmsimpflatzm44);  /* let */
             flatzm1zmsimpflatzm45             = ierror_not_an_error;                  /* write */
-            flatzm1zmsimpflatzm46             = iint_extend (flatzm0zmsimpflatzm44);  /* write */
+            flatzm1zmsimpflatzm46             = simpflatzm1;                          /* write */
         } else {
             flatzm1zmsimpflatzm45             = flatzm0zmsimpflatzm43;                /* write */
             flatzm1zmsimpflatzm46             = 0.0;                                  /* write */
@@ -2695,7 +2640,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                     
                     if (idouble_is_valid (convzm24)) {
                         flatzm35zmsimpflatzm70 = ierror_not_an_error;                 /* write */
-                        flatzm35zmsimpflatzm71 = idouble_sub (convzm10zmavalzm1zmsimpflatzm54, szmreifyzm6zmconvzm11zmavalzm0zmsimpflatzm60); /* write */
+                        flatzm35zmsimpflatzm71 = convzm24;                            /* write */
                     } else {
                         flatzm35zmsimpflatzm70 = ierror_not_a_number;                 /* write */
                         flatzm35zmsimpflatzm71 = 0.0;                                 /* write */
@@ -2722,7 +2667,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                     
                     if (idouble_is_valid (convzm29)) {
                         flatzm28zmsimpflatzm78 = ierror_not_an_error;                 /* write */
-                        flatzm28zmsimpflatzm79 = idouble_add (szmreifyzm6zmconvzm11zmavalzm0zmsimpflatzm61, 1.0); /* write */
+                        flatzm28zmsimpflatzm79 = convzm29;                            /* write */
                     } else {
                         flatzm28zmsimpflatzm78 = ierror_not_a_number;                 /* write */
                         flatzm28zmsimpflatzm79 = 0.0;                                 /* write */
@@ -2740,7 +2685,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                         
                         if (idouble_is_valid (convzm33)) {
                             flatzm32zmsimpflatzm84 = ierror_not_an_error;             /* write */
-                            flatzm32zmsimpflatzm85 = idouble_div (flatzm13zmsimpflatzm75, flatzm28zmsimpflatzm81); /* write */
+                            flatzm32zmsimpflatzm85 = convzm33;                        /* write */
                         } else {
                             flatzm32zmsimpflatzm84 = ierror_not_a_number;             /* write */
                             flatzm32zmsimpflatzm85 = 0.0;                             /* write */
@@ -2776,7 +2721,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                     
                     if (idouble_is_valid (convzm39)) {
                         flatzm25zmsimpflatzm94 = ierror_not_an_error;                 /* write */
-                        flatzm25zmsimpflatzm95 = idouble_add (szmreifyzm6zmconvzm11zmavalzm0zmsimpflatzm60, flatzm14zmsimpflatzm91); /* write */
+                        flatzm25zmsimpflatzm95 = convzm39;                            /* write */
                     } else {
                         flatzm25zmsimpflatzm94 = ierror_not_a_number;                 /* write */
                         flatzm25zmsimpflatzm95 = 0.0;                                 /* write */
@@ -2804,7 +2749,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                     
                     if (idouble_is_valid (convzm44)) {
                         flatzm19zmsimpflatzm103 = ierror_not_an_error;                /* write */
-                        flatzm19zmsimpflatzm104 = idouble_add (szmreifyzm6zmconvzm11zmavalzm0zmsimpflatzm61, 1.0); /* write */
+                        flatzm19zmsimpflatzm104 = convzm44;                           /* write */
                     } else {
                         flatzm19zmsimpflatzm103 = ierror_not_a_number;                /* write */
                         flatzm19zmsimpflatzm104 = 0.0;                                /* write */
@@ -2919,8 +2864,9 @@ void icluster_0_kernel_0(icluster_0_t *s)
         flatzm37zmsimpflatzm139               = ifalse;                               /* init */
         
         if (ierror_eq (flatzm36zmsimpflatzm136, ierror_not_an_error)) {
+            ibool_t          simpflatzm11     = istring_eq (flatzm36zmsimpflatzm137, "torso"); /* let */
             flatzm37zmsimpflatzm138           = ierror_not_an_error;                  /* write */
-            flatzm37zmsimpflatzm139           = istring_eq (flatzm36zmsimpflatzm137, "torso"); /* write */
+            flatzm37zmsimpflatzm139           = simpflatzm11;                         /* write */
         } else {
             flatzm37zmsimpflatzm138           = flatzm36zmsimpflatzm136;              /* write */
             flatzm37zmsimpflatzm139           = ifalse;                               /* write */
@@ -2956,8 +2902,9 @@ void icluster_0_kernel_0(icluster_0_t *s)
             flatzm40zmsimpflatzm147           = 0.0;                                  /* init */
             
             if (ierror_eq (flatzm39zmsimpflatzm144, ierror_not_an_error)) {
+                idouble_t        simpflatzm13 = iint_extend (flatzm39zmsimpflatzm145); /* let */
                 flatzm40zmsimpflatzm146       = ierror_not_an_error;                  /* write */
-                flatzm40zmsimpflatzm147       = iint_extend (flatzm39zmsimpflatzm145); /* write */
+                flatzm40zmsimpflatzm147       = simpflatzm13;                         /* write */
             } else {
                 flatzm40zmsimpflatzm146       = flatzm39zmsimpflatzm144;              /* write */
                 flatzm40zmsimpflatzm147       = 0.0;                                  /* write */
@@ -2985,7 +2932,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                 
                 if (idouble_is_valid (convzm83)) {
                     flatzm44zmsimpflatzm164   = ierror_not_an_error;                  /* write */
-                    flatzm44zmsimpflatzm165   = idouble_add (azmconvzm76zmavalzm2zmsimpflatzm157, 1.0); /* write */
+                    flatzm44zmsimpflatzm165   = convzm83;                             /* write */
                 } else {
                     flatzm44zmsimpflatzm164   = ierror_not_a_number;                  /* write */
                     flatzm44zmsimpflatzm165   = 0.0;                                  /* write */
@@ -3003,7 +2950,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                     
                     if (idouble_is_valid (convzm88)) {
                         flatzm89zmsimpflatzm170 = ierror_not_an_error;                /* write */
-                        flatzm89zmsimpflatzm171 = idouble_sub (convzm75zmavalzm3zmsimpflatzm151, azmconvzm76zmavalzm2zmsimpflatzm158); /* write */
+                        flatzm89zmsimpflatzm171 = convzm88;                           /* write */
                     } else {
                         flatzm89zmsimpflatzm170 = ierror_not_a_number;                /* write */
                         flatzm89zmsimpflatzm171 = 0.0;                                /* write */
@@ -3034,7 +2981,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                         
                         if (idouble_is_valid (convzm96)) {
                             flatzm86zmsimpflatzm180 = ierror_not_an_error;            /* write */
-                            flatzm86zmsimpflatzm181 = idouble_div (flatzm45zmsimpflatzm175, flatzm44zmsimpflatzm167); /* write */
+                            flatzm86zmsimpflatzm181 = convzm96;                       /* write */
                         } else {
                             flatzm86zmsimpflatzm180 = ierror_not_a_number;            /* write */
                             flatzm86zmsimpflatzm181 = 0.0;                            /* write */
@@ -3070,7 +3017,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                     
                     if (idouble_is_valid (convzm102)) {
                         flatzm80zmsimpflatzm190 = ierror_not_an_error;                /* write */
-                        flatzm80zmsimpflatzm191 = idouble_add (azmconvzm76zmavalzm2zmsimpflatzm158, flatzm46zmsimpflatzm187); /* write */
+                        flatzm80zmsimpflatzm191 = convzm102;                          /* write */
                     } else {
                         flatzm80zmsimpflatzm190 = ierror_not_a_number;                /* write */
                         flatzm80zmsimpflatzm191 = 0.0;                                /* write */
@@ -3105,7 +3052,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                             
                             if (idouble_is_valid (convzm112)) {
                                 flatzm77zmsimpflatzm202 = ierror_not_an_error;        /* write */
-                                flatzm77zmsimpflatzm203 = idouble_sub (convzm75zmavalzm3zmsimpflatzm151, flatzm47zmsimpflatzm195); /* write */
+                                flatzm77zmsimpflatzm203 = convzm112;                  /* write */
                             } else {
                                 flatzm77zmsimpflatzm202 = ierror_not_a_number;        /* write */
                                 flatzm77zmsimpflatzm203 = 0.0;                        /* write */
@@ -3141,7 +3088,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                         
                         if (idouble_is_valid (convzm118)) {
                             flatzm71zmsimpflatzm212 = ierror_not_an_error;            /* write */
-                            flatzm71zmsimpflatzm213 = idouble_mul (flatzm45zmsimpflatzm175, flatzm67zmsimpflatzm209); /* write */
+                            flatzm71zmsimpflatzm213 = convzm118;                      /* write */
                         } else {
                             flatzm71zmsimpflatzm212 = ierror_not_a_number;            /* write */
                             flatzm71zmsimpflatzm213 = 0.0;                            /* write */
@@ -3177,7 +3124,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                     
                     if (idouble_is_valid (convzm124)) {
                         flatzm64zmsimpflatzm222 = ierror_not_an_error;                /* write */
-                        flatzm64zmsimpflatzm223 = idouble_add (azmconvzm76zmavalzm2zmsimpflatzm159, flatzm48zmsimpflatzm219); /* write */
+                        flatzm64zmsimpflatzm223 = convzm124;                          /* write */
                     } else {
                         flatzm64zmsimpflatzm222 = ierror_not_a_number;                /* write */
                         flatzm64zmsimpflatzm223 = 0.0;                                /* write */
@@ -3325,7 +3272,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
             
             if (idouble_is_valid (convzm151)) {
                 flatzm121zmsimpflatzm275      = ierror_not_an_error;                  /* write */
-                flatzm121zmsimpflatzm276      = idouble_sub (azmconvzm76zmsimpflatzm261, 1.0); /* write */
+                flatzm121zmsimpflatzm276      = convzm151;                            /* write */
             } else {
                 flatzm121zmsimpflatzm275      = ierror_not_a_number;                  /* write */
                 flatzm121zmsimpflatzm276      = 0.0;                                  /* write */
@@ -3343,7 +3290,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
                 
                 if (idouble_is_valid (convzm157)) {
                     flatzm125zmsimpflatzm281  = ierror_not_an_error;                  /* write */
-                    flatzm125zmsimpflatzm282  = idouble_div (azmconvzm76zmsimpflatzm263, flatzm121zmsimpflatzm278); /* write */
+                    flatzm125zmsimpflatzm282  = convzm157;                            /* write */
                 } else {
                     flatzm125zmsimpflatzm281  = ierror_not_a_number;                  /* write */
                     flatzm125zmsimpflatzm282  = 0.0;                                  /* write */
@@ -3379,7 +3326,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
             
             if (idouble_is_valid (convzm171)) {
                 flatzm118zmsimpflatzm291      = ierror_not_an_error;                  /* write */
-                flatzm118zmsimpflatzm292      = idouble_sqrt (flatzm110zmsimpflatzm288); /* write */
+                flatzm118zmsimpflatzm292      = convzm171;                            /* write */
             } else {
                 flatzm118zmsimpflatzm291      = ierror_not_a_number;                  /* write */
                 flatzm118zmsimpflatzm292      = 0.0;                                  /* write */
@@ -3406,7 +3353,7 @@ void icluster_0_kernel_0(icluster_0_t *s)
             
             if (idouble_is_valid (convzm179)) {
                 flatzm115zmsimpflatzm299      = ierror_not_an_error;                  /* write */
-                flatzm115zmsimpflatzm300      = idouble_mul (flatzm106zmsimpflatzm270, flatzm111zmsimpflatzm296); /* write */
+                flatzm115zmsimpflatzm300      = convzm179;                            /* write */
             } else {
                 flatzm115zmsimpflatzm299      = ierror_not_a_number;                  /* write */
                 flatzm115zmsimpflatzm300      = 0.0;                                  /* write */
@@ -3510,10 +3457,11 @@ for_facts conv-1 : Time
                            1980-01-06T00:00:00Z
                            conv-0-simpflat-27
             simpflat-9 = negate# simpflat-8
+            simpflat-10 = Time_minusDays#
+                            2000-01-01T00:00:00Z
+                            simpflat-9
             flat-3-simpflat-17 =w ExceptNotAnError
-            flat-3-simpflat-18 =w Time_minusDays#
-                                    2000-01-01T00:00:00Z
-                                    simpflat-9
+            flat-3-simpflat-18 =w simpflat-10
         }
         else
         {
@@ -3603,10 +3551,11 @@ for_facts conv-1 : Time
                            1980-01-06T00:00:00Z
                            conv-0-simpflat-27
             simpflat-9 = negate# simpflat-8
+            simpflat-10 = Time_minusDays#
+                            2000-01-01T00:00:00Z
+                            simpflat-9
             flat-3-simpflat-17 =w ExceptNotAnError
-            flat-3-simpflat-18 =w Time_minusDays#
-                                    2000-01-01T00:00:00Z
-                                    simpflat-9
+            flat-3-simpflat-18 =w simpflat-10
         }
         else
         {
@@ -3727,8 +3676,9 @@ void icluster_0_kernel_0(icluster_0_t *s)
             if (ierror_eq (ierror_fold1_no_value, szmreifyzm2zmconvzm4zmavalzm0zmsimpflatzm13)) {
                 iint_t           simpflatzm8  = itime_days_diff (0x7bc010600000000, convzm0zmsimpflatzm27); /* let */
                 iint_t           simpflatzm9  = iint_neg (simpflatzm8);               /* let */
+                itime_t          simpflatzm10 = itime_minus_days (0x7d0010100000000, simpflatzm9); /* let */
                 flatzm3zmsimpflatzm17         = ierror_not_an_error;                  /* write */
-                flatzm3zmsimpflatzm18         = itime_minus_days (0x7d0010100000000, simpflatzm9); /* write */
+                flatzm3zmsimpflatzm18         = simpflatzm10;                         /* write */
             } else {
                 flatzm3zmsimpflatzm17         = szmreifyzm2zmconvzm4zmavalzm0zmsimpflatzm13; /* write */
                 flatzm3zmsimpflatzm18         = 0x7420b1100000000;                    /* write */

@@ -45,10 +45,11 @@ for_facts conv-1 : Time
           conv-0-simpflat-38
           ExceptNotAnError)
     {
+        simpflat-0 = gt#
+                       conv-0-simpflat-39
+                       10
         flat-0-simpflat-6 =w ExceptNotAnError
-        flat-0-simpflat-7 =w gt#
-                               conv-0-simpflat-39
-                               10
+        flat-0-simpflat-7 =w simpflat-0
     }
     else
     {
@@ -91,10 +92,11 @@ for_facts conv-1 : Time
                   c-conv-10-aval-0-simpflat-10
                   ExceptNotAnError)
             {
+                simpflat-1 = add#
+                               c-conv-10-aval-0-simpflat-11
+                               1
                 flat-5-simpflat-14 =w ExceptNotAnError
-                flat-5-simpflat-15 =w add#
-                                        c-conv-10-aval-0-simpflat-11
-                                        1
+                flat-5-simpflat-15 =w simpflat-1
             }
             else
             {
@@ -216,10 +218,11 @@ for_facts conv-1 : Time
           conv-0-simpflat-38
           ExceptNotAnError)
     {
+        simpflat-0 = gt#
+                       conv-0-simpflat-39
+                       10
         flat-0-simpflat-6 =w ExceptNotAnError
-        flat-0-simpflat-7 =w gt#
-                               conv-0-simpflat-39
-                               10
+        flat-0-simpflat-7 =w simpflat-0
     }
     else
     {
@@ -262,10 +265,11 @@ for_facts conv-1 : Time
                   c-conv-10-aval-0-simpflat-10
                   ExceptNotAnError)
             {
+                simpflat-1 = add#
+                               c-conv-10-aval-0-simpflat-11
+                               1
                 flat-5-simpflat-14 =w ExceptNotAnError
-                flat-5-simpflat-15 =w add#
-                                        c-conv-10-aval-0-simpflat-11
-                                        1
+                flat-5-simpflat-15 =w simpflat-1
             }
             else
             {
@@ -769,10 +773,11 @@ if (eq#
                           flat-55-simpflat-102
                           ExceptNotAnError)
                     {
+                        simpflat-16 = add#
+                                        simpflat-346
+                                        flat-55-simpflat-103
                         flat-99-simpflat-106 =w ExceptNotAnError
-                        flat-99-simpflat-107 =w add#
-                                                  simpflat-346
-                                                  flat-55-simpflat-103
+                        flat-99-simpflat-107 =w simpflat-16
                     }
                     else
                     {
@@ -1481,10 +1486,11 @@ if (eq#
                           flat-55-simpflat-102
                           ExceptNotAnError)
                     {
+                        simpflat-16 = add#
+                                        simpflat-346
+                                        flat-55-simpflat-103
                         flat-99-simpflat-106 =w ExceptNotAnError
-                        flat-99-simpflat-107 =w add#
-                                                  simpflat-346
-                                                  flat-55-simpflat-103
+                        flat-99-simpflat-107 =w simpflat-16
                     }
                     else
                     {
