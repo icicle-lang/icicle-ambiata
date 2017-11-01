@@ -135,7 +135,7 @@ convertValues a_fresh statements
    = XValue (a_fresh, Set.empty)
 
 
-pullLets :: Statement (Ann a n) n p -> Statement (Ann a n) n p
+pullLets :: Statement a n p -> Statement a n p
 pullLets statements
  = runIdentity
  $ transformUDStmt trans () statements

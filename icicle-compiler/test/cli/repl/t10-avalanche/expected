@@ -32,19 +32,19 @@ acc-conv-25 =i Buf [] : Buf 3 (Sum Error Int)
 
 for_facts conv-1 : Time
         , conv-0 : (Sum Error Int, Time) {
-    anf-0 = fst# conv-0
-    anf-1 = Sum_fold#
+    anf-1 = fst# conv-0
+    anf-0 = Sum_fold#
               (\reify-0-conv-4 ->
                 left# reify-0-conv-4)
               (\reify-1-conv-5 ->
                 right# (gt# reify-1-conv-5 10))
-              anf-0
+              anf-1
     
     if (Sum_fold#
           (\reify-2-conv-7 -> True)
           (\reify-3-conv-8 ->
             reify-3-conv-8)
-          anf-1)
+          anf-0)
     {
         c-conv-10-aval-0 =r acc-c-conv-10
         acc-c-conv-10 =w Sum_fold#
@@ -62,11 +62,11 @@ for_facts conv-1 : Time
                                  (\reify-5-conv-14 ->
                                    right# (add# reify-5-conv-14 1))
                                  c-conv-10-aval-0))
-                           anf-0
+                           anf-1
     }
     
     conv-25-aval-1 =r acc-conv-25
-    anf-3 = anf-0
+    anf-3 = anf-1
     acc-conv-25 =w Latest_push#
                      conv-25-aval-1
                      anf-3
