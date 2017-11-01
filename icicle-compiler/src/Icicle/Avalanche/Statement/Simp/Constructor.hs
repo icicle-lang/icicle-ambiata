@@ -144,7 +144,7 @@ constructor a_fresh statements
                         | pertinent x
                         = Map.insert n x' env
                         | otherwise
-                        = env
+                        = Map.delete n env
                  return (env', Let n x' ss)
 
           ForeachInts t n from to ss
@@ -451,7 +451,7 @@ constructor a_fresh statements
    | otherwise
    = [x]
 
-  -- | Check if an expression is worth keeping in the environment.
+  -- | Check if a transformed expression is worth keeping in the environment.
   -- If we remember this, will it allow a melt/unmelt transform later?
   pertinent :: Exp (Ann a n) n Prim -> Bool
   pertinent x
@@ -459,10 +459,17 @@ constructor a_fresh statements
    = True
    | XVar{} <- x
    = True
-   | Just (PrimMelt (PrimMeltPack{}), _) <- takePrimApps x
-   = True
-   | Just (PrimMelt (PrimMeltUnpack{}), _) <- takePrimApps x
-   = True
+
+   | Just (p,_) <- takePrimApps x
+   = case p of
+      PrimMinimal _ -> False
+      PrimProject{} -> True
+      PrimUnsafe{} -> True
+      PrimArray{} -> True
+      PrimMelt{} -> True
+      PrimMap{} -> True
+      PrimBuf{} -> True
+
    | otherwise
    = False
 
