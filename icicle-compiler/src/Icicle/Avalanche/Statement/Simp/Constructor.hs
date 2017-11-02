@@ -129,36 +129,41 @@ constructor a_fresh statements
       -> FixT (Fresh n) ( ExpEnv    (Ann a n) n Prim
                         , Statement (Ann a n) n Prim )
   goS env s
-   = let !env'  = updateExpEnv s env
-         ret s' = return (updateExpEnv s' env', s')
+   = let ret s' = return (env, s')
 
          goWith x s'
-          = do x' <- goX env' x
+          = do x' <- goX env x
                ret $! s' x'
 
      in  case s of
           If x t e
            -> goWith x $ \x' -> If x' t e
           Let n x ss
-           -> goWith x $ \x' -> Let n x' ss
+           -> do x' <- goX env x
+                 let !env'
+                        | pertinent x'
+                        = Map.insert n x' env
+                        | otherwise
+                        = Map.delete n env
+                 return (env', Let n x' ss)
+
           ForeachInts t n from to ss
-           -> do from' <- goX env' from
-                 to'   <- goX env' to
+           -> do from' <- goX env from
+                 to'   <- goX env to
                  ret $ ForeachInts t n from' to' ss
           While t n nt end ss
-           -> do end'  <- goX env' end
+           -> do end'  <- goX env end
                  ret $ While t n nt end' ss
           InitAccumulator (Accumulator n vt x) ss
            -> goWith x $ \x' -> InitAccumulator (Accumulator n vt x') ss
           Write n x
            -> goWith x $ \x' -> Write n x'
           Output n t xts
-           -> do xs <- mapM (goX env' . fst) xts
+           -> do xs <- mapM (goX env . fst) xts
                  let ts = fmap snd xts
                  ret $ Output n t (List.zip xs ts)
           _
            -> ret s
-
 
   -- | Melt constructors in expressions
   goX :: Monad m
@@ -445,6 +450,19 @@ constructor a_fresh statements
 
    | otherwise
    = [x]
+
+  -- | Check if a transformed expression is worth keeping in the environment.
+  -- If we remember this, will it allow a melt/unmelt transform later?
+  pertinent :: Exp (Ann a n) n Prim -> Bool
+  pertinent x
+   | XValue{} <- x
+   = True
+   | XVar{} <- x
+   = True
+   | Just (PrimMelt{},_) <- takePrimApps x
+   = True
+   | otherwise
+   = False
 
 
 -- Either lookup a name, or just return the value if it's already a constant.

@@ -30,18 +30,8 @@ simpEvalX'  :: Monad m
 simpEvalX' ev ty = go
   where
     go xx = case xx of
-      XApp a p q
-       -> do p' <- go p
-             q' <- go q
-             let x' = XApp a p' q'
-             case takePrimApps x' of
-               Just (prim, as)
-                 | Just args <- mapM takeValue as
-                 -> case simpEvalP ev ty a prim args of
-                     Just x''
-                       -> progress x''
-                     _ -> return x'
-               _ -> return x'
+      XApp{}
+       -> goApps xx []
 
       XLam a n t x1
         -> XLam a n t <$> go x1
@@ -52,6 +42,19 @@ simpEvalX' ev ty = go
       XVar{}   -> return xx
       XPrim{}  -> return xx
       XValue{} -> return xx
+
+    goApps f exps
+     | XApp a' f' arg <- f
+     = do arg' <- go arg
+          goApps f' ((a',arg') : exps)
+
+     | XPrim a prim <- f
+     , Just vals <- mapM (takeValue . snd) exps
+     , Just x <- simpEvalP ev ty a prim vals
+     = progress x
+
+     | otherwise
+     = return $ foldl' (\f' (a,q) -> XApp a f' q) f exps
 
 
 -- | Primitive Simplifier
