@@ -1,6 +1,6 @@
 Queries will no longer be evaluated using the C evaluator.
 Snapshot mode activated with a snapshot date of 2017-01-01.
-Loaded dictionary with 5 inputs, 0 outputs, 39 functions.
+Loaded dictionary with 5 inputs, 0 outputs, 41 functions.
 Selected psv file as input: test/cli/repl/data.psv
 
   ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
@@ -93,7 +93,7 @@ Error
 
 ## Check error
 
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 54:9:prelude.icicle
   
   Fold: fold s =
           0 : value + s
@@ -111,7 +111,7 @@ Error
 
 ## Check error
 
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 54:9:prelude.icicle
   
   Fold: fold s =
           0 : value + s
@@ -130,7 +130,7 @@ Error
 
 ## Check error
 
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 54:9:prelude.icicle
   
   Fold: fold s =
           0 : value + s
@@ -199,7 +199,7 @@ Error
 
 ## Check error
 
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 54:9:prelude.icicle
   
   Fold: fold s =
           0 : value + s
@@ -217,7 +217,7 @@ Error
 
 ## Check error
 
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 48:9:prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 54:9:prelude.icicle
   
   Fold: fold s =
           0 : x + s

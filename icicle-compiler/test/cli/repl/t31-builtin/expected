@@ -1,6 +1,6 @@
 Queries will no longer be evaluated using the C evaluator.
 Snapshot mode activated with a snapshot date of 2017-01-01.
-Loaded dictionary with 5 inputs, 0 outputs, 39 functions.
+Loaded dictionary with 5 inputs, 0 outputs, 41 functions.
 Selected psv file as input: test/cli/repl/data.psv
 
   ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
@@ -15,7 +15,7 @@ Selected psv file as input: test/cli/repl/data.psv
      ░            ░
                   ░     :help for help
 
-λ Loaded dictionary with 4 inputs, 4 outputs, 39 functions.
+λ Loaded dictionary with 4 inputs, 4 outputs, 41 functions.
 λ Selected psv file as input: data/example/demographics.psv
 λ Queries will be evaluated using the core evaluator.
 λ Queries will be evaluated using the C evaluator.
@@ -167,7 +167,7 @@ homer|( tombstone
         , 2191
         ] )
 
-λ λ Loaded dictionary with 1 inputs, 0 outputs, 39 functions.
+λ λ Loaded dictionary with 1 inputs, 0 outputs, 41 functions.
 λ Selected psv file as input: test/cli/repl/t31-builtin/data.psv
 λ λ -- NY should be 1 year, CA should be 4 years, OR should be 1 year
 λ Core evaluation
