@@ -24,12 +24,12 @@ import           Test.QuickCheck.Property
 
 import           X.Control.Monad.Trans.Either
 
-prop_packed_symmetry :: Time -> Property
-prop_packed_symmetry d =
+prop_packed_symmetry :: TimeWithTime -> Property
+prop_packed_symmetry (TimeWithTime d) =
   d === timeOfPacked (packedOfTime d)
 
-prop_time_sea_to_days :: Time -> Property
-prop_time_sea_to_days d
+prop_time_sea_to_days :: TimeWithTime -> Property
+prop_time_sea_to_days (TimeWithTime d)
   = testIO $ do
   let epochTime = unsafeTimeOfYMD 1600 03 01
   let expected  = daysDifference epochTime d
@@ -40,8 +40,8 @@ prop_time_sea_to_days d
     r <- liftIO $ f [argWord64 $ packedOfTime d]
     pure $ expected === fromIntegral r
 
-prop_time_sea_to_seconds :: Time -> Property
-prop_time_sea_to_seconds d
+prop_time_sea_to_seconds :: TimeWithTime -> Property
+prop_time_sea_to_seconds (TimeWithTime d)
   = testIO $ do
   let epochTime = unsafeTimeOfYMD 1600 03 01
   let expected  = secondsDifference epochTime d
@@ -52,8 +52,8 @@ prop_time_sea_to_seconds d
     r <- liftIO $ f [argWord64 $ packedOfTime d]
     pure $ expected === fromIntegral r
 
-prop_time_sea_from_days :: Time -> Property
-prop_time_sea_from_days d
+prop_time_sea_from_days :: TimeWithTime -> Property
+prop_time_sea_from_days (TimeWithTime d)
   = testIO $ do
   let epochTime = unsafeTimeOfYMD 1600 03 01
   let epochDiff = daysDifference epochTime d
@@ -70,8 +70,8 @@ prop_time_sea_from_days d
                     , argWord64 $ fromIntegral timeS ]
     pure $ d === timeOfPacked (fromIntegral r)
 
-prop_time_sea_from_seconds :: Time -> Property
-prop_time_sea_from_seconds d
+prop_time_sea_from_seconds :: TimeWithTime -> Property
+prop_time_sea_from_seconds (TimeWithTime d)
   = testIO $ do
   let epochTime = unsafeTimeOfYMD 1600 03 01
   let epochDiff = secondsDifference epochTime d
@@ -82,8 +82,8 @@ prop_time_sea_from_seconds d
     r <- liftIO $ f [argWord64 $ fromIntegral epochDiff]
     pure $ d === timeOfPacked (fromIntegral r)
 
-prop_time_symmetry_sea_days :: Time -> Time -> Property
-prop_time_symmetry_sea_days d1 d2
+prop_time_symmetry_sea_days :: TimeWithTime -> TimeWithTime -> Property
+prop_time_symmetry_sea_days (TimeWithTime d1) (TimeWithTime d2)
   = testIO $ do
   let expected  = daysDifference d1 d2
 
@@ -93,8 +93,8 @@ prop_time_symmetry_sea_days d1 d2
     r <- liftIO $ f [argWord64 (packedOfTime d1), argWord64 (packedOfTime d2)]
     pure $ expected === fromIntegral r
 
-prop_time_symmetry_sea_seconds :: Time -> Time -> Property
-prop_time_symmetry_sea_seconds d1 d2
+prop_time_symmetry_sea_seconds :: TimeWithTime -> TimeWithTime -> Property
+prop_time_symmetry_sea_seconds (TimeWithTime d1) (TimeWithTime d2)
   = testIO $ do
   let expected  = secondsDifference d1 d2
 
@@ -104,8 +104,8 @@ prop_time_symmetry_sea_seconds d1 d2
     r <- liftIO $ f [argWord64 (packedOfTime d1), argWord64 (packedOfTime d2)]
     pure $ expected === fromIntegral r
 
-prop_time_minus_days :: Time -> Int -> Property
-prop_time_minus_days d num
+prop_time_minus_days :: TimeWithTime -> Int -> Property
+prop_time_minus_days (TimeWithTime d) num
   = testIO $ do
   -- Add or subtract only a few years.
   let num' = num `rem` 3650
@@ -117,8 +117,8 @@ prop_time_minus_days d num
     r <- liftIO $ f [argWord64 $ packedOfTime d, argWord64 (fromIntegral num')]
     pure $ expected === timeOfPacked (fromIntegral r)
 
-prop_time_minus_seconds :: Time -> Int -> Property
-prop_time_minus_seconds d num
+prop_time_minus_seconds :: TimeWithTime -> Int -> Property
+prop_time_minus_seconds (TimeWithTime d) num
   = testIO $ do
   -- Add or subtract only a few years.
   let num' = num `rem` 3650
@@ -130,8 +130,8 @@ prop_time_minus_seconds d num
     r <- liftIO $ f [argWord64 $ packedOfTime d, argWord64 (fromIntegral num')]
     pure $ expected === timeOfPacked (fromIntegral r)
 
-prop_time_minus_months :: Time -> Int -> Property
-prop_time_minus_months d num
+prop_time_minus_months :: TimeWithTime -> Int -> Property
+prop_time_minus_months (TimeWithTime d) num
   = testIO $ do
   -- Add or subtract only a few years.
   let num' = num `rem` 120
