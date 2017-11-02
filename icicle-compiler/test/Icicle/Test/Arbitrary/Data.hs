@@ -110,7 +110,7 @@ instance Arbitrary OutputId where
     OutputId <$> arbitrary <*> arbitrary
 
 instance Arbitrary Time where
-  arbitrary = Maybe.fromJust <$> ((timeOfYMD <$> choose (2000, 2050) <*> choose (1, 12) <*> choose (1,31)) `suchThat` isJust)
+  arbitrary = timeOfIvorySeconds <$> choose (0,500 * 365 * 24 * 60 * 60)
 
 instance Arbitrary Fact' where
   arbitrary =
