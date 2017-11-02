@@ -316,8 +316,27 @@ tryGenPrimitiveForType r = do
    Nothing -> return Nothing
    Just ps -> do
     p <- Gen.element ps
-    args <- mapM genExpForType (functionArguments $ typeOfPrim p)
+    args <- mapM (genArg p) (functionArguments $ typeOfPrim p)
     return $ Just $ foldl xApp (xPrim p) args
+ where
+  genArg p t
+   -- Only ever minus by small constant amounts for times.
+   -- Bit over a year.
+   | PM.PrimTime PM.PrimTimeMinusSeconds <- p
+   , IntT <- t
+   = genVInt (370 * 60 * 60 * 24)
+   | PM.PrimTime PM.PrimTimeMinusDays <- p
+   , IntT <- t
+   = genVInt 370
+   | PM.PrimTime PM.PrimTimeMinusMonths <- p
+   , IntT <- t
+   = genVInt 13
+   -- Otherwise make an expression
+   | otherwise
+   = genExpForType t
+
+  genVInt upper
+   = xValue IntT . VInt <$> Range.linear 0 upper
 
 -- | Generate primitive application, falling back to context
 genPrimitiveForType :: C m => ValType -> m (Exp () Var Prim)
