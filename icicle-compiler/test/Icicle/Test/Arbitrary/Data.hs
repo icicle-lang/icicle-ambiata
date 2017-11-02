@@ -110,7 +110,8 @@ instance Arbitrary OutputId where
     OutputId <$> arbitrary <*> arbitrary
 
 instance Arbitrary Time where
-  arbitrary = timeOfIvorySeconds <$> choose (0,500 * 365 * 24 * 60 * 60)
+  arbitrary = timeOfIvorySeconds <$> choose (500 * year,1000 * year)
+   where year = 365 * 24 * 60 * 60
 
 instance Arbitrary Fact' where
   arbitrary =

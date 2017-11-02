@@ -57,11 +57,17 @@ prop_time_sea_from_days d
   = testIO $ do
   let epochTime = unsafeTimeOfYMD 1600 03 01
   let epochDiff = daysDifference epochTime d
+  let timeH     = localHour   d
+  let timeM     = localMinute d
+  let timeS     = localSecond d
 
   runRight $ do
     library <- readLibrary seaTestables
     f <- function library "testable_itime_from_epoch_days" retInt64
-    r <- liftIO $ f [argWord64 $ fromIntegral epochDiff]
+    r <- liftIO $ f [ argWord64 $ fromIntegral epochDiff
+                    , argWord64 $ fromIntegral timeH
+                    , argWord64 $ fromIntegral timeM
+                    , argWord64 $ fromIntegral timeS ]
     pure $ d === timeOfPacked (fromIntegral r)
 
 prop_time_sea_from_seconds :: Time -> Property
@@ -149,7 +155,8 @@ seaTestables :: SourceCode
 seaTestables = codeOfDoc $ PP.vsep
   [ "iint_t testable_itime_to_epoch_days        (itime_t x)            { return itime_to_epoch_days      (x);    }"
   , "iint_t testable_itime_to_epoch_seconds     (itime_t x)            { return itime_to_epoch_seconds   (x);    }"
-  , "iint_t testable_itime_from_epoch_days      (iint_t g)             { return itime_from_epoch_days    (g);    }"
+  , "iint_t testable_itime_from_epoch_days      (iint_t g, iint_t h, iint_t m, iint_t s)"
+                                                                   <> "{ return itime_from_epoch_days (g,h,m,s); }"
   , "iint_t testable_itime_from_epoch_seconds   (iint_t g)             { return itime_from_epoch_seconds (g);    }"
   , "iint_t testable_itime_days_diff            (itime_t x, itime_t y) { return itime_days_diff          (x, y); }"
   , "iint_t testable_itime_seconds_diff         (itime_t x, itime_t y) { return itime_seconds_diff       (x, y); }"
