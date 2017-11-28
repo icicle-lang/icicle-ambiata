@@ -50,7 +50,7 @@ library
                      -- a bit cleaner.
                      -- As an added benefit, parsec will give us nicer error messages.
                      , attoparsec                      >= 0.12       && < 0.14
-                     , megaparsec                      == 5.0.*
+                     , megaparsec                      >= 5.0        && < 5.2
                      ,     parsec                      == 3.1.*
 
   ghc-options:
