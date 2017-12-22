@@ -67,7 +67,7 @@ static iint_t INLINE itime_to_epoch_seconds (itime_t x)
   return s + 60*n + 3600*h + (365*y + y/4 - y/100 + y/400 + (m*306 + 5)/10 + (d - 1)) * 86400;
 }
 
-static itime_t INLINE itime_from_epoch_days (iint_t g)
+static itime_t INLINE itime_from_epoch_days (iint_t g, iint_t h, iint_t m, iint_t s)
 {
     int64_t y = ((10000*g + 14780)/3652425);
     int64_t ddd = g - (365*y + y/4 - y/100 + y/400);
@@ -84,7 +84,7 @@ static itime_t INLINE itime_from_epoch_days (iint_t g)
 
     int64_t dd = ddd - (mi*306 + 5)/10 + 1;
 
-    return itime_from_gregorian (y + 1600, mm, dd, 0, 0, 0);
+    return itime_from_gregorian (y + 1600, mm, dd, h, m, s);
 }
 
 static itime_t INLINE itime_from_epoch_seconds (iint_t s)
@@ -126,7 +126,10 @@ static iint_t INLINE itime_seconds_diff (itime_t x, itime_t y)
 
 static itime_t INLINE itime_minus_days (itime_t x, iint_t y)
 {
-    return itime_from_epoch_days (itime_to_epoch_days(x) - y);
+    int64_t _y, _M, _d, h, m, s;
+    itime_to_gregorian (x, &_y, &_M, &_d, &h, &m, &s);
+
+    return itime_from_epoch_days (itime_to_epoch_days(x) - y, h, m, s);
 }
 
 static itime_t INLINE itime_minus_seconds (itime_t x, iint_t y)

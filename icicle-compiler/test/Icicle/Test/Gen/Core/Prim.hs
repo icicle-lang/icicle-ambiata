@@ -160,10 +160,9 @@ genPrimRelation = Gen.enumBounded
 genPrimLogical :: Gen PM.PrimLogical
 genPrimLogical = Gen.enumBounded
 
--- TODO: add PrimTimeMinusDays and PrimTimeMinusMonths after choosing a consistent time representation
+-- Note well: PrimTimeMinus* are treated kind of specially in Program.genPrimitive, and only ever called with small constant amounts.
 -- We have problems because the C and the Core use different representations, so they overflow or underflow at different points.
--- I think if we only allow minus seconds it will be less likely, because you need a lot of seconds to overflow.
--- You don't need many months to overflow.
+-- You don't need many months to overflow, so if we only generate small numbers it should be ok.
 genPrimTime :: Gen PM.PrimTime
 genPrimTime = Gen.element
  [ PM.PrimTimeDaysDifference
@@ -171,6 +170,8 @@ genPrimTime = Gen.element
  , PM.PrimTimeDaysJulianEpoch
  , PM.PrimTimeSecondsJulianEpoch
  , PM.PrimTimeMinusSeconds
+ , PM.PrimTimeMinusDays
+ , PM.PrimTimeMinusMonths
  , PM.PrimTimeProjectDay
  , PM.PrimTimeProjectMonth
  , PM.PrimTimeProjectYear ]

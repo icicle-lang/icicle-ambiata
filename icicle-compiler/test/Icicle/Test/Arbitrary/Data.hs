@@ -9,6 +9,8 @@ module Icicle.Test.Arbitrary.Data (
   , fresh
   , valueOfEncoding
   , module Run
+
+  , TimeWithTime(..)
   ) where
 
 import qualified Icicle.Internal.Pretty as PP
@@ -109,8 +111,17 @@ instance Arbitrary OutputId where
   arbitrary =
     OutputId <$> arbitrary <*> arbitrary
 
+-- Time with out time:
+-- Many tests assume that this Time generator is just the date.
 instance Arbitrary Time where
   arbitrary = Maybe.fromJust <$> ((timeOfYMD <$> choose (2000, 2050) <*> choose (1, 12) <*> choose (1,31)) `suchThat` isJust)
+
+newtype TimeWithTime = TimeWithTime Time
+ deriving (Eq, Ord, Show)
+
+instance Arbitrary TimeWithTime where
+  arbitrary = TimeWithTime . timeOfIvorySeconds <$> choose (500 * year,1000 * year)
+   where year = 365 * 24 * 60 * 60
 
 instance Arbitrary Fact' where
   arbitrary =
