@@ -5,6 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Icicle.Command.Compile (
     Compile(..)
+  , Check(..)
 
   , Fingerprint(..)
   , MaximumQueriesPerKernel(..)
@@ -12,6 +13,7 @@ module Icicle.Command.Compile (
   , OutputDictionarySea(..)
 
   , icicleCompile
+  , icicleCheck
 
   , CompileError(..)
   , renderCompileError
@@ -32,7 +34,7 @@ import           Icicle.Command.Timer
 import           Icicle.Common.Annot (Annot)
 import qualified Icicle.Compiler as Compiler
 import qualified Icicle.Compiler.Source as Source
-import           Icicle.Dictionary.Data (Dictionary)
+import           Icicle.Dictionary.Data (Dictionary, prettyDictionarySummary)
 import qualified Icicle.Internal.Pretty as Pretty
 import           Icicle.Runtime.Data
 import qualified Icicle.Runtime.Evaluator as Runtime
@@ -52,6 +54,11 @@ data Compile =
     , compileMaximumQueriesPerKernel :: !MaximumQueriesPerKernel
     , compileInputDictionary :: !InputDictionaryToml
     , compileOutputDictionary :: !OutputDictionarySea
+    } deriving (Eq, Ord, Show)
+
+data Check =
+  Check {
+      checkInputDictionary :: !InputDictionaryToml
     } deriving (Eq, Ord, Show)
 
 newtype InputDictionaryToml =
@@ -150,3 +157,16 @@ icicleCompile compile = do
   liftIO $ writeSeaDictionary (compileOutputDictionary compile) sea
 
   finishAll
+
+----------------
+-- Check Only --
+----------------
+
+icicleCheck :: Check -> EitherT CompileError IO ()
+icicleCheck check = do
+  dictionary <- loadDictionary (checkInputDictionary check)
+  let
+    summary
+      = prettyDictionarySummary dictionary
+
+  liftIO $ Pretty.putDoc summary
