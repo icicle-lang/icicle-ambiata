@@ -32,6 +32,7 @@ data IcicleCommand =
     IcicleRepl !ReplOptions
   | IcicleCompile !Compile
   | IcicleQuery !Query
+  | IcicleCheck !Check
     deriving (Eq, Ord, Show)
 
 main :: IO ()
@@ -60,6 +61,10 @@ commands = [
       "query"
       "Run an icicle query over some data."
       (IcicleQuery <$> pQuery)
+  , Options.command'
+      "check"
+      "Check an icicle dictionary for type errors."
+      (IcicleCheck <$> pCheck)
   ]
 
 pRepl :: Parser ReplOptions
@@ -107,6 +112,11 @@ pCompile =
     <*> pMaximumQueriesPerKernel
     <*> pInputDictionaryToml
     <*> pOutputDictionarySea
+
+pCheck :: Parser Check
+pCheck =
+  Check
+    <$> pInputDictionaryToml
 
 pMaximumQueriesPerKernel :: Parser MaximumQueriesPerKernel
 pMaximumQueriesPerKernel =
@@ -246,3 +256,7 @@ runCommand = \case
   IcicleQuery options -> do
     orDie renderQueryError $ do
       icicleQuery options
+
+  IcicleCheck dictionary -> do
+    orDie renderCompileError $
+      icicleCheck dictionary

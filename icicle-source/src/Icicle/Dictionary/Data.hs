@@ -254,6 +254,7 @@ prettyDictionarySummary dict =
     , indent 2 . pprList $
         fmap pprOutput .
         Map.elems $ dictionaryOutputs dict
+    , mempty
     ]
  where
   pprList = \case
