@@ -266,9 +266,9 @@ ppContext layout = \case
   Distinct a exp ->
     annotate a $
       ppKeyword "distinct" <+> ppExp layout exp
-  Filter a exp ->
+  Filter a gs ->
     annotate a $
-      ppKeyword "filter" <+> ppExp layout exp
+      ppKeyword "filter" <+> ppGuards gs
   Latest a size ->
     annotate a $
       ppKeyword "latest" <+> ppLatestSize size

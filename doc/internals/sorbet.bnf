@@ -272,7 +272,7 @@
 <context>        ::= let      <decls>
                   |  group    <exp>
                   |  distinct <exp>
-                  |  filter   <exp>
+                  |  filter   <guards>
                   |  latest   <integer>
                   |  windowed <window>
 
