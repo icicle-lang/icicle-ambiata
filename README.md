@@ -1,27 +1,82 @@
-icicle
+Icicle
 ======
 
-[![Build Status](https://api.travis-ci.org/ambiata/icicle.svg?branch=master)](https://travis-ci.org/ambiata/icicle)
-
-> Icicle == I(vory) SQL.
+Icicle == I(cicle) S(treaming) Q(query) L(language).
 
 A streaming query language.
 
-Latest release notes:
-
- * [v0](https://github.com/ambiata/icicle/blob/master/doc/design/ice-v0.md)
-
-purpose
+Purpose
 -------
 
-Icicle is a small language for expressing (and statically verifying)
-a certain set of streaming computations.
+Icicle is a language for expressing (and statically verifying) streaming
+computations for fast generation of machine learning features and event
+sourcing states.
 
-The driver for this language is the [ivory](https://speakerdeck.com/ambiata/ivory-concepts)
-data-store, and the rest of this documents things in terms of ivory,
-however the problems being addressed are not unique to ivory, and it
-is plausible that this could be adapted to different contexts. For more
-context on ivory see:
+The key principles of Icicle are to:
+
+ - Provide a static guarantee that all computations must be computed in
+   a single pass, that is, no data point may be examined more that once;
+ - Use a first class notion of time - one should be able to query any
+   entity's state and features at any time (this is important for
+   preventing label leakage for instance);
+ - Use query fusion and high level optimisations to achieve great
+   performance.
+
+Motivation
+----------
+
+When performing a data engineering and machine learning tasks, one has many
+options for creating features. Languages like R can provide expressivivity,
+but they don't scale well to the gigabyte, terabyte, or petabyte level; SQL
+can be applied for machine learning features, but is clunky to write, fails
+at runtime, and its runtime order is hard to quantify, especially at the
+terabyte and petabyte levels.
+
+Icicle is designed to provide O(n) runtime for all feature queries, while
+providing a pleasant environment for data scientists and engineers to write
+expressive features.
+
+Examples
+--------
+
+The simplest examples and counter-examples one may consider are `mean` and
+`variance`. First up, one could write `mean` as:
+
+```haskell
+mean : Element Double -> Aggregate Double
+mean v = sum v / count v
+```
+
+This is fine<sup>[1](#stabilty)</sup>, and one can be sure that Icicle will
+fuse the sum and count queries such that the data will only be visited once.
+For calculating the variance and standard deviation, one might naïvely try
+this:
+
+```haskell
+variance : Element Double -> Aggregate Double
+variance v =
+  let
+    mean'  = mean v              -- Aggregate Double
+    sq2    = sum ((v - mean')^2) -- Illegal subtraction of Aggregate from Element
+    count' = count v
+  in
+    sq2 / count'
+```
+
+But clearly, this has a massive problem. The data must be traversed twice
+to calculate this query: first to calculate the mean, and then to calculate
+the sum of squares differences. In Icicle, this version of variance is a type
+error, and we instead provide Welford's numerically stable streaming
+calculation for variances.
+
+Context
+-------
+
+Icicle is designed for, but not dependent on, the
+[ivory](https://speakerdeck.com/ambiata/ivory-concepts)
+data-store. While parts of this docuement uses the terms of ivory,
+the problems being addressed are not unique to ivory, and one can adapt
+these ideas to different contexts. For an idea of what ivory does, see
 
  - [https://speakerdeck.com/ambiata/ivory-concepts](https://speakerdeck.com/ambiata/ivory-concepts)
 
@@ -32,7 +87,7 @@ context on ivory see:
  - [https://github.com/ambiata/ivory](https://github.com/ambiata/ivory) *(internal Ambiata only)*
 
 
-facts & values
+Facts & Values
 --------------
 
 Facts are (typed) values, keyed along three dimensions:
@@ -54,18 +109,18 @@ Values themselves are structured, and may be primitives, structs,
 or lists of values.
 
 
-data processing
+Data Processing
 ---------------
 
-Data processing in ivory (and similar data stores) is heavily
+Data processing in Ivory (and similar data stores) is heavily
 parallelized. This places restrictions on how data is processed
 and how expressions can relate to each other - in most cases
 these restrictions are simplifying to the desigin of icicle.
 
 The basic invariants are:
 
- - Data is processed in "batches", where a batch has a set of uniform
-   properties:
+ - Data is processed in "batches", where a batch has a set of
+   uniform properties:
 
  - All facts in a batch are for the same entity.
 
@@ -77,76 +132,18 @@ The basic invariants are:
    entity / attribute.
 
 
-expressions
+Expressions
 -----------
 
-### types of expressions
+### Types of Expressions
 
-Ivory contains notes on some required expressions:
+Icicle supports a wide variety of expressions.
 
- - https://github.com/ambiata/ivory/blob/master/doc/design/feature-gen.md *(internal Ambiata only)*
-
-Supporting this will be the existing corpus of ivory dictionaries.
-
-
-### outputs
-
-One complication is that there are two distinct outputs from each
-expression:
-
- - The decision of which facts are interesting to a given snapshot.
-
- - The output of the actual computation.
-
-
-specification
--------------
-
-A prototype implementation is being built before we finalize the
-complete specification of the icicle.
-
-
-prototype
----------
-
-The goals of the v0 prototype implementation are:
-
- - identify language primitives.
-
- - identify a reasonable heuristic for cost, to help elliminate skew in
-   the case of distributed computation.
-
- - determine an appropriate algorithm for arranging and fusing
-   computation/expressions.
-
- - determine scope and plausibility of static verification.
-
- - propotype and iterate on surface syntax.
-
- - best strategy for code-gen given primitives (shallow embedding,
-   with supporting libraries vs bit twiddling).
-
-
-simulation
-----------
-
-The simulation engine for the prototype shall use ivory EAVT text format
-as an ingestion. From this text format it shall:
-
- - Parse each row into raw facts.
-
- - Join in a dictionary to convert raw facts into typed facts.
-
- - Sort by entity and attribute, then group into like entity and attribute,
-   then perform a secondary sort on time.
-
- - Take a compiled expression and run over each group. There should be two
-   outputs produced:
-     1. A feed of all the facts that were used to compute values.
-     2. A feed of all computed values, EAV format.
-
-optimisation
+Optimisation
 ------------
 
 To be completed after prototype. A discussion of optimisation techniques
 useful to icicle expressions.
+
+<a name="stability">1</a>: Actually, this isn't numerically stable, in the
+  icicle prelude, we use a more robust version.
