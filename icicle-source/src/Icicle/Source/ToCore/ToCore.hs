@@ -234,7 +234,10 @@ convertQuery q
     (Distinct _ _ : _)
      -> convertAsFold
 
-    (Let _ b def : _)
+    (Let _ PatDefault _ : _)
+     -> convertQuery q'
+
+    (Let _ (PatVariable b) def : _)
      -> case getTemporalityOrPure $ annResult $ annotOfExp def of
          TemporalityElement
           -> do t' <- convertValType' $ annResult $ annotOfExp def
@@ -280,6 +283,8 @@ convertQuery q
          _
           -> convertError $ ConvertErrorGroupByHasNonGroupResult (annAnnot $ annotOfExp def) (annResult $ annotOfExp def)
 
+    (Let (Annot { annAnnot = ann }) _ _ : _)
+     -> convertError $ ConvertErrorImpossibleFold1 ann
 
     -- Converting fold1s.
     (LetFold (Annot { annAnnot = ann }) Fold{ foldType = FoldTypeFoldl1 } : _)

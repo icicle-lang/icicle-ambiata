@@ -23,8 +23,7 @@ import              Data.Hashable (Hashable)
 
 
 data InlineOption
-  = InlineUsingLets
-  | InlineUsingSubst
+  = InlineUsingSubst
 
 defaultInline :: InlineOption
 defaultInline = InlineUsingSubst
@@ -49,17 +48,6 @@ inlineTransform opt funs
    , argNames        <- fmap snd vars
    , length args == length vars
    = case opt of
-      InlineUsingLets -> do
-       ns      <- mapM (freshPrefixBase . nameBase) argNames
-
-       let lets = fmap (mkLet a) (ns `zip` args)
-       let sub  = Map.fromList
-                $ argNames `zip` fmap (Var a) ns
-
-       body'   <- substQ sub $ body fun
-
-       return ((), Nested a (prefixContexts lets body'))
-
       InlineUsingSubst -> do
        let sub  = Map.fromList
                 $ argNames `zip` args
@@ -75,12 +63,6 @@ inlineTransform opt funs
 
   tranc _ c
    = return ((), c)
-
-  mkLet a (n,d) = Let a n d
-
-  prefixContexts cs (Query cs' xx)
-   = Query (cs <> cs') xx
-
 
 inlineQT :: (Hashable n, Eq n)
         => InlineOption

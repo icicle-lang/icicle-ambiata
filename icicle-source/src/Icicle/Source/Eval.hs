@@ -140,9 +140,15 @@ evalQ q vs env
                  | otherwise
                  -> return $ VError ExceptFold1NoValue
 
-                Let a n x
-                 -> let str = mapM (\v -> Map.insert n <$> evalX x [] v <*> return v) vs
-                        agg = Map.insert n <$> evalX x vs env <*> return env
+                Let a p x
+                 -> let str = mapM (\v -> do
+                                e'         <- evalX x [] v
+                                let Just subst = substOfPattern p e'
+                                return (Map.union subst v)
+                              ) vs
+                        agg = do e'         <- evalX x vs env
+                                 let Just subst = substOfPattern p e'
+                                 return (Map.union subst env)
                     in  case (str, agg) of
                          (Right vs', Right env')
                           ->    evalQ q' vs' env'
@@ -575,4 +581,4 @@ evalP ann p xs vs env
    = True
    | otherwise
    = False
-  
+

@@ -43,7 +43,7 @@ main =
 genBuildInfo :: Verbosity -> PackageDescription -> IO ()
 genBuildInfo verbosity pkg = do
   createDirectoryIfMissingVerbose verbosity True "gen"
-  let (PackageName pname) = pkgName . package $ pkg
+  let pname = unPackageName . pkgName . package $ pkg
       version = pkgVersion . package $ pkg
       name = "BuildInfo_" ++ (map (\c -> if c == '-' then '_' else c) pname)
       targetHs = "gen/" ++ name ++ ".hs"

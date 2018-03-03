@@ -134,6 +134,7 @@ post n x = mempty { postcomps = [(n,x)] }
 
 data ConvertError a n
  = ConvertErrorNoSuchFeature UnresolvedInputId
+ | ConvertErrorPatternUnconvertable (Pattern n)
  | ConvertErrorPrimNoArguments               a Int Prim
  | ConvertErrorPrimAggregate                 a Prim
  | ConvertErrorGroupByHasNonGroupResult      a (Type n)
@@ -154,6 +155,8 @@ annotOfError :: ConvertError a n -> Maybe a
 annotOfError e
  = case e of
     ConvertErrorNoSuchFeature _
+     -> Nothing
+    ConvertErrorPatternUnconvertable _
      -> Nothing
     ConvertErrorPrimNoArguments a _ _
      -> Just a
@@ -324,6 +327,9 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
   = case e of
      ConvertErrorNoSuchFeature n
       -> "No such feature: " <> pretty n
+
+     ConvertErrorPatternUnconvertable p
+      -> "Pattern Conversion Error: " <> pretty p
 
      ConvertErrorPrimNoArguments a num_args p
       -> pretty a <> ": primitive " <> pretty p <> " expects " <> pretty num_args <> " arguments but got none"

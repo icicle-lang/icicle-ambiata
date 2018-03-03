@@ -89,7 +89,7 @@ context
         e <- exp
         return $ Q.GroupFold p k v e
   clet
-   = do n <- pVariable                                      <?> "binding name"
+   = do n <- pattern                                        <?> "binding pattern"
         p <- getPosition
         pEq T.TEqual
         x <- exp                                            <?> "let definition expression"

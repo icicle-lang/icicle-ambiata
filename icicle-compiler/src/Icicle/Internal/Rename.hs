@@ -31,7 +31,7 @@ renameC f cc = case cc of
   SQ.Distinct  a e     -> SQ.Distinct  a (renameX f e)
   SQ.Filter    a e     -> SQ.Filter    a (renameX f e)
   SQ.LetFold   a x     -> SQ.LetFold   a (renameF f x)
-  SQ.Let       a n e   -> SQ.Let       a (renameN f n) (renameX f e)
+  SQ.Let       a n e   -> SQ.Let       a (renamePat f n) (renameX f e)
 
 renameF :: Hashable m => (n -> m) -> SQ.Fold (SQ.Query a n) a n -> SQ.Fold (SQ.Query a m) a m
 renameF f d

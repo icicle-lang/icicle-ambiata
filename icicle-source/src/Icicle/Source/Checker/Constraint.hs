@@ -3,6 +3,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE RankNTypes        #-}
 module Icicle.Source.Checker.Constraint (
     constraintsQ
   , generateQ
@@ -69,7 +70,7 @@ defaults topq
    -- Num type such as Int, or it is a type error
    = defaultTo t IntT
   defaultOfConstraint (CPossibilityOfNum poss t)
-   = defaultTo t IntT <> defaultTo poss PossibilityDefinitely 
+   = defaultTo t IntT <> defaultTo poss PossibilityDefinitely
   -- Everything else should really be known by this stage.
   -- These shouldn't actually occur.
   defaultOfConstraint (CEquals _ _)
@@ -164,7 +165,7 @@ constraintsQ env q
     Left errs
      -> genHoistEither
       $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annotOfQuery q) errs)
-    Right (sub', cons') 
+    Right (sub', cons')
      -> let q'' = substTQ sub' q'
         in  return (q'', cons')
 
@@ -439,13 +440,14 @@ generateQ qq@(Query (c:_) _) env
     -- >   let n = ( |- def't def'p def'd )
     -- >    ~> ( n : def't def'p def'd |- body't body'p body'd )
     -- > : (ReturnOfLetTemporalities def't body't) body'p body'd
-    Let _ n x
-     -> do  (x', sx, consd) <- generateX x env
+    Let ann n x
+     -> do  (x', sx, consd)  <- generateX x env
+            let x'typ = annResult $ annotOfExp x'
 
-            (q',sq,tq,consr) <- withBind n (annResult $ annotOfExp x') (substE sx env) rest
+            (q',sq,tq,consr) <- rest =<< goPat ann n x'typ (substE sx env)
 
             retTmp   <- TypeVar <$> fresh
-            let tmpx  = getTemporalityOrPure $ annResult $ annotOfExp x'
+            let tmpx  = getTemporalityOrPure x'typ
             let tmpq  = getTemporalityOrPure $ tq
 
             let consT = require a (CReturnOfLetTemporalities retTmp tmpx tmpq)
@@ -458,6 +460,47 @@ generateQ qq@(Query (c:_) _) env
             return (q'', ss, cons')
 
  where
+  -- Create the binding environment for a pattern.
+  -- We are only permitting total patterns, so PairT
+  -- variables and non-binders.
+  goPat _ PatDefault _ e
+    -- A Default _ binding doesn't effect the rest
+    -- of the program.
+    = return e
+  goPat _ (PatVariable n) typ e
+    -- A binding variable is accessible downstream
+    -- so bind it and its type to the environment.
+    = return $ bindT n typ e
+  goPat ann (PatCon ConTuple [a'pat,b'pat]) typ e
+    -- As we can put a let at any temporality and
+    -- possibility, we need to decompose the pattern
+    -- and keep the possibility/temporality of the
+    -- values of the pair the same as the pair being
+    -- bound.
+    | (mt,mp,canon'typ) <- decomposeT $ canonT typ
+    , PairT a'typ b'typ <- canon'typ
+    = do
+      a'env <- goPat ann a'pat (recomposeT (mt, mp, a'typ)) e
+      b'env <- goPat ann b'pat (recomposeT (mt, mp, b'typ)) a'env
+      return b'env
+  goPat ann (PatCon ConTuple _) btyp _
+    -- It's a type error, as we can't bind a non-pair
+    -- pattern to a pair. We don't have type variables
+    -- for the what the elements of the pair should be,
+    -- so draw some fresh ones.
+    = do
+      p1 <- TypeVar <$> fresh
+      p2 <- TypeVar <$> fresh
+      genHoistEither
+        $ errorNoSuggestions
+        $ ErrorConstraintsNotSatisfied ann
+          [(ann, CannotUnify (PairT p1 p2) btyp)]
+  goPat ann pat _ _
+    -- It's not a pair, default or variable. All other
+    -- patterns are Partial, so we disallow it.
+    = genHoistEither
+    $ errorNoSuggestions (ErrorPartialBinding ann pat)
+
   a  = annotOfContext c
 
   -- Generate constraints for the remainder of the query, and rip out the result type
@@ -493,7 +536,6 @@ generateQ qq@(Query (c:_) _) env
         let pt2 = getPossibilityOrDefinitely t2
         let c'  = require a (CPossibilityJoin poss pt1 pt2)
         return (poss, c')
-
 
 -- | Generate constraints for expression
 generateX

@@ -48,6 +48,7 @@ data ErrorInfo a n
  | ErrorReturnNotAggregate a (Type n)
  | ErrorDuplicateFunctionNames a (Name n)
  | ErrorEmptyCase a (Exp a n)
+ | ErrorPartialBinding a (Pattern n)
  | ErrorCaseBadPattern a (Pattern n)
  | ErrorResumableFoldNotAllowedHere a (Query a n)
  | ErrorInFunctionCall a (Name n) (ErrorInfo a n)
@@ -77,6 +78,8 @@ annotOfError (CheckError e _)
     ErrorDuplicateFunctionNames      a _
      -> Just a
     ErrorEmptyCase          a _
+     -> Just a
+    ErrorPartialBinding        a _
      -> Just a
     ErrorCaseBadPattern          a _
      -> Just a
@@ -186,6 +189,13 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
           "Case expression has no clauses at" <+> pretty a
         , mempty
         , "Exp: " <> inp x
+        ]
+
+    ErrorPartialBinding a x ->
+      vsep [
+         "Binding expression has a partial pattern match at" <+> pretty a
+        , mempty
+        , "Pattern: " <> inp x
         ]
 
     ErrorCaseBadPattern a p ->

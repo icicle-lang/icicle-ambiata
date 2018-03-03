@@ -217,7 +217,7 @@ convertFold q
     --
     -- Note that this has different "history semantics" to the normal filter.
     (Filter _ e : _)
-     -> do  res <- convertFold q'
+     -> do  res        <- convertFold q'
             e'         <- convertExp  e
             prev       <- lift fresh
             n'unit     <- lift fresh
@@ -422,7 +422,7 @@ convertFold q
 
            let upd        = unwrapSum' mapInsert       n'map  (T.SumT T.ErrorT t'map)
                           $ x'right
-                          $ x'pair 
+                          $ x'pair
                               (CE.xVar n'map)
                               (foldKons res CE.@~ x'snd (CE.xVar n'pair) )
 
@@ -438,7 +438,7 @@ convertFold q
 
            -- Fold over the map
            let xtra       = CE.xLam n'sum t'sum
-                          $ unwrapSum True t'xtra n'error (CE.xVar n'sum) n'pair t'sum 
+                          $ unwrapSum True t'xtra n'error (CE.xVar n'sum) n'pair t'sum
                           $ rewrapSum (not q'possibly) t'xtra
                           ( mapExtract res CE.@~ x'snd (CE.xVar n'pair))
 
@@ -449,13 +449,13 @@ convertFold q
     (Windowed (Annot { annAnnot = ann }) _ _ : _)
      -> errNotAllowed ann
 
-    (Let _ b def : _)
+    (Let _ p def : _)
      | TemporalityPure  <- getTemporalityOrPure $ annResult $ annotOfExp def
      -> do  def' <- convertExp def
             n'   <- lift fresh
-            t' <- convertValType' $ annResult $ annotOfExp def
+            t'   <- convertValType' $ annResult $ annotOfExp def
             let res = ConvertFoldResult (CE.xLam n' t' def') def' (CE.xLam n' t' def') t' t'
-            convertAsLet b res
+            convertAsLet p res
 
      | TemporalityElement  <- getTemporalityOrPure $ annResult $ annotOfExp def
      -> do  def' <- convertExp def
@@ -463,11 +463,11 @@ convertFold q
             t' <- convertValType' $ annResult $ annotOfExp def
             let err = CE.xValue t' $ T.defaultOfType t'
             let res = ConvertFoldResult (CE.xLam n' t' def') err (CE.xLam n' t' $ CE.xVar n') t' t'
-            convertAsLet b res
+            convertAsLet p res
 
      | otherwise
      -> do  resb <- convertFold (Query [] def)
-            convertAsLet b resb
+            convertAsLet p resb
 
     (LetFold (Annot { annAnnot = ann }) Fold{ foldType = FoldTypeFoldl1 } : _)
      -> convertError $ ConvertErrorImpossibleFold1 ann
@@ -490,7 +490,7 @@ convertFold q
             x' <- idFun tU
 
             let res = ConvertFoldResult k' z x' tU tU
-            convertAsLet (foldBind f) res
+            convertAsLet (PatVariable $ foldBind f) res
 
 
 
@@ -572,8 +572,30 @@ convertFold q
 
         return xx
 
+  convertAsLet PatDefault resb
+   = convertContext
+   $    do  resq     <- convertFold q'
+            let tb'   = typeFold resb
+            let tq'   = typeFold resq
+            let tpair = pairTypes [tb', tq']
 
-  convertAsLet b resb
+            let fk' [xa,_]
+                    = do return (foldKons resb CE.@~ xa)
+                fk' s
+                    = fk' s
+            k' <- pairDestruct fk' [tb', tq']
+
+            let z'  = foldZero resb
+
+            let cp [_,xb]
+                    = return
+                    $ (mapExtract resq CE.@~ xb)
+                cp  s
+                    = cp  s
+            x' <- pairDestruct cp [tb', tq']
+
+            return $ ConvertFoldResult k' z' x' tpair (typeExtract resq)
+  convertAsLet (PatVariable b) resb
    = convertContext
    $    do  b'     <- convertFreshenAdd b
             resq   <- convertFold q'
@@ -601,6 +623,10 @@ convertFold q
             x' <- pairDestruct cp [tb', tq']
 
             return $ ConvertFoldResult k' z' x' tpair (typeExtract resq)
+
+  convertAsLet pat _
+    = convertError
+    $ ConvertErrorPatternUnconvertable pat
 
   convertValType'   = convertValType (annAnnot $ annotOfQuery q)
 

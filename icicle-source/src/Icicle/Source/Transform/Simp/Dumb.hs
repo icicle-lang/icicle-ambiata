@@ -75,7 +75,7 @@ simpDumbCases xx
      -> simpX x
 
     Case a e [(PatVariable n, x)]
-     -> let q = Query [Let a n (simpX e)] (simpX x)
+     -> let q = Query [Let a (PatVariable n) (simpX e)] (simpX x)
         in  Nested a q
 
     Case a e ps
@@ -134,7 +134,7 @@ simpDumbLets xx
    = case qq of
        Query [] bd
          -> simpDumbLets bd
-       Query (Let _ x (Var _ y) : cs) bd
+       Query (Let _ (PatVariable x) (Var _ y) : cs) bd
          -> go (Query cs (substX x y bd))
        _ -> xx
 
@@ -164,11 +164,11 @@ simpDumbLets xx
   substC x y (cc:rest)
    = let (f, rest') = substC x y rest
      in  case cc of
-       Let a n e
-        | n /= x
-        -> (f, Let a n (substX x y e) : rest')
+       Let a pat e
+        | x `elem` varsIn pat
+        -> (False, Let a pat (substX x y e) : rest)
         | otherwise
-        -> (False, Let a n (substX x y e) : rest)
+        -> (f, Let a pat (substX x y e) : rest')
        LetFold a (Fold n init work ty)
         | n /= x
         -> (f, LetFold a (Fold n (substX x y init) (substX x y work) ty):rest')

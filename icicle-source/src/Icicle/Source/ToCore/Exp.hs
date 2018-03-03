@@ -5,6 +5,7 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.ToCore.Exp (
     convertExp
@@ -38,8 +39,6 @@ import                  Control.Monad.Trans.Class
 import                  Data.List (zip)
 import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
-
-
 
 -- | Convert an element-level expression.
 -- These are worker functions for folds, filters and so on.
@@ -108,16 +107,35 @@ convertExpQ q
  $ case contexts q of
     []
      -> convertExp $ final q
-    (Let _ b d:cs)
+    (Let _ PatDefault _:cs)
+     ->     -- A pattern with no binding doesn't need to inspect its arguments
+            convertExpQ $ Query cs $ final q
+    (Let _ (PatVariable b) d:cs)
      -> do  d' <- convertExp d
             -- NB: because it's non-recursive let, the freshen must be done after the definition
             b' <- convertFreshenAdd b
             x' <- convertExpQ $ Query cs $ final q
             return $ CE.XLet () b' d' x'
+    -- (Let ann (PatCon ConTuple [PatVariable na, PatVariable nb]) bound:cs)
+    --  -> do  bound'        <- convertExp bound
+    --         bound'typ     <- convertValType (annAnnot ann) $ annResult $ annotOfExp bound
+    --         case bound'typ of
+    --           T.PairT ta tb -> do
+    --             x'      <- convertExpQ $ Query cs $ final q
+    --             sn      <- lift fresh
+    --             let xfst = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst ta tb) CE.@~ CE.xVar sn
+    --             let xsnd = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd ta tb) CE.@~ CE.xVar sn
+    --             return ( CE.XLet () sn bound'
+    --                    $ CE.XLet () na xfst
+    --                    $ CE.XLet () nb xsnd
+    --                    $ x')
+    --           x -> trace (show x)
+    --              $ convertError
+    --              $ ConvertErrorExpNestedQueryNotAllowedHere (annAnnot $ annotOfQuery q) q
+
     _
      -> convertError
       $ ConvertErrorExpNestedQueryNotAllowedHere (annAnnot $ annotOfQuery q) q
-
 
 -- | Enfreshinate the variables in a case pattern and add them to the convert environment.
 --
