@@ -18,7 +18,7 @@ The key principles of Icicle are to:
    a single pass, that is, no data point may be examined more that once;
  - Use a first class notion of time - one should be able to query any
    entity's state and features at any time (this is important for
-   preventing label leakage for instance);
+   preventing label leakage for instance); and
  - Use query fusion and high level optimisations to achieve great
    performance.
 
@@ -28,13 +28,13 @@ Motivation
 When performing a data engineering and machine learning tasks, one has many
 options for creating features. Languages like R can provide expressivivity,
 but they don't scale well to the gigabyte, terabyte, or petabyte level; SQL
-can be applied for machine learning features, but is clunky to write, fails
-at runtime, and its runtime order is hard to quantify, especially at the
-terabyte and petabyte levels.
+can be applied for machine learning features, but is clunky to write, can
+fail at runtime, and its runtime order is hard to quantify, especially at
+the terabyte and petabyte levels.
 
-Icicle is designed to provide O(n) runtime for all feature queries, while
-providing a pleasant environment for data scientists and engineers to write
-expressive features.
+Icicle is a total programming language designed to provide O(n) runtime for
+all feature queries, while providing a pleasant environment for data
+scientists and engineers to write expressive features.
 
 Examples
 --------
@@ -137,13 +137,15 @@ Expressions
 
 ### Types of Expressions
 
-Icicle supports a wide variety of expressions.
+Icicle supports a wide variety of expressions, and query which can
+be computed in an event soucing or streaming manner should be
+computable in Icicle.
 
 Optimisation
 ------------
 
-To be completed after prototype. A discussion of optimisation techniques
-useful to icicle expressions.
+Icicle has a highly optimising backend, which compiles queries to
+C programs operating on flattened data structures.
 
 <a name="stability">1</a>: Actually, this isn't numerically stable, in the
   icicle prelude, we use a more robust version.
