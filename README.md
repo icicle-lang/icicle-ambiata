@@ -8,7 +8,7 @@ A streaming query language.
 Purpose
 -------
 
-Icicle is a language for expressing (and statically verifying) streaming
+Icicle is a language for expressing (and statically checking) streaming
 computations for fast generation of machine learning features and event
 sourcing states.
 
@@ -29,8 +29,8 @@ When performing a data engineering and machine learning tasks, one has many
 options for creating features. Languages like R can provide expressivivity,
 but they don't scale well to the gigabyte, terabyte, or petabyte level; SQL
 can be applied for machine learning features, but is clunky to write, can
-fail at runtime, and its runtime order is hard to quantify, especially at
-the terabyte and petabyte levels.
+fail at runtime, its hard to protect against label leakage, and its runtime
+order is hard to quantify, especially at the terabyte and petabyte levels.
 
 Icicle is a total programming language designed to provide O(n) runtime for
 all feature queries, while providing a pleasant environment for data
@@ -57,8 +57,8 @@ variance : Element Double -> Aggregate Double
 variance v =
   let
     mean'  = mean v              -- Aggregate Double
+    count' = count v             -- Aggregate Double
     sq2    = sum ((v - mean')^2) -- Illegal subtraction of Aggregate from Element
-    count' = count v
   in
     sq2 / count'
 ```
@@ -108,7 +108,6 @@ Facts are (typed) values, keyed along three dimensions:
 Values themselves are structured, and may be primitives, structs,
 or lists of values.
 
-
 Data Processing
 ---------------
 
@@ -135,17 +134,24 @@ The basic invariants are:
 Expressions
 -----------
 
-### Types of Expressions
-
-Icicle supports a wide variety of expressions, and query which can
-be computed in an event soucing or streaming manner should be
+Icicle supports a wide variety of expressions, and queries which
+can be computed in an event soucing or streaming manner should be
 computable in Icicle.
+
+The best place to get a feel for expressions is the [ambling]
+document, which gives a run through of some queries, and how Icicle
+is different to other query languages.
 
 Optimisation
 ------------
 
 Icicle has a highly optimising backend, which compiles queries to
-C programs operating on flattened data structures.
+C programs operating on flattened data structures. A great introduction
+to Icicle's optimisations is a talk by one of its authors, Jacob Stanley:
+[Icicle: The Highs and Lows of Optimising DSLs].
 
 <a name="stability">1</a>: Actually, this isn't numerically stable, in the
   icicle prelude, we use a more robust version.
+
+  [ambling]: https://github.com/ambiata/icicle/blob/master/doc/user/ambling.md
+  [Icicle: The Highs and Lows of Optimising DSLs]: https://www.youtube.com/watch?v=ZuCRgghVR1Q
