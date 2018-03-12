@@ -98,7 +98,7 @@ context
   cletfold
    = do ft <- foldtype                                      <?> "let fold"
         p <- getPosition
-        n <- pVariable
+        n <- pattern
         pEq T.TEqual
         z <- exp                                            <?> "initial value"
         pEq T.TFollowedBy                                   <?> "colon (:)"

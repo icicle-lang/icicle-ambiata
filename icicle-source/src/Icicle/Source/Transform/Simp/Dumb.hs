@@ -169,11 +169,11 @@ simpDumbLets xx
         -> (False, Let a pat (substX x y e) : rest)
         | otherwise
         -> (f, Let a pat (substX x y e) : rest')
-       LetFold a (Fold n init work ty)
-        | n /= x
-        -> (f, LetFold a (Fold n (substX x y init) (substX x y work) ty):rest')
+       LetFold a (Fold pat init work ty)
+        | x `elem` varsIn pat
+        -> (f, LetFold a (Fold pat (substX x y init) (substX x y work) ty):rest')
         | otherwise
-        -> (False, LetFold a (Fold n (substX x y init) work ty) : rest)
+        -> (False, LetFold a (Fold pat (substX x y init) work ty) : rest)
        GroupBy a e
         -> (f, GroupBy a (substX x y e) : rest')
        Distinct a e

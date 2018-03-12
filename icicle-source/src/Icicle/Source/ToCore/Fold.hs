@@ -449,13 +449,13 @@ convertFold q
     (Windowed (Annot { annAnnot = ann }) _ _ : _)
      -> errNotAllowed ann
 
-    (Let _ p def : _)
+    (Let (Annot { annAnnot = ann }) p def : _)
      | TemporalityPure  <- getTemporalityOrPure $ annResult $ annotOfExp def
      -> do  def' <- convertExp def
             n'   <- lift fresh
             t'   <- convertValType' $ annResult $ annotOfExp def
             let res = ConvertFoldResult (CE.xLam n' t' def') def' (CE.xLam n' t' def') t' t'
-            convertAsLet p res
+            convertAsLet ann p res
 
      | TemporalityElement  <- getTemporalityOrPure $ annResult $ annotOfExp def
      -> do  def' <- convertExp def
@@ -463,17 +463,13 @@ convertFold q
             t' <- convertValType' $ annResult $ annotOfExp def
             let err = CE.xValue t' $ T.defaultOfType t'
             let res = ConvertFoldResult (CE.xLam n' t' def') err (CE.xLam n' t' $ CE.xVar n') t' t'
-            convertAsLet p res
+            convertAsLet ann p res
 
      | otherwise
      -> do  resb <- convertFold (Query [] def)
-            convertAsLet p resb
+            convertAsLet ann p resb
 
-    (LetFold (Annot { annAnnot = ann }) Fold{ foldType = FoldTypeFoldl1 } : _)
-     -> convertError $ ConvertErrorImpossibleFold1 ann
-
-
-    (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)
+    (LetFold (Annot { annAnnot = ann }) f@Fold{ foldType = FoldTypeFoldl, foldBind = PatVariable n } : _)
      -> do  -- Type helpers
             tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
 
@@ -481,7 +477,7 @@ convertFold q
             z   <- convertExp (foldInit f)
             -- Current accumulator is only available in worker
             (n'a,k) <- convertContext
-                     $ do n'a <- convertFreshenAdd $ foldBind f
+                     $ do n'a <- convertFreshenAdd n
                           k   <- convertExp (foldWork f)
                           return (n'a, k)
 
@@ -490,9 +486,13 @@ convertFold q
             x' <- idFun tU
 
             let res = ConvertFoldResult k' z x' tU tU
-            convertAsLet (PatVariable $ foldBind f) res
+            convertAsLet ann (foldBind f) res
 
+    (LetFold (Annot { annAnnot = ann }) Fold{ foldType = FoldTypeFoldl1 } : _)
+     -> convertError $ ConvertErrorImpossibleFold1 ann
 
+    (LetFold (Annot { annAnnot = ann }) Fold{ foldBind = pat } : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
 
  where
   q' = q { contexts = drop 1 $ contexts q }
@@ -572,30 +572,7 @@ convertFold q
 
         return xx
 
-  convertAsLet PatDefault resb
-   = convertContext
-   $    do  resq     <- convertFold q'
-            let tb'   = typeFold resb
-            let tq'   = typeFold resq
-            let tpair = pairTypes [tb', tq']
-
-            let fk' [xa,_]
-                    = do return (foldKons resb CE.@~ xa)
-                fk' s
-                    = fk' s
-            k' <- pairDestruct fk' [tb', tq']
-
-            let z'  = foldZero resb
-
-            let cp [_,xb]
-                    = return
-                    $ (mapExtract resq CE.@~ xb)
-                cp  s
-                    = cp  s
-            x' <- pairDestruct cp [tb', tq']
-
-            return $ ConvertFoldResult k' z' x' tpair (typeExtract resq)
-  convertAsLet (PatVariable b) resb
+  convertAsLet _ (PatVariable b) resb
    = convertContext
    $    do  b'     <- convertFreshenAdd b
             resq   <- convertFold q'
@@ -624,9 +601,9 @@ convertFold q
 
             return $ ConvertFoldResult k' z' x' tpair (typeExtract resq)
 
-  convertAsLet pat _
+  convertAsLet ann pat _
     = convertError
-    $ ConvertErrorPatternUnconvertable pat
+    $ ConvertErrorPatternUnconvertable ann pat
 
   convertValType'   = convertValType (annAnnot $ annotOfQuery q)
 

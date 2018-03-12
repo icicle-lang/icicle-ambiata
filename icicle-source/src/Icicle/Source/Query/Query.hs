@@ -207,10 +207,11 @@ allvarsC ns c
     LetFold a f
      -> let z'  = allvarsX (foldInit f)
             k'  = allvarsX (foldWork f)
+            (p',nsX) = goPat (foldBind f)
             ns' = Set.unions
-                [ ns, sgl (foldBind f)
+                [ ns, nsX
                 , annX z', annX k' ]
-            f'  = f { foldInit = z', foldWork = k' }
+            f'  = f { foldInit = z', foldWork = k', foldBind = p' }
         in  LetFold (a,ns') f'
 
     GroupBy a x

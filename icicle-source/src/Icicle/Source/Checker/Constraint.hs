@@ -376,7 +376,7 @@ generateQ qq@(Query (c:_) _) env
     -- >     let fold1 bind = ( |- Element z'p a'd) : ( bind : Element z'p a'd |- Element k'p a'd)
     -- >  ~> (bind : Aggregate Possibly a'd |- Aggregate r'p r'd)
     -- >   :  Aggregate r'p r'd
-    LetFold _ f
+    LetFold ann f
      -> do  (i,si, csi) <- generateX (foldInit f) env
             iniPos   <- TypeVar <$> fresh
             let ip  = getPossibilityOrDefinitely $ annResult $ annotOfExp i
@@ -387,8 +387,7 @@ generateQ qq@(Query (c:_) _) env
                     $ annResult $ annotOfExp i
 
             let env' = substE si env
-            (w,sw, csw) <- generateX (foldWork f)
-                         $ bindT (foldBind f) ti env'
+            (w,sw, csw) <- generateX (foldWork f) =<< goPat ann (foldBind f) ti env'
 
             let bindType
                  | FoldTypeFoldl1 <- foldType f
@@ -403,7 +402,7 @@ generateQ qq@(Query (c:_) _) env
                  $ annResult $ annotOfExp w
 
             let env'' = substE sw env'
-            (q', sq, t', consr) <- withBind (foldBind f) bindType env'' rest
+            (q', sq, t', consr) <- rest =<< goPat ann (foldBind f) bindType env''
 
             consf
               <- case foldType f of

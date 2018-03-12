@@ -89,8 +89,8 @@ desugarQ qq
        f  <- desugarX (final qq)
        return $ Query cs f
 
--- | Rewrite let binding such that we only match on a
---   single PatVariable at a time.
+-- | Rewrite let and fold binding such that we only
+--   match on a single PatVariable at a time.
 --   Pairs get rewritten, such that
 --   let (x, _) = (1, 2)
 --   will become
@@ -116,8 +116,21 @@ desugarLets cc
               b@(i,j)  <- (,) <$> fresh <*> fresh
               let
                 tup   = PatCon ConTuple [PatVariable i, PatVariable j]
-                vn    = (Var a n)
-              return $ Case a (Var a n) [(tup, Var a (which b))]
+                varn  = (Var a n)
+              return $ Case a varn [(tup, Var a (which b))]
+
+    LetFold a f
+      | PatDefault <- foldBind f
+      -> return []
+      | PatCon {}  <- foldBind f
+      -> do n        <- fresh
+            let nbind = Let a (foldBind f) (Var a n)
+            nnbind   <- desugarLets nbind
+            return $
+              LetFold a f {
+                foldBind = PatVariable n
+              , foldWork = Nested a (Query [nbind] (foldWork f))
+              } : nnbind
 
     x -> return [x]
 

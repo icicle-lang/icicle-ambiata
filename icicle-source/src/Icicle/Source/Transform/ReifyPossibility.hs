@@ -136,11 +136,16 @@ reifyPossibilityQ (Query (c:cs) final_x)
  = case c of
     LetFold a f
      | FoldTypeFoldl1 <- foldType f
+     -- This runs after desugar, so should
+     -- always be true. If there's a bug,
+     -- then the coversion won't happen and
+     -- we'll get a failure at core convert.
+     , PatVariable n  <- foldBind f
      -> do  nError <- fresh
             nValue <- fresh
             -- We need to give the fold a new name, because moving the "z" into the "k" means
             -- the binding is available under "z" now, which potentially shadows an existing binding.
-            nBind  <- freshPrefixBase   $ nameBase $ foldBind f
+            nBind  <- freshPrefixBase   $ nameBase n
 
             k      <- reifyPossibilityX $ foldWork f
             z      <- reifyPossibilityX $ foldInit f
@@ -157,8 +162,8 @@ reifyPossibilityQ (Query (c:cs) final_x)
                 eqError = App a'B
                               (App a'B (Prim a'B $ Op $ Relation Eq) (con0 a'E $ ConError ExceptFold1NoValue))
                               vError
-             
-            kS    <- substInto (foldBind f) vBind k
+
+            kS    <- substInto n vBind k
             kS'   <- substIntoIfDefinitely nBind vValue kS
 
             let k' = Case a'D vBind
@@ -172,12 +177,12 @@ reifyPossibilityQ (Query (c:cs) final_x)
                      , wrapRight kS') ]
 
                 f' = f { foldType = FoldTypeFoldl
-                       , foldBind = nBind
+                       , foldBind = PatVariable nBind
                        , foldInit = z'
                        , foldWork = k' }
 
             rest' <- rest
-            rsub  <- substQ (Map.singleton (foldBind f) vBind) rest'
+            rsub  <- substQ (Map.singleton n vBind) rest'
             return $ ins (LetFold (wrapAnnot a) f') rsub
 
      | otherwise

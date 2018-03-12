@@ -234,9 +234,6 @@ convertQuery q
     (Distinct _ _ : _)
      -> convertAsFold
 
-    (Let _ PatDefault _ : _)
-     -> convertQuery q'
-
     (Let _ (PatVariable b) def : _)
      -> case getTemporalityOrPure $ annResult $ annotOfExp def of
          TemporalityElement
@@ -283,12 +280,8 @@ convertQuery q
          _
           -> convertError $ ConvertErrorGroupByHasNonGroupResult (annAnnot $ annotOfExp def) (annResult $ annotOfExp def)
 
-    (Let (Annot { annAnnot = ann }) _ _ : _)
-     -> convertError $ ConvertErrorImpossibleFold1 ann
-
-    -- Converting fold1s.
-    (LetFold (Annot { annAnnot = ann }) Fold{ foldType = FoldTypeFoldl1 } : _)
-     -> convertError $ ConvertErrorImpossibleFold1 ann
+    (Let (Annot { annAnnot = ann }) pat _ : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
 
     -- In comparison, normal folds are quite easy.
     --
@@ -301,7 +294,7 @@ convertQuery q
     -- > 0
     -- > stream
     --
-    (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)
+    (LetFold _ f@Fold{ foldType = FoldTypeFoldl, foldBind = PatVariable n } : _)
      -> do  -- Type helpers
             tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
 
@@ -309,7 +302,7 @@ convertQuery q
             -- Current accumulator is only available in worker
             -- Remove binding before converting init and work expressions,
             -- just in case the same name has been used elsewhere
-            n'a <- convertFreshenAdd $ foldBind f
+            n'a <- convertFreshenAdd n
             k   <- convertExp (foldWork f)
 
             -- Bind the fold to the original name
@@ -318,6 +311,14 @@ convertQuery q
             (bs', n'')      <- convertQuery q'
 
             return (bs <> bs', n'')
+
+    -- Converting fold1s.
+    (LetFold (Annot { annAnnot = ann }) Fold{ foldType = FoldTypeFoldl1 } : _)
+     -> convertError $ ConvertErrorImpossibleFold1 ann
+
+    -- Converting folds with patterns.
+    (LetFold (Annot { annAnnot = ann }) Fold{ foldBind = pat } : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
 
  where
   -- The remaining query after the current context is removed

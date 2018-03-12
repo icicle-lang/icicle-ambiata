@@ -36,7 +36,7 @@ instance (NFData q, NFData a, NFData n) => NFData (Context' q a n)
 
 data Fold q a n
  = Fold
- { foldBind :: Name n
+ { foldBind :: Pattern n
  , foldInit :: Exp' q a n
  , foldWork :: Exp' q a n
  , foldType :: FoldType }

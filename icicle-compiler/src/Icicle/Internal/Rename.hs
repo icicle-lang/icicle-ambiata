@@ -36,7 +36,7 @@ renameC f cc = case cc of
 renameF :: Hashable m => (n -> m) -> SQ.Fold (SQ.Query a n) a n -> SQ.Fold (SQ.Query a m) a m
 renameF f d
   = SQ.Fold
-    (renameN f $ SQ.foldBind d)
+    (renamePat f $ SQ.foldBind d)
     (renameX f $ SQ.foldInit d)
     (renameX f $ SQ.foldWork d)
     (SQ.foldType d)

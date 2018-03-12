@@ -101,9 +101,9 @@ substQ' s (Query (c:rest_cs) rest_x)
 
     LetFold a f
      -> do z'       <- substX' s  (foldInit f)
-           (s', n') <- freshIfNecessary s (foldBind f) (fst a)
+           (s', p') <- rempatbind s (foldBind f)
            k'       <- substX' s' (foldWork f)
-           let f'    = f { foldBind = n', foldInit = z', foldWork = k' }
+           let f'    = f { foldBind = p', foldInit = z', foldWork = k' }
            rest s' (LetFold a f')
     Windowed{}
      -> rest s  c
