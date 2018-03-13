@@ -427,13 +427,13 @@ genQuery toptgi
 
   genFold tgi
    = do v <- arbitrary :: Gen (CB.Name T.Variable)
-        f <- Fold v <$> genExp tgi { tgiTemp = TTPure } <*> genExp tgi { tgiTemp = TTElt, tgiVars = Map.insert v TTElt $ tgiVars tgi } <*> arbitrary
+        f <- Fold (PatVariable v) <$> genExp tgi { tgiTemp = TTPure } <*> genExp tgi { tgiTemp = TTElt, tgiVars = Map.insert v TTElt $ tgiVars tgi } <*> arbitrary
         let tgi' = tgi { tgiVars = Map.insert v TTAgg $ tgiVars tgi }
         return (LetFold () f, tgi')
   genLet tgi
    = do v <- arbitrary :: Gen (CB.Name T.Variable)
         tt' <- genTemporality tgi
-        l <- Let () v <$> genExp tgi { tgiTemp = tt' }
+        l <- Let () (PatVariable v) <$> genExp tgi { tgiTemp = tt' }
         let tgi' = tgi { tgiVars = Map.insert v tt' $ tgiVars tgi }
         return (l,tgi')
   genGroupFold tgi
