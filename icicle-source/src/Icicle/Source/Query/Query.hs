@@ -221,9 +221,11 @@ allvarsC ns c
 
     GroupFold a nk nv x
      -> let x'  = allvarsX x
+            (nk',nkX) = goPat nk
+            (nv',nvX) = goPat nv
             ns' = Set.unions
-                [ ns, sgl nk, sgl nv, annX x' ]
-        in  GroupFold (a,ns') nk nv x'
+                [ ns, nkX, nvX, annX x' ]
+        in  GroupFold (a,ns') nk' nv' x'
 
     Distinct a x
      -> let x'  = allvarsX x
@@ -237,7 +239,6 @@ allvarsC ns c
 
  where
   annX = snd . annotOfExp
-  sgl  = Set.singleton
 
 
 -- | Compute set of value variables of expression

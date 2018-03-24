@@ -29,7 +29,7 @@ data Context' q a n
  | Filter    a             (Exp' q a n)
  | LetFold   a             (Fold q a n)
  | Let       a (Pattern n) (Exp' q a n)
- | GroupFold a (Name n) (Name n) (Exp' q a n)
+ | GroupFold a (Pattern n) (Pattern n) (Exp' q a n)
  deriving (Show, Eq, Ord, Generic)
 
 instance (NFData q, NFData a, NFData n) => NFData (Context' q a n)

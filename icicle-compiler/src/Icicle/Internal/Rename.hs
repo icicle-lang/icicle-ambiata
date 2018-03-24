@@ -27,7 +27,7 @@ renameC f cc = case cc of
   SQ.Windowed  a b c   -> SQ.Windowed  a b c
   SQ.Latest    a b     -> SQ.Latest    a b
   SQ.GroupBy   a e     -> SQ.GroupBy   a (renameX f e)
-  SQ.GroupFold a k v e -> SQ.GroupFold a (renameN f k) (renameN f v) (renameX f e)
+  SQ.GroupFold a k v e -> SQ.GroupFold a (renamePat f k) (renamePat f v) (renameX f e)
   SQ.Distinct  a e     -> SQ.Distinct  a (renameX f e)
   SQ.Filter    a e     -> SQ.Filter    a (renameX f e)
   SQ.LetFold   a x     -> SQ.LetFold   a (renameF f x)

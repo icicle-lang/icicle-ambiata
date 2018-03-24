@@ -109,8 +109,8 @@ context
   keyval
     = do p <- pattern
          case p of
-           Q.PatCon Q.ConTuple [Q.PatVariable n1, Q.PatVariable n2]
-             -> return (n1, n2)
+           Q.PatCon Q.ConTuple [k, v]
+             -> return (k, v)
            _ -> mzero
 
   foldtype

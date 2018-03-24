@@ -296,18 +296,16 @@ generateQ qq@(Query (c:_) _) env
     -- >   group fold (k, v) = ( |- Q : Aggregate g'p (Group a'k a'v))
     -- >   ~> (k: Element a'k, v: Element a'v |- Aggregate a'p a)
     -- >    : Aggregate (PossibilityJoin g'p a'p) a
-    GroupFold _ k v x
+    GroupFold ann k v x
      -> do  (x', sx, consg) <- generateX x env
             let tgroup       = annResult $ annotOfExp x'
 
-            retk <- Temporality TemporalityElement . TypeVar <$> fresh
-            retv <- Temporality TemporalityElement . TypeVar <$> fresh
+            retk <- Temporality TemporalityElement <$> patTy ann k
+            retv <- Temporality TemporalityElement <$> patTy ann v
 
             let env' = removeElementBinds $ substE sx env
             (q', sq, t', consr)
-                <- rest
-                 $ bindT k retk
-                 $ bindT v retv env'
+                <- rest =<< goPat ann k retk =<< goPat ann v retv env'
 
             consT  <-  requireAgg  t'
             consgt <-  requireAgg  tgroup
@@ -499,6 +497,24 @@ generateQ qq@(Query (c:_) _) env
     -- patterns are Partial, so we disallow it.
     = genHoistEither
     $ errorNoSuggestions (ErrorPartialBinding ann pat)
+
+  -- Generate a fresh set of type variables which a
+  -- total pattern must match. This flow upwards into
+  -- a group fold.
+  patTy _ PatDefault
+    = TypeVar <$> fresh
+  patTy _ PatVariable {}
+    = TypeVar <$> fresh
+  patTy ann (PatCon ConTuple [a'pat,b'pat])
+    = do a'typ <- patTy ann a'pat
+         b'typ <- patTy ann b'pat
+         return (PairT a'typ b'typ)
+  patTy ann pat
+    -- It's not a pair, default or variable. All other
+    -- patterns are Partial, so we disallow it.
+    = genHoistEither
+    $ errorNoSuggestions (ErrorPartialBinding ann pat)
+
 
   a  = annotOfContext c
 

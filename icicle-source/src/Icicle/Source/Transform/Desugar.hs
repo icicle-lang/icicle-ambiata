@@ -132,6 +132,24 @@ desugarLets cc
               , foldWork = Nested a (Query [nbind] (foldWork f))
               } : nnbind
 
+    GroupFold a k v m
+      -> let
+           expand PatDefault = do
+             n <- fresh
+             return (PatVariable n, [])
+           expand (PatVariable n) = do
+             return (PatVariable n, [])
+           expand c = do
+             n <- fresh
+             let nbind = Let a c (Var a n)
+             return (PatVariable n, [nbind])
+         in do
+           (k', kx) <- expand k
+           (v', vx) <- expand v
+           lets     <- mapM desugarLets (kx <> vx)
+           return $
+             GroupFold a k' v' m : concat lets
+
     x -> return [x]
 
 desugarC

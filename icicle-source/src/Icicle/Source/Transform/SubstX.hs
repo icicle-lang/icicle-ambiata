@@ -114,8 +114,8 @@ substQ' s (Query (c:rest_cs) rest_x)
            rest s (GroupBy a x')
     GroupFold a k v x
      -> do x'       <- substX s x
-           (s', k') <- freshIfNecessary s  k (fst a)
-           (s'',v') <- freshIfNecessary s' v (fst a)
+           (s', k') <- rempatbind s  k
+           (s'',v') <- rempatbind s' v
            rest s'' (GroupFold a k' v' x')
     Distinct a x
      -> do x'       <- substX s x

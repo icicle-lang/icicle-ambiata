@@ -199,7 +199,7 @@ convertQuery q
     -- The group itself constructs the Map and the group fold perform its aggregate
     -- on the Map.
     --
-    (GroupFold (Annot { annAnnot = ann }) k v e : _ )
+    (GroupFold (Annot { annAnnot = ann }) (PatVariable k) (PatVariable v) e : _ )
      -> do  (tk, tv) <- getGroupFoldType ann e
 
             n'   <- lift fresh
@@ -230,6 +230,13 @@ convertQuery q
                     CE.@~ CE.xVar nm))
 
             return (bs <> p, n')
+
+    -- Group folds with patterns should have been desugared
+    (GroupFold (Annot { annAnnot = ann }) (PatVariable _) pat _ : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
+
+    (GroupFold (Annot { annAnnot = ann }) pat _ _ : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
 
     (Distinct _ _ : _)
      -> convertAsFold
