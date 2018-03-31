@@ -22,3 +22,8 @@ feature salary ~> let x = sum value ~> group value ~> let y = sum value ~> (x, y
 -- Scalar let after group
 feature salary ~> group value ~> let x = value ~> sum x
 
+-- Aggregate tuple lets work
+feature salary ~> let (x, _) = (sum value, 2) ~> group value ~> x
+
+-- Element tuple lets work
+feature salary ~> let (x, _) = (value, 2) ~> group value ~> sum x
