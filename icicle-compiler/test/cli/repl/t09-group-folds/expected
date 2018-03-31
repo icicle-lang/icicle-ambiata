@@ -43,4 +43,10 @@ marge|3
 homer|500
 marge|0
 
+λ λ -- Tuple binding values in group folds
+λ Core evaluation
+---------------
+
+homer|4.0
+
 λ 

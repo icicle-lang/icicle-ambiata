@@ -9,3 +9,6 @@ feature salary ~> group fold (k, v) = (group time ~> count value) ~> max v
 
 -- Fold over oldests. Not really that meaningful but a useful test
 feature salary ~> group fold (k, v) = (group time ~> oldest value) ~> max v
+
+-- Tuple binding values in group folds
+feature injury ~> group fold (_, (severity, counts)) = (group location ~> (mean severity, count severity)) ~> min_by counts severity
