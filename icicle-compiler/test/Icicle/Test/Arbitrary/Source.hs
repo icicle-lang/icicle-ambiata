@@ -427,12 +427,14 @@ genQuery toptgi
 
   genFold tgi
    = do v <- arbitrary :: Gen (CB.Name T.Variable)
+        -- TODO: Make pattern bindings exhaustive
         f <- Fold (PatVariable v) <$> genExp tgi { tgiTemp = TTPure } <*> genExp tgi { tgiTemp = TTElt, tgiVars = Map.insert v TTElt $ tgiVars tgi } <*> arbitrary
         let tgi' = tgi { tgiVars = Map.insert v TTAgg $ tgiVars tgi }
         return (LetFold () f, tgi')
   genLet tgi
    = do v <- arbitrary :: Gen (CB.Name T.Variable)
         tt' <- genTemporality tgi
+        -- TODO: Make pattern bindings exhaustive
         l <- Let () (PatVariable v) <$> genExp tgi { tgiTemp = tt' }
         let tgi' = tgi { tgiVars = Map.insert v tt' $ tgiVars tgi }
         return (l,tgi')
@@ -445,7 +447,8 @@ genQuery toptgi
         grpky <- genExp tgi
         let grp' = Query (GroupBy () grpky : ctxs) x
 
-        let g = GroupFold () k v (Nested () grp')
+        -- TODO: Make pattern bindings exhaustive
+        let g = GroupFold () (PatVariable k) (PatVariable v) (Nested () grp')
         return (g, tgi')
 
   nobinds tgi x
