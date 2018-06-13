@@ -126,7 +126,7 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (CheckErro
             fmap pretty sugs
         ]
 
-instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
+instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo a n) where
   pretty = \case
     ErrorNoSuchVariable a n ->
       "Unknown variable" <+> annotate AnnError (pretty n) <+> "at" <+> pretty a
@@ -146,7 +146,7 @@ instance (Pretty a, Pretty n) => Pretty (ErrorInfo a n) where
           "Function applied to wrong number of arguments at" <+> pretty a
         , mempty
         , "Expression:     " <> inp x
-        , "Function type:  " <> inp f
+        , "Function type:  " <> inp (prettyFunFromStrings f)
         , "Argument types: " <> inp tys
         ]
 
