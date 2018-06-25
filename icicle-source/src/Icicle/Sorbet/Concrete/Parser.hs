@@ -277,7 +277,7 @@ pContextFilter :: Parser s m => m (Context Position)
 pContextFilter =
   Filter
     <$> pToken Tok_Filter
-    <*> pExp
+    <*> pGuards
 
 pContextLatest :: Parser s m => m (Context Position)
 pContextLatest =

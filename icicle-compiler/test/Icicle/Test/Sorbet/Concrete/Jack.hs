@@ -125,7 +125,7 @@ jContext =
       Let X <$> listOfMax1 10 jDecl
     , Group X <$> jExp
     , Distinct X <$> jExp
-    , Filter X <$> jExp
+    , Filter X <$> jGuards
     ]
 
 jLatestSize :: Jack (LatestSize X)

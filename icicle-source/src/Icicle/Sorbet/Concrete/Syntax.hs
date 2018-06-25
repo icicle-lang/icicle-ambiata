@@ -97,7 +97,7 @@ data Context a =
     Let !a !(NonEmpty (Decl a))
   | Group !a !(Exp a)
   | Distinct !a !(Exp a)
-  | Filter !a !(Exp a)
+  | Filter !a !(NonEmpty (Guard a))
   | Latest !a !(LatestSize a)
   | Windowed !a !(Window a)
     deriving (Eq, Ord, Show, Generic, Data, Typeable, Functor, Foldable, Traversable)
