@@ -23,7 +23,7 @@ import qualified    Icicle.Core.Stream          as CS
 
 import              P
 import              Data.String
-import qualified    Data.Map as Map
+import qualified    Data.Map.Strict as Map
 import qualified    Data.Set as Set
 
 import              Data.Hashable (Hashable)
@@ -52,7 +52,7 @@ programFromCore :: (Hashable n, Eq n)
                 -> C.Program () n
                 -> Fresh n (A.Program () n Prim)
 programFromCore namer p
- = do   (accNames, factStmts) <- makeStatements p namer (C.streams p)
+ = do   (accNames, factStmts) <- makeStatements namer (C.streams p)
 
         let inputType'  = PairT (C.inputType p) TimeT
         let factBinds   = FactBinds (C.factTimeName p) [(C.factValName p, inputType')]
@@ -112,11 +112,10 @@ programFromCore namer p
 -- repeatedly insert each stream into the statements wherever it fits
 makeStatements
         :: (Hashable n, Eq n)
-        => C.Program () n
-        -> Namer n
+        => Namer n
         -> [CS.Stream () n]
         -> Fresh n ([(Name n, ValType)], [Statement () n Prim])
-makeStatements _p namer streams
+makeStatements namer streams
  = go [] streams
  where
   go nms []
