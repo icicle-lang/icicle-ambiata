@@ -14,6 +14,7 @@ module Icicle.Avalanche.Simp (
   ) where
 
 import           Control.Monad.Trans.Class
+import           Control.DeepSeq
 
 import           Data.Hashable (Hashable)
 
