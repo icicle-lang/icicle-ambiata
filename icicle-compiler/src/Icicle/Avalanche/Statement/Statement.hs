@@ -193,7 +193,7 @@ foldStmt down up rjoin env res statements
            -> sub1 ss
           Block ss
            -> do    rs <- mapM (go e') ss
-                    let r' = foldl rjoin res rs
+                    let r' = foldl' rjoin res rs
                     up e' r' s
           InitAccumulator _ ss
            -> sub1 ss
