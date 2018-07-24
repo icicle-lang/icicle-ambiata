@@ -29,14 +29,11 @@ module Icicle.Source.Query.Exp (
   , listOfBuiltinFuns
   ) where
 
-import           Data.Text (unpack)
-
 import           GHC.Generics (Generic)
 
 import           Icicle.Source.Query.Builtin
 import           Icicle.Source.Query.Constructor
 import           Icicle.Source.Query.Operators
-import           Icicle.Data.Time
 import           Icicle.Internal.Pretty
 import           Icicle.Common.Base
 
@@ -92,15 +89,6 @@ data Prim
  deriving (Show, Eq, Ord, Generic)
 
 instance NFData Prim
-
-data Lit
- = LitInt Int
- | LitDouble Double
- | LitString Text
- | LitTime Time
- deriving (Show, Eq, Ord, Generic)
-
-instance NFData Lit
 
 -- | Built-in Source functions
 type Fun = BuiltinFun
@@ -217,15 +205,3 @@ instance Pretty Prim where
       pretty f
     PrimCon c ->
       pretty c
-
-instance Pretty Lit where
-  pretty = \case
-    LitInt i ->
-      annotate AnnConstant . text $ show i
-    LitDouble i ->
-      annotate AnnConstant . text $ show i
-    LitString i ->
-      annotate AnnConstant . text $ show i
-    LitTime i ->
-      annotate AnnConstant $
-        "`" <> (text $ unpack $ renderTime i) <> "`"

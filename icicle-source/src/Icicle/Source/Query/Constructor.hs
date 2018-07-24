@@ -7,20 +7,32 @@
 module Icicle.Source.Query.Constructor (
     Constructor (..)
   , Pattern (..)
+  , Lit (..)
   , substOfPattern
   , boundOfPattern
   , arityOfConstructor
   ) where
 
+import           Data.Text (unpack)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
 import           GHC.Generics (Generic)
 
 import           Icicle.Common.Base
+import           Icicle.Data.Time
 import           Icicle.Internal.Pretty
 
 import           P
+
+data Lit
+ = LitInt Int
+ | LitDouble Double
+ | LitString Text
+ | LitTime Time
+ deriving (Show, Eq, Ord, Generic)
+
+instance NFData Lit
 
 data Constructor
  -- Option
@@ -46,6 +58,7 @@ instance NFData Constructor
 
 data Pattern n
  = PatCon Constructor [Pattern n]
+ | PatLit Lit
  | PatDefault
  | PatVariable (Name n)
  deriving (Show, Eq, Ord, Generic)
@@ -55,6 +68,7 @@ instance NFData n => NFData (Pattern n)
 boundOfPattern :: Eq n => Pattern n -> Set.Set (Name n)
 boundOfPattern p = case p of
  PatCon _ ps   -> Set.unions $ fmap boundOfPattern ps
+ PatLit _      -> Set.empty
  PatDefault    -> Set.empty
  PatVariable n -> Set.singleton n
 
@@ -69,6 +83,25 @@ substOfPattern PatDefault _
  = return Map.empty
 substOfPattern (PatVariable n) v
  = return (Map.singleton n v)
+
+substOfPattern (PatLit (LitInt i)) val
+ | VInt i'   <- val
+ , i == i'
+ = return Map.empty
+substOfPattern (PatLit (LitDouble d)) val
+ | VDouble d'   <- val
+ , d == d'
+ = return Map.empty
+substOfPattern (PatLit (LitString s)) val
+ | VString s'   <- val
+ , s == s'
+ = return Map.empty
+substOfPattern (PatLit (LitTime t)) val
+ | VTime t'   <- val
+ , t == t'
+ = return Map.empty
+substOfPattern (PatLit _) _
+ = Nothing
 
 substOfPattern (PatCon ConSome pats) val
  | [pa]         <- pats
@@ -145,6 +178,18 @@ arityOfConstructor cc
     ConError _ -> 0
 
 
+instance Pretty Lit where
+  pretty = \case
+    LitInt i ->
+      annotate AnnConstant . text $ show i
+    LitDouble i ->
+      annotate AnnConstant . text $ show i
+    LitString i ->
+      annotate AnnConstant . text $ show i
+    LitTime i ->
+      annotate AnnConstant $
+        "`" <> (text $ unpack $ renderTime i) <> "`"
+
 instance Pretty Constructor where
   pretty = \case
     ConSome ->
@@ -177,5 +222,7 @@ instance Pretty n => Pretty (Pattern n) where
       prettyApp hsep p c vs
     PatDefault ->
       prettyPunctuation "_"
+    PatLit l ->
+      prettyPrec p l
     PatVariable n ->
       annotate AnnBinding (pretty n)

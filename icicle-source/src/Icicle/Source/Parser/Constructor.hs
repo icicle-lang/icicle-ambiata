@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Parser.Constructor (
     constructor
@@ -48,8 +49,20 @@ pattern
  = pat
 
  where
+  -- TODO:
+  -- Having pat separate to exp means we miss a few
+  -- a few niceties. For example:
+  -- - Tuple bindings aren't defixed here, meaning
+  --   their assosciativity isn't what it should be
+  --   and we need extra brackets.
+  -- - Negative literals don't work as they should.
+  --
+  -- We could instead have a function
+  -- > checkPat :: Q.Exp T.SourcePos Var -> Parser (Q.Pattern Var)
+  -- and have pattern as
+  -- > exp >>= checkPat
   pat
-   = do p <- patVar <|> patCon <|> patParens
+   = do p <- patLit <|> patVar <|> patCon <|> patParens
         tup p <|> return p
 
   tup p
@@ -67,7 +80,14 @@ pattern
    = Q.PatCon <$> constructor <*> many patNested
 
   patNested
-   = patVar <|> patParens <|> (flip Q.PatCon [] <$> constructor)
+   = patLit <|> patVar <|> patParens <|> (flip Q.PatCon [] <$> constructor)
+
+  patLit
+   =   fmap Q.PatLit
+   $   (Q.LitInt <$> pLitInt)
+   <|> (Q.LitDouble <$> pLitDouble)
+   <|> (Q.LitString <$> pLitString)
+   <|> (Q.LitTime <$> pLitTime)
 
   patParens
    = pParenL *> pat <* pParenR

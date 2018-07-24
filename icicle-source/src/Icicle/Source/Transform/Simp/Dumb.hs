@@ -157,6 +157,7 @@ simpDumbLets xx
 
   varsIn (PatCon _ as)   = concatMap varsIn as
   varsIn (PatVariable v) = [ v ]
+  varsIn (PatLit _)      = []
   varsIn (PatDefault)    = []
 
   substC _ _ []

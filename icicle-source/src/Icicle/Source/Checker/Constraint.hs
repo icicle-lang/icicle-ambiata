@@ -11,6 +11,7 @@ module Icicle.Source.Checker.Constraint (
   , defaults
   ) where
 
+
 import           Icicle.Source.Checker.Base
 import           Icicle.Source.Checker.Error
 import           Icicle.Source.Checker.Prim
@@ -23,6 +24,8 @@ import qualified Icicle.Common.Fresh          as Fresh
 import           Icicle.Internal.Pretty (Pretty)
 
 import           P hiding (with)
+
+import           Control.Monad.Trans.Class (lift)
 
 import           Data.Hashable                (Hashable)
 import           Data.List                    (unzip3, zip)
@@ -705,7 +708,7 @@ generateP ann _ _ _ resTm resPs [] _
         return ([], Map.empty, concat [consT, consP])
 
 generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
- = do   (t, envp) <- goPat pat env
+ = do   (t, consp, envp) <- goPat pat env
 
         let (_,_,datS) = decomposeT $ canonT scrutTy
         let conss      = require (annotOfExp alt) (CEquals datS t)
@@ -729,7 +732,7 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
                   ]
 
         (rest', subs, consr) <- generateP ann scrutTy resTy resTmTop resTp' resPs' rest (substE sub env)
-        let cons'       = concat [conss, consa, consT, consr]
+        let cons'       = concat [consp, conss, consa, consT, consr]
         let alt''       = substTX subs alt'
         let subs'       = compose sub subs
         let patalts     = (pat, alt'') : rest'
@@ -742,7 +745,7 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
      in  require ann $ CEquals d1 d2
 
   goPat  PatDefault e
-   = (,e) . TypeVar <$> fresh
+   = (,[],e) . TypeVar <$> fresh
 
   goPat (PatVariable n) e
    = do datV              <- TypeVar <$> fresh
@@ -762,31 +765,36 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
         -- return: which means this example is ill-typed, as the binding (l :: Aggregate _)
         -- could only be used at the end of the fold.
         let env'           = bindT n (recomposeT (Just resTmTop, Nothing, datV)) e
-        return (datV, env')
+        return (datV, [], env')
 
   goPat (PatCon ConSome  [p]) e
-   = fmap (first OptionT) $ goPat p e
+   = do (t,c,e') <- goPat p e
+        return (OptionT t, c, e')
   goPat (PatCon ConNone  []) e
-   = (,e) . OptionT . TypeVar <$> fresh
+   = (,[],e) . OptionT . TypeVar <$> fresh
   goPat (PatCon ConTrue  []) e
-   = return (BoolT, e)
+   = return (BoolT, [], e)
   goPat (PatCon ConFalse []) e
-   = return (BoolT, e)
+   = return (BoolT, [], e)
   goPat (PatCon ConTuple [a,b]) e
-   = do (ta, ea) <- goPat a e
-        (tb, eb) <- goPat b ea
-        return (PairT ta tb, eb)
-  goPat (PatCon (ConError _)  []) e
-   = return (ErrorT, e)
+   = do (ta, ca, ea) <- goPat a e
+        (tb, cb, eb) <- goPat b ea
+        return (PairT ta tb, ca <> cb, eb)
+  goPat (PatCon (ConError _) []) e
+   = return (ErrorT, [], e)
 
   goPat (PatCon ConLeft  [p]) e
-   = do (l,e') <- goPat p e
-        r      <- TypeVar <$> fresh
-        return ( SumT l r , e' )
+   = do (l,c,e') <- goPat p e
+        r        <- TypeVar <$> fresh
+        return ( SumT l r, c, e' )
   goPat (PatCon ConRight  [p]) e
-   = do l      <- TypeVar <$> fresh
-        (r,e') <- goPat p e
-        return ( SumT l r , e' )
+   = do l        <- TypeVar <$> fresh
+        (r,c,e') <- goPat p e
+        return ( SumT l r , c, e' )
+
+  goPat (PatLit l) e
+   = do FunctionType _foralls constraints _args resT <- Gen . lift . lift $ primLookup' (Lit l)
+        return (resT, fmap (ann,) constraints, e)
 
   goPat _ _
    = genHoistEither

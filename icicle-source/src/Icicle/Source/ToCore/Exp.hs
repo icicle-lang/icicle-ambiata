@@ -54,7 +54,7 @@ convertExp x
             case bound of
              Just fv
               -> return $ CE.XVar () fv
-             _ 
+             _
               | Just fv <- Map.lookup n fs
               -> (featureVariableExp fv . CE.XVar ()) <$> convertInputName
               | otherwise
@@ -127,6 +127,8 @@ convertCaseFreshenPat p
       -> PatCon c <$> mapM convertCaseFreshenPat ps
     PatDefault
       -> return PatDefault
+    PatLit l
+      -> return $ PatLit l
     PatVariable n
       -> PatVariable <$> convertFreshenAdd n
 
@@ -194,6 +196,8 @@ convertCase x scrut pats scrutT resT
   mkVars (PatVariable n)
    = return n
   mkVars (PatCon _ _)
+   = convertError $ ConvertErrorBadCaseNestedConstructors (annAnnot $ annotOfExp x) x
+  mkVars (PatLit _)
    = convertError $ ConvertErrorBadCaseNestedConstructors (annAnnot $ annotOfExp x) x
 
 

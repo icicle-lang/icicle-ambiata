@@ -225,10 +225,14 @@ data Ty
  -- Literals such as numbers and argument-less enums:
  -- where we can, instead of doing a real case, check against "x == Con".
  -- This doesn't work for Bool because this desugaring uses Bool
- | TyLit [Constructor]
+ | TyLit [TyLit]
  | TyAny
  deriving (Show)
 
+data TyLit
+ = TyLitCon Constructor
+ | TyLitLit Lit
+ deriving (Show)
 
 addToTy :: DesugarError a n -> Pattern n -> Ty -> DesugarM a n Ty
 addToTy err (PatCon con pats) ty
@@ -306,18 +310,23 @@ addToTy err (PatCon con pats) ty
     ConError _
      | []               <- pats
      , TyLit cs         <- ty
-     -> return $ TyLit (cs <> [con])
+     -> return $ TyLit (cs <> [TyLitCon con])
      | []               <- pats
      , TyAny            <- ty
-     -> return $ TyLit [con]
+     -> return $ TyLit [TyLitCon con]
      | otherwise
      -> lift $ left err
  where
   go = addToTy err
 
+addToTy err (PatLit l) ty = case ty of
+  TyAny    -> return $ TyLit [TyLitLit l]
+  TyLit ls -> return $ TyLit (ls <> [TyLitLit l])
+  _        -> lift $ left err
+
+
 addToTy _ PatDefault      ty    = return ty
 addToTy _ (PatVariable _) ty    = return ty
-
 
 casesForTy
   :: (Hashable n)
@@ -365,9 +374,13 @@ casesForTy ann scrut ty
 
     TyLit cs
      -> do var <- fresh
+           let
+             pFor x = case x of
+               TyLitCon c -> PatCon c []
+               TyLitLit l -> PatLit l
            return $ TLet var scrut
                   $ TLits   (Var ann var)
-                            (fmap (\c -> (c, Done $ PatCon c [])) cs)
+                            (fmap (\c -> (c, Done $ pFor c)) cs)
                             (Done $ PatVariable var)
 
     -- If we don't know the type of this pattern, use a fresh variable
@@ -392,7 +405,7 @@ data Tree a n x
          (Exp' (Query a n) a n)
          (Tree a n x)              -- ^ insert a let because we cannot generate pattern variables.
  | TLits (Exp' (Query a n) a n)
-         [(Constructor, Tree a n x)] (Tree a n x) -- ^ special case for literals
+         [(TyLit, Tree a n x)] (Tree a n x) -- ^ special case for literals
  deriving (Functor, Foldable, Traversable, Show)
 
 
@@ -431,8 +444,10 @@ treeToCase ann patalts tree
 
    caseStmtsFor (TLits scrut ((c,x):cs) d)
     = let eq = Prim ann $ Op $ Relation Eq
-          c' = Prim ann $ PrimCon c
-          sc = App ann (App ann eq scrut) c'
+          prim = case c of
+            TyLitLit l -> Prim ann $ Lit l
+            TyLitCon c' -> Prim ann $ PrimCon c'
+          sc = App ann (App ann eq scrut) prim
       in Case ann sc
             [ ( PatCon ConTrue  [], caseStmtsFor x )
             , ( PatCon ConFalse [], caseStmtsFor $ TLits scrut cs d ) ]
@@ -460,6 +475,8 @@ treeToCase ann patalts tree
          right $ foldl (App ann) (Prim ann (PrimCon c)) xs
    patternToExp (PatVariable v)
     = right $ Var ann v
+   patternToExp (PatLit l)
+    = right $ Prim ann (Lit l)
    patternToExp PatDefault
     = left $ DesugarErrorImpossible ann -- we never generate default patterns.
 
@@ -478,6 +495,9 @@ matcher (PatCon c as) (PatCon c' bs)
 matcher p (PatVariable x)
  = return [(x, p)]
 matcher _ (PatDefault)
+ = return []
+matcher (PatLit l) (PatLit l')
+ | l == l'
  = return []
 matcher _ _
  = Nothing

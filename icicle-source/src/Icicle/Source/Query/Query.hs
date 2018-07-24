@@ -294,3 +294,5 @@ goPat p
     -> (PatDefault, Set.empty)
   PatVariable n
     -> (PatVariable n,  Set.singleton n)
+  PatLit l
+    -> (PatLit l, Set.empty)

@@ -79,6 +79,8 @@ substX' s x
              return (m', PatCon c ps')
       PatDefault
        -> return (m, p)
+      PatLit _ -- Check
+       -> return (m, p)
       PatVariable n
        -> do (m',n') <- freshIfNecessary m n (fst $ annotOfExp x)
              return (m', PatVariable n')
@@ -140,6 +142,8 @@ substQ' s (Query (c:rest_cs) rest_x)
        -> do (m',ps') <- rempatbinds m ps []
              return (m', PatCon con ps')
       PatDefault
+       -> return (m, p)
+      PatLit _
        -> return (m, p)
       PatVariable n
        -> do (m',n') <- freshIfNecessary m n (fst $ annotOfExp rest_x)
