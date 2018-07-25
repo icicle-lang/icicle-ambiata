@@ -12,3 +12,6 @@ feature salary ~> windowed 1 days ~> case None | Some a -> Some a | None -> Some
 -- Nested case with a polymorphic scrutinee (Num a => (Bool,a))
 feature salary ~> let v = (True,1) ~> fold s2 = False : case (case v | (a,b) -> a end) | True -> False | False -> True end ~> s2
 
+-- Case matching on literals
+feature salary ~> latest 10 ~> case value | 10 -> "ten" | 100 -> "One hundred" | 1000 -> "One thousand" | _ -> "Not a power of 10" end
+feature injury ~> latest 10 ~> case (Some location) | Some "head" -> "head" | _ -> "Not the head" end

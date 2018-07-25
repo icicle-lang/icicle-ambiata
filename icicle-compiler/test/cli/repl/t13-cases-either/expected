@@ -90,4 +90,41 @@ Core evaluation
 homer|False
 marge|False
 
-λ λ 
+λ λ -- Case matching on literals
+λ Type
+----
+
+repl:output :
+  Aggregate (Definitely (Array (Sum ErrorT String)))
+
+Core evaluation
+---------------
+
+homer|[ "One hundred"
+      , "Not a power of 10"
+      , "Not a power of 10"
+      , "Not a power of 10"
+      , "Not a power of 10"
+      ]
+marge|[ "Not a power of 10"
+      , "ten"
+      , "Not a power of 10"
+      ]
+
+λ Type
+----
+
+repl:output :
+  Aggregate (Definitely (Array (Sum ErrorT String)))
+
+Core evaluation
+---------------
+
+homer|[ "head"
+      , "head"
+      , "Not the head"
+      , "Not the head"
+      , "Not the head"
+      ]
+
+λ 
