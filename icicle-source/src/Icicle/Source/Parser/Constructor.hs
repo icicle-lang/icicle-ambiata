@@ -62,7 +62,7 @@ pattern
   -- and have pattern as
   -- > exp >>= checkPat
   pat
-   = do p <- patLit <|> patVar <|> patCon <|> patParens
+   = do p <- patNeg <|> patLit <|> patVar <|> patCon <|> patParens
         tup p <|> return p
 
   tup p
@@ -82,8 +82,12 @@ pattern
   patNested
    = patLit <|> patVar <|> patParens <|> (flip Q.PatCon [] <$> constructor)
 
+  patNeg
+   = do pTok (\tok -> if tok == T.TOperator (T.Operator "-") then Just () else Nothing)
+        fmap (flip Q.PatLit True) $ fmap Q.LitInt pLitInt <|> fmap Q.LitDouble pLitDouble
+
   patLit
-   =   fmap Q.PatLit
+   =   fmap (flip Q.PatLit False)
    $   (Q.LitInt <$> pLitInt)
    <|> (Q.LitDouble <$> pLitDouble)
    <|> (Q.LitString <$> pLitString)

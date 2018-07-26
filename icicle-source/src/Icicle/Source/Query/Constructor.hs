@@ -22,6 +22,7 @@ import           GHC.Generics (Generic)
 import           Icicle.Common.Base
 import           Icicle.Data.Time
 import           Icicle.Internal.Pretty
+import           Icicle.Source.Query.Operators
 
 import           P
 
@@ -58,7 +59,7 @@ instance NFData Constructor
 
 data Pattern n
  = PatCon Constructor [Pattern n]
- | PatLit Lit
+ | PatLit Lit Bool -- Negation marker
  | PatDefault
  | PatVariable (Name n)
  deriving (Show, Eq, Ord, Generic)
@@ -68,7 +69,7 @@ instance NFData n => NFData (Pattern n)
 boundOfPattern :: Eq n => Pattern n -> Set.Set (Name n)
 boundOfPattern p = case p of
  PatCon _ ps   -> Set.unions $ fmap boundOfPattern ps
- PatLit _      -> Set.empty
+ PatLit _ _    -> Set.empty
  PatDefault    -> Set.empty
  PatVariable n -> Set.singleton n
 
@@ -84,23 +85,23 @@ substOfPattern PatDefault _
 substOfPattern (PatVariable n) v
  = return (Map.singleton n v)
 
-substOfPattern (PatLit (LitInt i)) val
+substOfPattern (PatLit (LitInt i) neg) val
  | VInt i'   <- val
- , i == i'
+ , (if neg then negate else id) i == i'
  = return Map.empty
-substOfPattern (PatLit (LitDouble d)) val
+substOfPattern (PatLit (LitDouble d) neg) val
  | VDouble d'   <- val
- , d == d'
+ , (if neg then negate else id) d == d'
  = return Map.empty
-substOfPattern (PatLit (LitString s)) val
+substOfPattern (PatLit (LitString s) _) val
  | VString s'   <- val
  , s == s'
  = return Map.empty
-substOfPattern (PatLit (LitTime t)) val
+substOfPattern (PatLit (LitTime t) _) val
  | VTime t'   <- val
  , t == t'
  = return Map.empty
-substOfPattern (PatLit _) _
+substOfPattern (PatLit _ _) _
  = Nothing
 
 substOfPattern (PatCon ConSome pats) val
@@ -222,7 +223,10 @@ instance Pretty n => Pretty (Pattern n) where
       prettyApp hsep p c vs
     PatDefault ->
       prettyPunctuation "_"
-    PatLit l ->
-      prettyPrec p l
+    PatLit l neg ->
+      if neg then
+        prettyApp hsep p (ArithUnary Negate) [l]
+      else
+        prettyPrec p l
     PatVariable n ->
       annotate AnnBinding (pretty n)

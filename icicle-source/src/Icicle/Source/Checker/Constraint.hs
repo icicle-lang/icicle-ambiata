@@ -792,7 +792,7 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
         (r,c,e') <- goPat p e
         return ( SumT l r , c, e' )
 
-  goPat (PatLit l) e
+  goPat (PatLit l _) e
    = do FunctionType _foralls constraints _args resT <- Gen . lift . lift $ primLookup' (Lit l)
         return (resT, fmap (ann,) constraints, e)
 

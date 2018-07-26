@@ -231,7 +231,7 @@ data Ty
 
 data TyLit
  = TyLitCon Constructor
- | TyLitLit Lit
+ | TyLitLit Lit Bool
  deriving (Show)
 
 addToTy :: DesugarError a n -> Pattern n -> Ty -> DesugarM a n Ty
@@ -319,9 +319,9 @@ addToTy err (PatCon con pats) ty
  where
   go = addToTy err
 
-addToTy err (PatLit l) ty = case ty of
-  TyAny    -> return $ TyLit [TyLitLit l]
-  TyLit ls -> return $ TyLit (ls <> [TyLitLit l])
+addToTy err (PatLit l n) ty = case ty of
+  TyAny    -> return $ TyLit [TyLitLit l n]
+  TyLit ls -> return $ TyLit (ls <> [TyLitLit l n])
   _        -> lift $ left err
 
 
@@ -377,7 +377,7 @@ casesForTy ann scrut ty
            let
              pFor x = case x of
                TyLitCon c -> PatCon c []
-               TyLitLit l -> PatLit l
+               TyLitLit l n -> PatLit l n
            return $ TLet var scrut
                   $ TLits   (Var ann var)
                             (fmap (\c -> (c, Done $ pFor c)) cs)
@@ -444,8 +444,10 @@ treeToCase ann patalts tree
 
    caseStmtsFor (TLits scrut ((c,x):cs) d)
     = let eq = Prim ann $ Op $ Relation Eq
+          neg = Prim ann $ Op $ ArithUnary Negate
           prim = case c of
-            TyLitLit l -> Prim ann $ Lit l
+            TyLitLit l True -> App ann neg $ Prim ann $ Lit l
+            TyLitLit l False -> Prim ann $ Lit l
             TyLitCon c' -> Prim ann $ PrimCon c'
           sc = App ann (App ann eq scrut) prim
       in Case ann sc
@@ -475,8 +477,12 @@ treeToCase ann patalts tree
          right $ foldl (App ann) (Prim ann (PrimCon c)) xs
    patternToExp (PatVariable v)
     = right $ Var ann v
-   patternToExp (PatLit l)
+   patternToExp (PatLit l True)
     = right $ Prim ann (Lit l)
+   patternToExp (PatLit l False)
+    = let
+        neg = Prim ann $ Op $ ArithUnary Negate
+      in right $ App ann neg $ Prim ann (Lit l)
    patternToExp PatDefault
     = left $ DesugarErrorImpossible ann -- we never generate default patterns.
 
@@ -496,8 +502,9 @@ matcher p (PatVariable x)
  = return [(x, p)]
 matcher _ (PatDefault)
  = return []
-matcher (PatLit l) (PatLit l')
+matcher (PatLit l n) (PatLit l' n')
  | l == l'
+ , n == n'
  = return []
 matcher _ _
  = Nothing

@@ -79,7 +79,7 @@ substX' s x
              return (m', PatCon c ps')
       PatDefault
        -> return (m, p)
-      PatLit _ -- Check
+      PatLit _ _ -- Check
        -> return (m, p)
       PatVariable n
        -> do (m',n') <- freshIfNecessary m n (fst $ annotOfExp x)
@@ -143,7 +143,7 @@ substQ' s (Query (c:rest_cs) rest_x)
              return (m', PatCon con ps')
       PatDefault
        -> return (m, p)
-      PatLit _
+      PatLit _ _
        -> return (m, p)
       PatVariable n
        -> do (m',n') <- freshIfNecessary m n (fst $ annotOfExp rest_x)

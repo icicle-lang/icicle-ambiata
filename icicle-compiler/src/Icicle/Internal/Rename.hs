@@ -53,7 +53,7 @@ renameX f e = case e of
 
 renamePat :: Hashable m => (n -> m) -> SQ.Pattern n -> SQ.Pattern m
 renamePat f (SQ.PatCon c ps)   = SQ.PatCon c $ fmap (renamePat f) ps
-renamePat _ (SQ.PatLit l)      = SQ.PatLit l
+renamePat _ (SQ.PatLit l x)    = SQ.PatLit l x
 renamePat _  SQ.PatDefault     = SQ.PatDefault
 renamePat f (SQ.PatVariable n) = SQ.PatVariable $ renameN f n
 

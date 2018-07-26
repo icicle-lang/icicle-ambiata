@@ -127,8 +127,8 @@ convertCaseFreshenPat p
       -> PatCon c <$> mapM convertCaseFreshenPat ps
     PatDefault
       -> return PatDefault
-    PatLit l
-      -> return $ PatLit l
+    PatLit l n
+      -> return $ PatLit l n
     PatVariable n
       -> PatVariable <$> convertFreshenAdd n
 
@@ -197,7 +197,7 @@ convertCase x scrut pats scrutT resT
    = return n
   mkVars (PatCon _ _)
    = convertError $ ConvertErrorBadCaseNestedConstructors (annAnnot $ annotOfExp x) x
-  mkVars (PatLit _)
+  mkVars (PatLit _ _)
    = convertError $ ConvertErrorBadCaseNestedConstructors (annAnnot $ annotOfExp x) x
 
 
