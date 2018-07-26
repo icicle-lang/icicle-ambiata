@@ -14,11 +14,13 @@ module Icicle.Avalanche.Simp (
   ) where
 
 import           Control.Monad.Trans.Class
+import           Control.DeepSeq
 
 import           Data.Hashable (Hashable)
 
 import           GHC.Generics (Generic)
 
+import qualified Icicle.Common.Annot as Common
 import           Icicle.Common.Exp
 import           Icicle.Common.FixT
 import           Icicle.Common.Fresh
@@ -36,6 +38,8 @@ import           Icicle.Avalanche.Statement.Simp.Constructor
 import           Icicle.Avalanche.Statement.Simp.Eval
 import           Icicle.Avalanche.Statement.Simp.Melt
 import           Icicle.Avalanche.Statement.Statement
+
+import qualified Icicle.Compiler.Source as Source
 
 import           P
 
@@ -126,7 +130,7 @@ simpAvalanche a_fresh p
          >>= return .  dead
       s'' <- transformX return (return . reannotX fst) s'
       return $ p { statements = s'' }
-
+{-# SPECIALIZE simpAvalanche :: () -> Program () Source.Var Core.Prim -> Fresh Source.Var (Program () Source.Var Core.Prim) #-}
 
 simpFlattened
   :: forall a n . (Hashable n, Eq n, Ord a)
@@ -196,3 +200,4 @@ simpFlattened a_fresh opts p
   ctx    = Check.initialContext p
   check1 = check (optCheck (simpOptsCheckSimp   opts) ctx)
   check2 = check (optCheck (simpOptsCheckCrunch opts) ctx)
+{-# SPECIALIZE simpFlattened :: Common.Annot () -> SimpOpts -> Program (Common.Annot ()) Source.Var Flat.Prim -> Fresh Source.Var (Either (SimpError () Source.Var Flat.Prim) (Program (Common.Annot ()) Source.Var Flat.Prim)) #-}

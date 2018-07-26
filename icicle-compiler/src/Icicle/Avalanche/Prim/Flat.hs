@@ -100,14 +100,14 @@ data PrimMap
 
 data PrimMelt
  = PrimMeltPack        !ValType
- | PrimMeltUnpack !Int !ValType
+ | PrimMeltUnpack {-# UNPACK #-} !Int !ValType
  deriving (Eq, Ord, Show, Generic)
 
 -- | These correspond directly to the latest buffer primitives in Core.
 data PrimBuf
- = PrimBufMake !Int !ValType
- | PrimBufPush !Int !ValType
- | PrimBufRead !Int !ValType
+ = PrimBufMake {-# UNPACK #-} !Int !ValType
+ | PrimBufPush {-# UNPACK #-} !Int !ValType
+ | PrimBufRead {-# UNPACK #-} !Int !ValType
  deriving (Eq, Ord, Show, Generic)
 
 

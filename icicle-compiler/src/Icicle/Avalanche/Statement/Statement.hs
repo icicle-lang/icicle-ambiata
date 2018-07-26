@@ -33,40 +33,40 @@ import           P
 data Statement a n p
  -- Branches
  -- | An IF for filters
- = If           !(Exp a n p) !(Statement a n p) !(Statement a n p)
+ = If !(Exp a n p) (Statement a n p) (Statement a n p)
  -- | Local binding, so the name better be unique
- | Let !(Name n) !(Exp a n p) !(Statement a n p)
+ | Let {-# UNPACK #-} !(Name n) !(Exp a n p) (Statement a n p)
 
  -- | A loop with some condition on an accumulator.
- | While        !WhileType   !(Name n) !ValType !(Exp a n p) !(Statement a n p)
+ | While !WhileType {-# UNPACK #-} !(Name n) !ValType !(Exp a n p) (Statement a n p)
 
  -- | A loop over some ints
- | ForeachInts  !ForeachType !(Name n) !(Exp a n p) !(Exp a n p) !(Statement a n p)
+ | ForeachInts !ForeachType {-# UNPACK #-} !(Name n) !(Exp a n p) !(Exp a n p) (Statement a n p)
 
  -- | A loop over all the facts.
  -- This should only occur once in the program, and not inside a loop.
- | ForeachFacts !(FactBinds n) !ValType !(Statement a n p)
+ | ForeachFacts !(FactBinds n) !ValType (Statement a n p)
 
  -- | Execute several statements in a block.
- | Block ![Statement a n p]
+ | Block [Statement a n p]
 
  -- Initialise an accumulator
- | InitAccumulator !(Accumulator a n p) !(Statement a n p)
+ | InitAccumulator !(Accumulator a n p) (Statement a n p)
 
  -- | Read from a non-latest accumulator.
  -- First name is what to call it, second is what accumulator.
  -- As let:
  --      Let  local = accumulator,
  --      Read local = accumulator.
- | Read   !(Name n) !(Name n) !ValType !(Statement a n p)
+ | Read {-# UNPACK #-} !(Name n) {-# UNPACK #-} !(Name n) !ValType (Statement a n p)
 
  -- Leaf nodes
  -- | Update a resumable or windowed fold accumulator,
  -- with Exp : acc
- | Write  !(Name n) !(Exp a n p)
+ | Write {-# UNPACK #-} !(Name n) !(Exp a n p)
 
  -- | Emit a value to output
- | Output !OutputId !ValType ![(Exp a n p, ValType)]
+ | Output {-# UNPACK #-} !OutputId !ValType ![(Exp a n p, ValType)]
 
  deriving (Eq, Ord, Show, Generic)
 
@@ -193,7 +193,7 @@ foldStmt down up rjoin env res statements
            -> sub1 ss
           Block ss
            -> do    rs <- mapM (go e') ss
-                    let r' = foldl rjoin res rs
+                    let r' = foldl' rjoin res rs
                     up e' r' s
           InitAccumulator _ ss
            -> sub1 ss

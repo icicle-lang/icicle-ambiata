@@ -115,7 +115,7 @@ constructor a_fresh statements
    = xPrim (PrimMelt (PrimMeltUnpack ix t)) `xApp` x
 
   primPack env t xs
-   = foldl (\f x -> f `xApp` x) (xPrim (PrimMelt (PrimMeltPack t))) (unpack env xs)
+   = foldl' (\f x -> f `xApp` x) (xPrim (PrimMelt (PrimMeltPack t))) (unpack env xs)
 
   primRepack env t skip take x
    = let start = length (concatMap meltType skip)
