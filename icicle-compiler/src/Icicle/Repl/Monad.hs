@@ -1,6 +1,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Repl.Monad (
     Repl(..)
@@ -16,9 +18,10 @@ import           Control.Monad.State (MonadState(..))
 import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Trans.State.Strict (StateT, evalStateT)
 
-import qualified Data.List as List
+import           Data.List (dropWhileEnd)
 import           Data.String (String)
 
+import           Icicle.Repl.Completion
 import           Icicle.Repl.Data
 import           Icicle.Repl.Pretty
 
@@ -43,30 +46,7 @@ instance MonadState State Repl where
   state f =
     Repl . lift $ state f
 
-prependReplacement :: String -> Haskeline.Completion -> Haskeline.Completion
-prependReplacement prefix x =
-  x { Haskeline.replacement = prefix <> Haskeline.replacement x }
-
-completion :: MonadIO m => Haskeline.CompletionFunc m
-completion (prefix0, suffix) =
-  let
-    prefix =
-      List.reverse prefix0
-
-    load =
-      ":load "
-
-    loadPrefix0 =
-      List.reverse $
-        List.drop (List.length load) prefix
-  in
-    if load `List.isPrefixOf` prefix then
-      fmap (fmap (fmap (prependReplacement load))) $
-        Haskeline.completeFilename (loadPrefix0, suffix)
-    else
-      Haskeline.noCompletion (prefix0, suffix)
-
-getHaskelineSettings :: MonadIO m => IO (Haskeline.Settings m)
+getHaskelineSettings :: IO (Haskeline.Settings (StateT State IO))
 getHaskelineSettings = do
   home <- Directory.getHomeDirectory
   return .
@@ -99,10 +79,10 @@ withUserInput onInput =
     case minput of
       Nothing ->
         pure ()
-      Just ":quit" ->
-        pure ()
-      Just ":q" ->
-        pure ()
-      Just input -> do
-        onInput input
-        withUserInput onInput
+      Just input
+        | let trimmed = dropWhileEnd (== ' ') input
+        , trimmed == ":quit" || trimmed == ":q"
+        -> pure ()
+        | otherwise
+        -> do onInput input
+              withUserInput onInput

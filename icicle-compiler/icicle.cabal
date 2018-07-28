@@ -138,6 +138,7 @@ library
                        Icicle.Internal.Rename
 
                        Icicle.Repl
+                       Icicle.Repl.Completion
                        Icicle.Repl.Data
                        Icicle.Repl.Flag
                        Icicle.Repl.Help
