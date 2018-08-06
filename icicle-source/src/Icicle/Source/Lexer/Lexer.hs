@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Source.Lexer.Lexer (
     lexer
+  , lexerString
   , lexerPositions
   ) where
 

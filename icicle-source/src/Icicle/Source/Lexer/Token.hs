@@ -12,6 +12,7 @@ module Icicle.Source.Lexer.Token (
   , Literal  (..)
   , Variable (..)
   , keywordOrVar
+  , keywords
   , operator
   , SourcePos
   ) where
