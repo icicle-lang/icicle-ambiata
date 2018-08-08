@@ -15,7 +15,6 @@ module Icicle.Core.Exp.Prim (
 import           GHC.Generics (Generic)
 
 import           Icicle.Internal.Pretty
-import           Icicle.Common.Base
 import           Icicle.Common.NanEq
 import           Icicle.Common.Type
 import qualified Icicle.Common.Exp.Prim.Minimal as Min
@@ -36,7 +35,6 @@ data Prim
  | PrimMap      !PrimMap
  -- | Circular buffer for latest
  | PrimLatest   !PrimLatest
- | PrimWindow   !WindowUnit !(Maybe WindowUnit)
  deriving (Eq, Ord, Show, Generic, NanEq)
 
 
@@ -118,10 +116,6 @@ typeOfPrim p
     PrimLatest (PrimLatestRead i t)
      -> FunT [funOfVal (BufT i t)] (ArrayT t)
 
-    PrimWindow _ _
-     -> FunT [funOfVal TimeT, funOfVal TimeT] BoolT
-
-
 -- Pretty -------------
 
 instance Pretty Prim where
@@ -161,6 +155,3 @@ instance Pretty Prim where
 
  pretty (PrimLatest (PrimLatestRead _ _t))
   = "Latest_read#"
-
- pretty (PrimWindow newer older)
-  = "window# " <> pretty newer <> pretty older
