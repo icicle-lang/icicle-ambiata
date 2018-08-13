@@ -72,9 +72,7 @@ completion (prefix0, suffix) =
     -- the action it points to.
     action =
       if null rest
-        then wrapCompleter " " $ \w ->
-          let candidates = fmap fst ccs
-          in  return $ filter (w `isPrefixOf`) candidates
+        then wrapPure " " $ fst <$> ccs
         else fromMaybe Haskeline.noCompletion $ List.lookup prefix ccs
 
     in

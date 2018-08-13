@@ -147,25 +147,37 @@ convertQuery q
             -- Bind the computations of the window
             -- edges as a pre-computations.
             let
-              lpre
+              -- All widows have a left edge
+              leftPrecomp
                 = pre leftEdge $ windowEdge (CE.xVar now) newerThan
-              lCmp
+              leftComparison
                 = CE.xVar time >=~ CE.xVar leftEdge
 
-              (bpre, bothCmp)
+              -- If olderThan is set, we need to create
+              -- the right edge of the window as well;
+              -- otherwise, leave the comparison and
+              -- precomputations as just the left edge.
+              (bothPre, bothComparison)
                 = case olderThan of
                     Just olderThan' ->
                       let
-                        rpre = pre rightEdge $ windowEdge (CE.xVar now) olderThan'
-                        rCmp = CE.xVar rightEdge >=~ CE.xVar time
+                        rightPrecomp =
+                          pre rightEdge $ windowEdge (CE.xVar now) olderThan'
+                        rightComparison =
+                          CE.xVar rightEdge >=~ CE.xVar time
                       in
-                        (lpre <> rpre, lCmp CE.&&~ rCmp)
+                        (leftPrecomp <> rightPrecomp, leftComparison CE.&&~ rightComparison)
+
                     Nothing ->
-                      (lpre, lCmp)
+                      (leftPrecomp, leftComparison)
 
-              fbs = filt bothCmp (streams bs) <> bs { streams = [] }
+              -- Create the filtered program by filtering the downstream
+              -- streams. We leave the precomputations and postcomputations
+              -- of `bs` alone, and combine them with the new program.
+              filteredProgram =
+                filt bothComparison (streams bs) <> bs { streams = [] }
 
-            return (bpre <> fbs, b)
+            return (bothPre <> filteredProgram, b)
           where
             windowEdge now (Days   d) = CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays) CE.@~ now CE.@~ CE.constI d
             windowEdge now (Weeks  w) = CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays) CE.@~ now CE.@~ CE.constI (w * 7)
