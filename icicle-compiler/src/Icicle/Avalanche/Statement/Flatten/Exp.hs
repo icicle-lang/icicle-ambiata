@@ -281,25 +281,6 @@ flatX a_fresh xx stm
        | otherwise
        -> lift $ Left $ FlattenErrorPrimBadArgs p xs
 
-      Core.PrimWindow newerThan olderThan
-       | [now, fact] <- xs
-       -> flatX' now
-       $  \now'
-       -> flatX' fact
-       $  \fact'
-       -> let  ge    = xPrim $ Flat.PrimMinimal $ Min.PrimRelation Min.PrimRelationGe TimeT
-               andb  = xPrim $ Flat.PrimMinimal $ Min.PrimLogical  Min.PrimLogicalAnd
-               newer = ge `makeApps'` [fact', windowEdge now' newerThan]
-               both  | Just olderThan' <- olderThan
-                     = andb `makeApps'` [ newer, ge `makeApps'` [windowEdge now' olderThan', fact']]
-                     | otherwise
-                     = newer
-          in stm both
-
-       | otherwise
-       -> lift $ Left $ FlattenErrorPrimBadArgs p xs
-
-
   -- Convert arguments to a simple primitive.
   -- conv is what we've already converted
   primApps p [] conv
@@ -426,11 +407,6 @@ flatX a_fresh xx stm
             = Min.PrimPairSnd ta tb
      in (xPrim $ pmin $ Min.PrimPair $ pm) `xApp` e
   projCore = proj Core.PrimMinimal
-
-
-  windowEdge x (Days   d) = xPrim (Flat.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays)   `makeApps'` [x, xValue IntT $ VInt d]
-  windowEdge x (Weeks  w) = xPrim (Flat.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays)   `makeApps'` [x, xValue IntT $ VInt (7*w)]
-  windowEdge x (Months m) = xPrim (Flat.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusMonths) `makeApps'` [x, xValue IntT $ VInt m]
 
   slet'      = slet a_fresh
   forI'      = forI a_fresh

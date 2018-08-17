@@ -135,27 +135,57 @@ convertQuery q
             return (bs', b)
 
 
-    -- Windowing in Core must be at the start of a chain of stream transformers.
-    -- I think this is actually a shortcoming of Core, and can be relatively easily
-    -- fixed there.
-    -- For now, this doesn't support "filter X ~> window Y", but only "window Y ~> filter X".
-    --
-    -- We don't want unbounded "older than" windowing because then the window contents will
-    -- continue to grow unboundedly.
-    -- Instead, only allow "older than" windowing if there is also a "newer than" bound on the
-    -- other side.
-    -- We could support "older than" by storing reduce result of the end of window and
-    -- storing all corresponding newer thans in the snapshot, so if this ends up being an issue
-    -- we can address it.
+    -- Windowing in Core is a standard filter, with precomputations for
+    -- the edges of the windows.
     (Windowed _ newerThan olderThan : _)
-     -> do  (bs, b) <- convertQuery q'
-            now  <- convertDateName
-            time <- convertFactTimeName
+     -> do  (bs, b)   <- convertQuery q'
+            now       <- convertDateName
+            time      <- convertFactTimeName
+            leftEdge  <- lift fresh
+            rightEdge <- lift fresh
 
-            let e'  = CE.makeApps () (CE.xPrim $ C.PrimWindow newerThan olderThan)
-                    [ CE.xVar now, CE.xVar time ]
-            let bs' = filt e' (streams bs) <> bs { streams = [] }
-            return (bs', b)
+            -- Bind the computations of the window
+            -- edges as a pre-computations.
+            let
+              -- All widows have a left edge
+              leftPrecomp
+                = pre leftEdge $ windowEdge (CE.xVar now) newerThan
+              leftComparison
+                = CE.xVar time >=~ CE.xVar leftEdge
+
+              -- If olderThan is set, we need to create
+              -- the right edge of the window as well;
+              -- otherwise, leave the comparison and
+              -- precomputations as just the left edge.
+              (bothPre, bothComparison)
+                = case olderThan of
+                    Just olderThan' ->
+                      let
+                        rightPrecomp =
+                          pre rightEdge $ windowEdge (CE.xVar now) olderThan'
+                        rightComparison =
+                          CE.xVar rightEdge >=~ CE.xVar time
+                      in
+                        (leftPrecomp <> rightPrecomp, leftComparison CE.&&~ rightComparison)
+
+                    Nothing ->
+                      (leftPrecomp, leftComparison)
+
+              -- Create the filtered program by filtering the downstream
+              -- streams. We leave the precomputations and postcomputations
+              -- of `bs` alone, and combine them with the new program.
+              filteredProgram =
+                filt bothComparison (streams bs) <> bs { streams = [] }
+
+            return (bothPre <> filteredProgram, b)
+          where
+            windowEdge now (Days   d) = CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays) CE.@~ now CE.@~ CE.constI d
+            windowEdge now (Weeks  w) = CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays) CE.@~ now CE.@~ CE.constI (w * 7)
+            windowEdge now (Months m) = CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusMonths) CE.@~ now CE.@~ CE.constI m
+
+            (>=~) :: C.Exp () n -> C.Exp () n -> C.Exp () n
+            (>=~) = CE.prim2 (C.PrimMinimal $ Min.PrimRelation Min.PrimRelationGe T.TimeT)
+            infix 4 >=~
 
     (Latest _ _ : _)
      -> convertAsFold
