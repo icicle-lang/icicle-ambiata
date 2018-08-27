@@ -69,7 +69,20 @@ checkF' fun env
  = do -- Give each argument a fresh type variable
       env' <- foldM bindArg env $ arguments fun
       -- Get the annotated body
-      (q, subs, cons)  <- generateQ (body fun) env'
+      (q, subs', cons')  <- generateQ (body fun) env'
+
+      -- Perform top-level discharge of any silly
+      -- leftover Possibility or Temporality joins
+      -- This will reduce the complexity of the our
+      -- prelude functions (and user defined ones)
+      -- considerably.
+      (subs, cons) <-
+        case dischargeCS' dischargeC'toplevel cons' of
+          Left errs
+           -> genHoistEither
+            $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot (annotOfQuery q)) errs)
+          Right (sub', cons)
+           -> return (sub' <> subs', cons)
 
       -- Look up the argument types after solving all constraints.
       -- Because they started as fresh unification variables,
@@ -117,8 +130,8 @@ checkF' fun env
       -- Get all the names mentioned in constraints.
       -- Any modes mentioned in constraints are not necessarily pure.
       let keepModes
-                  = Set.unions
-                  $ fmap freeC constrs
+           = Set.unions
+           $ fmap freeC constrs
 
       -- Generalise any modes - temporality or possibility - that are not mentioned in constraints
       let remode t

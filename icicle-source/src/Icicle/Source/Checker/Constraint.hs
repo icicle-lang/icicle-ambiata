@@ -164,7 +164,7 @@ constraintsQ env q
     Left errs
      -> genHoistEither
       $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annotOfQuery q) errs)
-    Right (sub', cons') 
+    Right (sub', cons')
      -> let q'' = substTQ sub' q'
         in  return (q'', cons')
 
