@@ -483,7 +483,7 @@ generateQ qq@(Query (c:_) _) env
       a'env <- goPat ann a'pat (recomposeT (mt, mp, a'typ)) e
       b'env <- goPat ann b'pat (recomposeT (mt, mp, b'typ)) a'env
       return b'env
-  goPat ann (PatCon ConTuple _) btyp _
+  goPat ann (PatCon ConTuple _) typ _
     -- It's a type error, as we can't bind a non-pair
     -- pattern to a pair. We don't have type variables
     -- for the what the elements of the pair should be,
@@ -491,10 +491,11 @@ generateQ qq@(Query (c:_) _) env
     = do
       p1 <- TypeVar <$> fresh
       p2 <- TypeVar <$> fresh
+      let (_,_,canon'typ) = decomposeT $ canonT typ
       genHoistEither
         $ errorNoSuggestions
         $ ErrorConstraintsNotSatisfied ann
-          [(ann, CannotUnify (PairT p1 p2) btyp)]
+          [(ann, CannotUnify (PairT p1 p2) canon'typ)]
   goPat ann pat _ _
     -- It's not a pair, default or variable. All other
     -- patterns are Partial, so we disallow it.
