@@ -39,6 +39,7 @@ module Icicle.Sorbet.Concrete.Pretty (
 import qualified Data.List as List
 import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
+import           Data.Monoid ((<>))
 import           Data.Scientific (Scientific)
 import qualified Data.Semigroup as Semigroup
 import qualified Data.Text as T
@@ -51,7 +52,7 @@ import qualified Icicle.Internal.Leijen as Leijen
 import           Icicle.Sorbet.Concrete.Syntax
 import           Icicle.Sorbet.Lexical.Escape
 
-import           P hiding (Alt, exp)
+import           P hiding (Alt, exp, (<>))
 
 import           System.Console.ANSI (Color(..), ColorIntensity(..))
 import           System.Console.ANSI (ConsoleLayer(..))
