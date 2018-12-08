@@ -6,9 +6,14 @@ maintainer:            Ambiata <info@ambiata.com>
 copyright:             (c) 2015 Ambiata.
 synopsis:              Icicle Core language definition.
 category:              System
-cabal-version:         >= 1.8
+cabal-version:         >= 1.24
 build-type:            Custom
 description:           Icicle Core language definition.
+
+custom-setup
+  setup-depends:
+                      base  >= 3    && < 5
+                    , Cabal >= 1.24
 
 library
   build-depends:
@@ -19,6 +24,8 @@ library
                      , hashable                        == 1.2.*
                      , transformers                    >= 0.3        && < 0.6
                      , text                            == 1.2.*
+
+  default-language:    Haskell2010
 
   ghc-options:
                        -Wall

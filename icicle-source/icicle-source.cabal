@@ -17,7 +17,7 @@ extra-source-files:
 custom-setup
   setup-depends:
                       base  >= 3    && < 5
-                    , Cabal >= 1.24 && < 2
+                    , Cabal >= 1.24
 
 library
   build-depends:
@@ -58,6 +58,8 @@ library
                      , attoparsec                      >= 0.12       && < 0.14
                      , megaparsec                      >= 5.0        && < 5.2
                      ,     parsec                      == 3.1.*
+
+  default-language:    Haskell2010
 
   ghc-options:
                        -Wall
