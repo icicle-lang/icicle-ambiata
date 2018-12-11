@@ -250,15 +250,15 @@ runProp :: Input -> Text -> (Mempool.Mempool -> Argument -> IO [Argument]) -> IO
 runProp input fun args = do
   let fs = seprops input
   bracket (liftIO Mempool.create) (liftIO . Mempool.free) $ \pool -> runRight $ do
-  defaultOpts <- getCompilerOptions
-  let opts = ["-DICICLE_ASSERT=1"] <> defaultOpts
-  -- Cache the output, because we're likely to reuse the same type in another test 
-  bracketEitherT' (compileLibrary CacheLibrary opts fs) releaseLibrary $ \lib -> runRight $ do
-    ptr   <- liftIO $ allocInput pool input
-    f     <- function lib fun retBool
-    args' <- liftIO $ args pool ptr
-    r     <- liftIO $ f args'
-    return $ property r
+    defaultOpts <- getCompilerOptions
+    let opts = ["-DICICLE_ASSERT=1"] <> defaultOpts
+    -- Cache the output, because we're likely to reuse the same type in another test
+    bracketEitherT' (compileLibrary CacheLibrary opts fs) releaseLibrary $ \lib -> runRight $ do
+      ptr   <- liftIO $ allocInput pool input
+      f     <- function lib fun retBool
+      args' <- liftIO $ args pool ptr
+      r     <- liftIO $ f args'
+      return $ property r
 
 seprops :: Input -> SourceCode
 seprops input = codeOfDoc $ vsep

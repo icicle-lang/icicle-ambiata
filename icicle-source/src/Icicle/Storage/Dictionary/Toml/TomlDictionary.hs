@@ -10,7 +10,7 @@ module Icicle.Storage.Dictionary.Toml.TomlDictionary (
   , toEither
   ) where
 
-import           P
+import           P hiding ((<>))
 
 import           Control.Lens
 
@@ -18,6 +18,7 @@ import qualified Control.Applicative as CA ((<|>))
 import           Data.Text
 import           Data.Validation
 import qualified Data.HashMap.Strict as M
+import           Data.Monoid ((<>))
 
 import           Data.Attoparsec.Text
 import qualified Text.Parsec.Pos as Pos

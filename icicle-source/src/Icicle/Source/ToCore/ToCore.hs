@@ -25,6 +25,8 @@ module Icicle.Source.ToCore.ToCore (
   , convertQuery
   ) where
 
+import                  Data.Monoid ((<>))
+
 import                  Icicle.Source.Query
 import                  Icicle.Source.ToCore.Base
 import                  Icicle.Source.ToCore.Context
@@ -46,7 +48,7 @@ import                  Icicle.Data.Name
 
 import                  Icicle.Dictionary.Data
 
-import                  P
+import                  P hiding ((<>))
 
 import                  Control.Monad.Morph
 import                  Control.Monad.Trans.State.Lazy
