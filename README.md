@@ -26,7 +26,7 @@ Motivation
 ----------
 
 When performing a data engineering and machine learning tasks, one has many
-options for creating features. Languages like R can provide expressivivity,
+options for creating features. Languages like R can provide expressivity,
 but they don't scale well to the gigabyte, terabyte, or petabyte level; SQL
 can be applied for machine learning features, but is clunky to write, can
 fail at runtime, its hard to protect against label leakage, and its runtime
@@ -74,7 +74,7 @@ Context
 
 Icicle is designed for, but not dependent on, the
 [ivory](https://speakerdeck.com/ambiata/ivory-concepts)
-data-store. While parts of this docuement uses the terms of ivory,
+data-store. While parts of this document uses the terms of ivory,
 the problems being addressed are not unique to ivory, and one can adapt
 these ideas to different contexts. For an idea of what ivory does, see
 
@@ -98,7 +98,7 @@ Facts are (typed) values, keyed along three dimensions:
  - Attribute, this would be typically thought to represent the name of
    a column in a traditional data base.
 
- - Time, this represents when a facts if valid at. Different types of
+ - Time, this represents when a fact is valid at. Different types of
    facts may interpret this in different ways (for example for a state
    like value, this would indicate a fact is valid from time (t) until
    the next fact with the same entity / attribute and a more resent
